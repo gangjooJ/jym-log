@@ -19,6 +19,24 @@ let stateSavedHandler = null;
 let pendingState = null;
 let writeInProgress = false;
 
+function emitSyncStatus(
+  status,
+  message
+) {
+  window.dispatchEvent(
+    new CustomEvent(
+      "jym-log:sync-status",
+      {
+        detail: {
+          status,
+          message,
+          changedAt: Date.now()
+        }
+      }
+    )
+  );
+}
+
 /**
  * Firestore에 전달할 상태를
  * 현재 객체와 분리된 순수 데이터로 복사합니다.
@@ -96,6 +114,11 @@ async function flushPendingState() {
 
   let saveFailed = false;
 
+  emitSyncStatus(
+  "saving",
+  "저장 중"
+);
+
   try {
     await saveCloudState(
       userId,
@@ -105,6 +128,12 @@ async function flushPendingState() {
     console.info(
       "[JYM Log] 운동 기록 클라우드 저장 완료"
     );
+
+    emitSyncStatus(
+      "synced",
+      "동기화됨"
+    );
+
   } catch (error) {
     saveFailed = true;
 
@@ -117,6 +146,17 @@ async function flushPendingState() {
       "[JYM Log] 운동 기록 클라우드 저장 실패",
       error
     );
+
+    emitSyncStatus(
+      navigator.onLine
+        ? "error"
+        : "offline",
+
+      navigator.onLine
+        ? "동기화 오류"
+        : "오프라인 저장"
+    );
+
   } finally {
     writeInProgress = false;
 
@@ -137,6 +177,15 @@ async function flushPendingState() {
 function queueCloudSave(state) {
   pendingState =
     cloneState(state);
+
+  if (!navigator.onLine) {
+    emitSyncStatus(
+      "offline",
+      "오프라인 저장"
+    );
+
+    return;
+  }
 
   void flushPendingState();
 }
@@ -164,6 +213,11 @@ async function initializeWorkoutSync(
   userId
 ) {
   stopWorkoutSync();
+
+    emitSyncStatus(
+    "loading",
+    "확인 중"
+  );
 
   if (!userId) {
     throw new Error(
@@ -201,6 +255,12 @@ async function initializeWorkoutSync(
     console.info(
       "[JYM Log] 클라우드 운동 기록 불러오기 완료"
     );
+
+    emitSyncStatus(
+        "synced",
+        "동기화됨"
+      );
+
   } else {
     await saveCloudState(
       userId,
@@ -210,6 +270,12 @@ async function initializeWorkoutSync(
     console.info(
       "[JYM Log] 기존 운동 기록 최초 업로드 완료"
     );
+
+    emitSyncStatus(
+      "synced",
+      "동기화됨"
+    );
+
   }
 
   /**
@@ -247,9 +313,38 @@ async function initializeWorkoutSync(
 window.addEventListener(
   "online",
   () => {
-    if (pendingState) {
-      void flushPendingState();
+    if (!activeUserId) {
+      return;
     }
+
+    if (pendingState) {
+      emitSyncStatus(
+        "saving",
+        "저장 중"
+      );
+
+      void flushPendingState();
+      return;
+    }
+
+    emitSyncStatus(
+      "synced",
+      "동기화됨"
+    );
+  }
+);
+
+window.addEventListener(
+  "offline",
+  () => {
+    if (!activeUserId) {
+      return;
+    }
+
+    emitSyncStatus(
+      "offline",
+      "오프라인 저장"
+    );
   }
 );
 

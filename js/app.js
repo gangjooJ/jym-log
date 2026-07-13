@@ -2,6 +2,12 @@ const workout = window.JYMLog.workout;
 const exercises = workout.exercises;
 let state = workout.state;
 
+const syncStatus =
+  document.getElementById("syncStatus");
+
+const syncStatusText =
+  document.getElementById("syncStatusText");
+
 function applyAppMetadata() {
   const config = window.JYMLog.config;
 
@@ -28,6 +34,29 @@ function applyAppMetadata() {
 function toast(msg) {
     const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show");
     setTimeout(() => t.classList.remove("show"), 1900);
+}
+
+function updateSyncStatus(
+  status,
+  message
+) {
+  if (
+    !syncStatus ||
+    !syncStatusText
+  ) {
+    return;
+  }
+
+  syncStatus.dataset.state =
+    status;
+
+  syncStatusText.textContent =
+    message;
+
+  syncStatus.setAttribute(
+    "aria-label",
+    `클라우드 동기화 상태: ${message}`
+  );
 }
 
 function navigate(name) {
@@ -382,6 +411,19 @@ window.addEventListener(
 
     console.info(
       "[JYM Log] 로그인 사용자 운동 기록 준비 완료"
+    );
+  }
+);
+
+window.addEventListener(
+  "jym-log:sync-status",
+  (event) => {
+    const detail =
+      event.detail || {};
+
+    updateSyncStatus(
+      detail.status || "loading",
+      detail.message || "확인 중"
     );
   }
 );
