@@ -13,7 +13,8 @@ function navigate(name) {
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.nav === name));
     document.getElementById("bottomNav").classList.toggle("hidden", name === "workout" || name === "summary");
     const labels = { home: "오늘의 운동", workout: "운동 진행", summary: "운동 완료", history: "운동 기록", analysis: "진행 분석", routine: "루틴 관리", settings: "설정" };
-    document.getElementById("headerSub").textContent = labels[name] || "Progress Log";
+    document.getElementById("headerSub").textContent =
+        labels[name] || window.JYMLog.config.appName;
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 function renderHome() {
@@ -26,34 +27,112 @@ function renderHome() {
 }
 
 function renderWorkout() {
-    const s = workout.getSet(state.activeExercise, i);
-    document.getElementById("workoutStep").textContent = `운동 ${state.activeExercise + 1} / ${exercises.length}`;
-    document.getElementById("workoutTitle").textContent = e.name;
-    document.getElementById("workoutProgress").style.width = `${((state.activeExercise + 1) / exercises.length) * 100}%`;
-    document.getElementById("targetText").textContent = `${e.weight}kg · ${e.sets} × ${e.min === e.max ? e.min : `${e.min}–${e.max}`}`;
-    document.getElementById("incrementText").textContent = `${e.increment}kg`;
-    document.getElementById("previousText").textContent = e.previous;
-    document.getElementById("prevExerciseBtn").disabled = state.activeExercise === 0;
-    document.getElementById("nextExerciseBtn").textContent = state.activeExercise === exercises.length - 1 ? "처음으로" : "다음 운동";
+    const exerciseIndex = state.activeExercise;
+    const exercise = exercises[exerciseIndex];
+
+    document.getElementById("workoutStep").textContent =
+        `운동 ${exerciseIndex + 1} / ${exercises.length}`;
+
+    document.getElementById("workoutTitle").textContent =
+        exercise.name;
+
+    document.getElementById("workoutProgress").style.width =
+        `${((exerciseIndex + 1) / exercises.length) * 100}%`;
+
+    document.getElementById("targetText").textContent =
+        `${exercise.weight}kg · ${exercise.sets} × ${
+            exercise.min === exercise.max
+                ? exercise.min
+                : `${exercise.min}–${exercise.max}`
+        }`;
+
+    document.getElementById("incrementText").textContent =
+        `${exercise.increment}kg`;
+
+    document.getElementById("previousText").textContent =
+        exercise.previous;
+
+    document.getElementById("prevExerciseBtn").disabled =
+        exerciseIndex === 0;
+
+    document.getElementById("nextExerciseBtn").textContent =
+        exerciseIndex === exercises.length - 1
+            ? "처음으로"
+            : "다음 운동";
+
     const list = [];
-    for (let i = 0; i < e.sets; i++) {
-        const s = getSet(state.activeExercise, i);
-        list.push(`<div class="set-row ${s.done ? "done" : ""}" data-set="${i}">
-      <div class="set-number">${i + 1}</div>
-      <div class="stepper">
-        <button data-action="weight-down" data-set="${i}">−</button>
-        <input inputmode="decimal" value="${s.weight}" data-field="weight" data-set="${i}" aria-label="중량">
-        <button data-action="weight-up" data-set="${i}">＋</button>
-      </div>
-      <div class="stepper">
-        <button data-action="reps-down" data-set="${i}">−</button>
-        <input inputmode="numeric" value="${s.reps}" data-field="reps" data-set="${i}" aria-label="반복">
-        <button data-action="reps-up" data-set="${i}">＋</button>
-      </div>
-      <button class="set-done-btn" data-action="done" data-set="${i}">${s.done ? "✓" : "완료"}</button>
-    </div>`);
+
+    for (let setIndex = 0; setIndex < exercise.sets; setIndex += 1) {
+        const set = workout.getSet(exerciseIndex, setIndex);
+
+        list.push(`
+            <div
+                class="set-row ${set.done ? "done" : ""}"
+                data-set="${setIndex}"
+            >
+                <div class="set-number">${setIndex + 1}</div>
+
+                <div class="stepper">
+                    <button
+                        data-action="weight-down"
+                        data-set="${setIndex}"
+                    >
+                        −
+                    </button>
+
+                    <input
+                        inputmode="decimal"
+                        value="${set.weight}"
+                        data-field="weight"
+                        data-set="${setIndex}"
+                        aria-label="중량"
+                    >
+
+                    <button
+                        data-action="weight-up"
+                        data-set="${setIndex}"
+                    >
+                        ＋
+                    </button>
+                </div>
+
+                <div class="stepper">
+                    <button
+                        data-action="reps-down"
+                        data-set="${setIndex}"
+                    >
+                        −
+                    </button>
+
+                    <input
+                        inputmode="numeric"
+                        value="${set.reps}"
+                        data-field="reps"
+                        data-set="${setIndex}"
+                        aria-label="반복"
+                    >
+
+                    <button
+                        data-action="reps-up"
+                        data-set="${setIndex}"
+                    >
+                        ＋
+                    </button>
+                </div>
+
+                <button
+                    class="set-done-btn"
+                    data-action="done"
+                    data-set="${setIndex}"
+                >
+                    ${set.done ? "✓" : "완료"}
+                </button>
+            </div>
+        `);
     }
-    document.getElementById("setList").innerHTML = list.join("");
+
+    document.getElementById("setList").innerHTML =
+        list.join("");
 }
 function startRest(seconds) {
     const timerCard = document.getElementById("timerCard");
