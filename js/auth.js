@@ -11,6 +11,10 @@ import {
   auth
 } from "./firebase-client.js";
 
+import {
+  ensureUserProfile
+} from "./profile.js";
+
 const authScreen =
   document.getElementById("authScreen");
 
@@ -225,16 +229,29 @@ async function initializeAuth() {
   }
 
   onAuthStateChanged(
-    auth,
-    (user) => {
-      if (user) {
-        showSignedIn(user);
-        return;
-      }
-
+  auth,
+  async (user) => {
+    if (!user) {
       showSignedOut();
+      return;
     }
-  );
+
+    setAuthMessage(
+      "사용자 정보를 준비하고 있습니다."
+    );
+
+    try {
+      await ensureUserProfile(user);
+    } catch (error) {
+      console.error(
+        "[JYM Log] 사용자 프로필 저장 실패",
+        error
+      );
+    }
+
+    showSignedIn(user);
+  }
+);
 }
 
 initializeAuth().catch((error) => {

@@ -6,6 +6,10 @@ import {
   getAuth
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 
+import {
+  getFirestore
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
 window.JYMLog = window.JYMLog || {};
 
 const firebaseConfig =
@@ -23,9 +27,13 @@ const firebaseApp =
 const auth =
   getAuth(firebaseApp);
 
+const db =
+  getFirestore(firebaseApp);
+
 window.JYMLog.firebase = Object.freeze({
   app: firebaseApp,
-  auth
+  auth,
+  db
 });
 
 console.info(
@@ -34,5 +42,6 @@ console.info(
 
 export {
   firebaseApp,
-  auth
+  auth,
+  db
 };
