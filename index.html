@@ -180,30 +180,44 @@
     </section>
 
     <section class="screen" id="screen-history">
-      <div class="eyebrow">운동 기록</div><h1>쌓인 기록이<br>다음 운동을 만듭니다.</h1>
-      <div class="section-title"><h2>7월</h2><small>달력 보기</small></div>
-      <div class="calendar-row">
-        <div class="day"><small>월</small><strong>6</strong></div>
-        <div class="day"><small>화</small><strong>7</strong></div>
-        <div class="day active"><small>수</small><strong>8</strong></div>
-        <div class="day"><small>목</small><strong>9</strong></div>
-        <div class="day"><small>금</small><strong>10</strong></div>
-        <div class="day"><small>토</small><strong>11</strong></div>
-        <div class="day"><small>일</small><strong>12</strong></div>
-      </div>
-      <div class="section-title"><h2>최근 세션</h2><small>3회</small></div>
-      <div class="card history-card">
-        <div class="history-head"><div><h3>가슴 · 팔</h3><p style="color:var(--muted);font-size:12px;margin-top:4px">7월 8일 수요일</p></div><span class="tag">완료</span></div>
-        <div class="history-meta"><span>⏱ 68분</span><span>▦ 17세트</span><span>◈ 6,820kg</span></div>
-      </div>
-      <div class="card history-card">
-        <div class="history-head"><div><h3>등 · 어깨</h3><p style="color:var(--muted);font-size:12px;margin-top:4px">7월 6일 월요일</p></div><span class="tag">완료</span></div>
-        <div class="history-meta"><span>⏱ 74분</span><span>▦ 22세트</span><span>◈ 7,440kg</span></div>
-      </div>
-      <div class="card history-card">
-        <div class="history-head"><div><h3>가슴 · 팔</h3><p style="color:var(--muted);font-size:12px;margin-top:4px">7월 4일 토요일</p></div><span class="tag">완료</span></div>
-        <div class="history-meta"><span>⏱ 65분</span><span>▦ 17세트</span><span>◈ 6,710kg</span></div>
-      </div>
+        <div class="eyebrow">운동 기록</div>
+
+        <h1>
+          쌓인 기록이<br>
+          다음 운동을 만듭니다.
+        </h1>
+
+        <div class="section-title">
+          <h2 id="historyMonthLabel">
+            이번 달
+          </h2>
+
+          <small>최근 운동일</small>
+        </div>
+
+        <div
+          class="calendar-row"
+          id="historyCalendar"
+          aria-label="이번 주 운동 달력"
+        ></div>
+
+        <div class="section-title">
+          <h2>최근 세션</h2>
+
+          <small id="historySessionCount">
+            불러오는 중
+          </small>
+        </div>
+
+        <div
+          id="historySessionList"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div class="card history-state">
+            운동 기록을 불러오고 있습니다.
+          </div>
+        </div>
     </section>
 
     <section class="screen" id="screen-analysis">

@@ -21,6 +21,7 @@ import {
 } from "./sync.js";
 
 import "./sessions.js";
+import "./history.js";
 
 const workout =
   window.JYMLog.workout;

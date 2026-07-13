@@ -1,4 +1,4 @@
-const CACHE_NAME = "jym-log-v0.2.0-dev-7";
+const CACHE_NAME = "jym-log-v0.2.0-dev-8";
 
 const APP_SHELL = [
   "./",
@@ -9,6 +9,7 @@ const APP_SHELL = [
   "./js/profile.js",
   "./js/sync.js",
   "./js/sessions.js",
+  "./js/history.js",
   "./js/auth.js",
   "./js/storage.js",
   "./js/workout.js",

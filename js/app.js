@@ -8,6 +8,26 @@ const syncStatus =
 const syncStatusText =
   document.getElementById("syncStatusText");
 
+  const historyMonthLabel =
+  document.getElementById(
+    "historyMonthLabel"
+  );
+
+  const historyCalendar =
+    document.getElementById(
+      "historyCalendar"
+    );
+
+  const historySessionCount =
+    document.getElementById(
+      "historySessionCount"
+    );
+
+  const historySessionList =
+    document.getElementById(
+      "historySessionList"
+    );
+
 function applyAppMetadata() {
   const config = window.JYMLog.config;
 
@@ -59,6 +79,334 @@ function updateSyncStatus(
   );
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function formatHistoryDate(
+  timestampMillis
+) {
+  if (!timestampMillis) {
+    return "날짜 정보 없음";
+  }
+
+  return new Intl.DateTimeFormat(
+    window.JYMLog.config.locale,
+    {
+      timeZone:
+        window.JYMLog.config.timezone,
+      month: "long",
+      day: "numeric",
+      weekday: "long"
+    }
+  ).format(
+    new Date(timestampMillis)
+  );
+}
+
+function formatSessionDuration(
+  durationSeconds
+) {
+  const minutes =
+    Math.max(
+      1,
+      Math.round(
+        Number(durationSeconds) / 60
+      )
+    );
+
+  return `${minutes}분`;
+}
+
+function getDateKey(dateValue) {
+  const date =
+    new Date(dateValue);
+
+  const year =
+    date.getFullYear();
+
+  const month =
+    String(
+      date.getMonth() + 1
+    ).padStart(2, "0");
+
+  const day =
+    String(
+      date.getDate()
+    ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function renderHistoryCalendar(
+  sessions
+) {
+  if (!historyCalendar) {
+    return;
+  }
+
+  const today =
+    new Date();
+
+  const currentDay =
+    today.getDay();
+
+  /**
+   * JavaScript에서 일요일은 0입니다.
+   * 월요일 시작 달력을 만들기 위해 변환합니다.
+   */
+  const mondayOffset =
+    currentDay === 0
+      ? -6
+      : 1 - currentDay;
+
+  const monday =
+    new Date(today);
+
+  monday.setHours(
+    0,
+    0,
+    0,
+    0
+  );
+
+  monday.setDate(
+    today.getDate() +
+    mondayOffset
+  );
+
+  const sessionDateKeys =
+    new Set(
+      sessions
+        .filter(
+          (session) =>
+            session.completedAtMillis
+        )
+        .map(
+          (session) =>
+            getDateKey(
+              session.completedAtMillis
+            )
+        )
+    );
+
+  const weekdayLabels = [
+    "월",
+    "화",
+    "수",
+    "목",
+    "금",
+    "토",
+    "일"
+  ];
+
+  const todayKey =
+    getDateKey(today);
+
+  const calendarDays =
+    weekdayLabels.map(
+      (weekday, index) => {
+        const date =
+          new Date(monday);
+
+        date.setDate(
+          monday.getDate() +
+          index
+        );
+
+        const dateKey =
+          getDateKey(date);
+
+        const classes = [
+          "day"
+        ];
+
+        if (dateKey === todayKey) {
+          classes.push("today");
+        }
+
+        if (
+          sessionDateKeys.has(dateKey)
+        ) {
+          classes.push(
+            "has-session"
+          );
+        }
+
+        return `
+          <div class="${classes.join(" ")}">
+            <small>${weekday}</small>
+            <strong>${date.getDate()}</strong>
+          </div>
+        `;
+      }
+    );
+
+  historyCalendar.innerHTML =
+    calendarDays.join("");
+
+  historyMonthLabel.textContent =
+    new Intl.DateTimeFormat(
+      window.JYMLog.config.locale,
+      {
+        timeZone:
+          window.JYMLog.config.timezone,
+        month: "long"
+      }
+    ).format(today);
+}
+
+function renderHistorySessions(
+  sessions
+) {
+  if (
+    !historySessionList ||
+    !historySessionCount
+  ) {
+    return;
+  }
+
+  const recentSessions =
+    sessions.slice(0, 3);
+
+  historySessionList.setAttribute(
+    "aria-busy",
+    "false"
+  );
+
+  historySessionCount.textContent =
+    `${recentSessions.length}회`;
+
+  if (
+    recentSessions.length === 0
+  ) {
+    historySessionList.innerHTML = `
+      <div class="card history-state">
+        아직 완료한 운동 기록이 없습니다.<br>
+        운동을 완료하면 이곳에 표시됩니다.
+      </div>
+    `;
+
+    return;
+  }
+
+  historySessionList.innerHTML =
+    recentSessions
+      .map(
+        (session) => `
+          <div class="card history-card">
+            <div class="history-head">
+              <div>
+                <h3>
+                  ${escapeHtml(
+                    session.routineName
+                  )}
+                </h3>
+
+                <p class="history-date">
+                  ${formatHistoryDate(
+                    session.completedAtMillis
+                  )}
+                </p>
+              </div>
+
+              <span class="tag">
+                완료
+              </span>
+            </div>
+
+            <div class="history-meta">
+              <span>
+                ⏱ ${formatSessionDuration(
+                  session.durationSeconds
+                )}
+              </span>
+
+              <span>
+                ▦ ${session.completedSets.toLocaleString()}세트
+              </span>
+
+              <span>
+                ◈ ${session.totalVolume.toLocaleString()}kg
+              </span>
+            </div>
+          </div>
+        `
+      )
+      .join("");
+}
+
+async function loadHistory() {
+  if (
+    !historySessionList ||
+    !historySessionCount
+  ) {
+    return;
+  }
+
+  historySessionCount.textContent =
+    "불러오는 중";
+
+  historySessionList.setAttribute(
+    "aria-busy",
+    "true"
+  );
+
+  historySessionList.innerHTML = `
+    <div class="card history-state">
+      운동 기록을 불러오고 있습니다.
+    </div>
+  `;
+
+  try {
+    const historyApi =
+      window.JYMLog.history;
+
+    if (!historyApi) {
+      throw new Error(
+        "운동 기록 모듈을 찾을 수 없습니다."
+      );
+    }
+
+    const sessions =
+      await historyApi
+        .loadRecentWorkoutSessions(20);
+
+    renderHistoryCalendar(
+      sessions
+    );
+
+    renderHistorySessions(
+      sessions
+    );
+  } catch (error) {
+    console.error(
+      "[JYM Log] 운동 기록 불러오기 실패",
+      error
+    );
+
+    historySessionCount.textContent =
+      "오류";
+
+    historySessionList.setAttribute(
+      "aria-busy",
+      "false"
+    );
+
+    historySessionList.innerHTML = `
+      <div class="card history-state error">
+        운동 기록을 불러오지 못했습니다.<br>
+        네트워크 연결을 확인한 뒤 다시 열어 주세요.
+      </div>
+    `;
+  }
+}
+
 function navigate(name) {
     document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
     document.getElementById(`screen-${name}`).classList.add("active");
@@ -67,6 +415,11 @@ function navigate(name) {
     const labels = { home: "오늘의 운동", workout: "운동 진행", summary: "운동 완료", history: "운동 기록", analysis: "진행 분석", routine: "루틴 관리", settings: "설정" };
     document.getElementById("headerSub").textContent =
         labels[name] || window.JYMLog.config.appName;
+
+        if (name === "history") {
+          void loadHistory();
+        }
+
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 function renderHome() {
@@ -441,6 +794,7 @@ window.addEventListener(
     renderHome();
     renderRoutine();
     renderAnalysis();
+    renderHistoryCalendar([]);
 
     if (
       state.started &&

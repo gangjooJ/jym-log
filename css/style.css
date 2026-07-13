@@ -488,3 +488,58 @@
     text-overflow: ellipsis;
   }
 }
+
+.history-state {
+  padding: 28px 18px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.history-state.error {
+  color: var(--danger);
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.history-session-list {
+  display: grid;
+  gap: 10px;
+}
+
+.history-card {
+  margin-top: 0;
+}
+
+.history-card + .history-card {
+  margin-top: 10px;
+}
+
+.history-date {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.history-meta {
+  flex-wrap: wrap;
+}
+
+.day.today {
+  border-color: var(--accent);
+}
+
+.day.has-session::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  margin: 3px auto 0;
+  border-radius: 50%;
+  display: block;
+  background: var(--good);
+}
+
+.day.today.has-session::after {
+  background: currentColor;
+}
