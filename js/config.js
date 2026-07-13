@@ -6,8 +6,8 @@ window.JYMLog.config = Object.freeze({
   updatedAt: "2026-07-13",
   storageKey: "jym-log-prototype-state",
   locale: "ko-KR",
-  timezone: "Asia/Seoul"
-
+  timezone: "Asia/Seoul",
+  
   firebase: Object.freeze({
     apiKey: "AIzaSyDOxYbY2s1V4XTsBVEgITHGdl-i6Cp-WFI",
     authDomain: "jym-log.firebaseapp.com",
