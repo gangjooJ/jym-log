@@ -2,6 +2,29 @@ const workout = window.JYMLog.workout;
 const exercises = workout.exercises;
 let state = workout.state;
 
+function applyAppMetadata() {
+  const config = window.JYMLog.config;
+
+  document.querySelectorAll("[data-app-name]").forEach((element) => {
+    element.textContent = config.appName;
+  });
+
+  document.title = config.appName;
+
+  const today = new Date();
+
+  const formattedDate = new Intl.DateTimeFormat(config.locale, {
+    timeZone: config.timezone,
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long"
+  }).format(today);
+
+  document.getElementById("todayLabel").textContent =
+    formattedDate;
+}
+
 function toast(msg) {
     const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show");
     setTimeout(() => t.classList.remove("show"), 1900);
@@ -340,6 +363,8 @@ document.getElementById("resetBtn").onclick = () => {
         location.reload();
     }
 };
+
+applyAppMetadata();
 
 renderHome();
 renderRoutine();

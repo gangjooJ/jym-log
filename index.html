@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-  <title>Progress Log Prototype</title>
+  <title>JYM Log</title>
 
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon-192.png" />
@@ -19,15 +19,18 @@
   <div class="statusbar"></div>
   <header class="topbar">
     <div class="brand">
-      <div class="brand-mark">PL</div>
-      <div><div class="brand-title">Progress Log</div><div class="brand-sub" id="headerSub">오늘의 운동</div></div>
+      <div class="brand-mark">JL</div>
+        <div>
+          <div class="brand-title" data-app-name>JYM Log</div>
+          <div class="brand-sub" id="headerSub">오늘의 운동</div>
+        </div>
     </div>
     <button class="icon-btn" id="resetBtn" aria-label="프로토타입 초기화">↻</button>
   </header>
 
   <main>
     <section class="screen active" id="screen-home">
-      <div class="eyebrow">2026년 7월 12일 · 일요일</div>
+      <div class="eyebrow" id="todayLabel"></div>
       <h1>오늘도 한 세트씩<br>앞으로 갑니다.</h1>
 
       <div class="hero" style="margin-top:18px">
