@@ -229,40 +229,22 @@
 
 <script src="./js/config.js"></script>
 <script src="./js/storage.js"></script>
+<script src="./js/workout.js"></script>
+
 <script>
-
-const exercises = [
-  {name:"벤치프레스", icon:"B", weight:80, sets:5, min:5, max:5, prev:"80kg · 5 / 5 / 5 / 5 / 4", rest:180, increment:2.5, type:"고정 반복형"},
-  {name:"인클라인 벤치프레스", icon:"I", weight:50, sets:3, min:8, max:12, prev:"50kg · 12 / 11 / 10", rest:120, increment:2.5, type:"반복 범위형"},
-  {name:"케이블 크로스오버", icon:"C", weight:24, sets:3, min:8, max:12, prev:"24kg · 12 / 12 / 11", rest:90, increment:6, type:"반복 범위형"},
-  {name:"트라이셉스 푸시다운", icon:"T", weight:30, sets:3, min:8, max:12, prev:"30kg · 12 / 10 / 10", rest:90, increment:6, type:"반복 범위형"},
-  {name:"바벨 컬", icon:"A", weight:25, sets:3, min:8, max:12, prev:"25kg · 11 / 10 / 9", rest:90, increment:2.5, type:"반복 범위형"}
-];
-
-const defaultState = {
-  activeExercise: 0,
-  started: false,
-  startedAt: null,
-  sets: {},
-  fatigue: 3,
-  completed: false
-};
-
-let state = window.JYMLog.storage.load(defaultState);
-
-let timerInterval=null, restRemaining=0, elapsedInterval=null;
+const workout = window.JYMLog.workout;
+const exercises = workout.exercises;
+let state = workout.state;
 
 function save(){ 
-  window.JYMLog.storage.save(state);
+  workout.saveState();
 }
 function toast(msg){
   const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
   setTimeout(()=>t.classList.remove("show"),1900);
 }
-function formatTime(sec){
-  const m=Math.floor(sec/60).toString().padStart(2,"0");
-  const s=Math.max(0,sec%60).toString().padStart(2,"0");
-  return `${m}:${s}`;
+function formatTime(seconds) {
+  return workout.formatTime(seconds);
 }
 function navigate(name){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
@@ -281,10 +263,8 @@ function renderHome(){
       <div class="exercise-target"><strong>${e.weight}kg</strong><span>${e.sets} × ${e.min===e.max?e.min:`${e.min}–${e.max}`}</span></div>
     </div>`).join("");
 }
-function getSet(exIdx,setIdx){
-  const key=`${exIdx}-${setIdx}`;
-  if(!state.sets[key]) state.sets[key]={weight:exercises[exIdx].weight,reps:exercises[exIdx].min,done:false};
-  return state.sets[key];
+function getSet(exerciseIndex, setIndex) {
+  return workout.getSet(exerciseIndex, setIndex);
 }
 function renderWorkout(){
   const e=exercises[state.activeExercise];
@@ -317,34 +297,42 @@ function renderWorkout(){
   document.getElementById("setList").innerHTML=list.join("");
   save();
 }
-function startRest(seconds){
-  clearInterval(timerInterval); restRemaining=seconds;
-  const card=document.getElementById("timerCard"); card.classList.remove("hidden");
-  document.getElementById("timerTime").textContent=formatTime(restRemaining);
-  timerInterval=setInterval(()=>{
-    restRemaining--;
-    document.getElementById("timerTime").textContent=formatTime(restRemaining);
-    if(restRemaining<=0){ clearInterval(timerInterval); toast("휴식 시간이 끝났습니다."); }
-  },1000);
+function startRest(seconds) {
+  const timerCard = document.getElementById("timerCard");
+
+  timerCard.classList.remove("hidden");
+
+  workout.startRestTimer(
+    seconds,
+
+    (remainingSeconds) => {
+      document.getElementById("timerTime").textContent =
+        workout.formatTime(remainingSeconds);
+    },
+
+    () => {
+      toast("휴식 시간이 끝났습니다.");
+    }
+  );
 }
-function startElapsed(){
-  clearInterval(elapsedInterval);
-  elapsedInterval=setInterval(()=>{
-    if(!state.startedAt)return;
-    const sec=Math.floor((Date.now()-state.startedAt)/1000);
-    document.getElementById("elapsed").textContent=formatTime(sec);
-  },1000);
+function startElapsed() {
+  workout.startElapsedTimer((elapsedSeconds) => {
+    document.getElementById("elapsed").textContent =
+      workout.formatTime(elapsedSeconds);
+  });
 }
-function startWorkout(){
-  state.started=true; state.completed=false;
-  if(!state.startedAt) state.startedAt=Date.now();
-  save(); renderWorkout(); startElapsed(); navigate("workout");
+function startWorkout() {
+  workout.beginWorkout();
+  state = workout.state;
+  renderWorkout();
+  startElapsed();
+  navigate("workout");
 }
-function allDoneCount(){
-  return Object.values(state.sets).filter(s=>s.done).length;
+function allDoneCount() {
+  return workout.getCompletedSetCount();
 }
-function totalVolume(){
-  return Math.round(Object.values(state.sets).filter(s=>s.done).reduce((a,s)=>a+(Number(s.weight)||0)*(Number(s.reps)||0),0));
+function totalVolume() {
+  return workout.getTotalVolume();
 }
 function renderSummary(){
   const sec=state.startedAt?Math.max(60,Math.floor((Date.now()-state.startedAt)/1000)):0;
@@ -393,7 +381,9 @@ document.addEventListener("click",e=>{
   if(e.target.classList.contains("switch")) e.target.classList.toggle("on");
   if(e.target.classList.contains("score-btn")){
     document.querySelectorAll(".score-btn").forEach(b=>b.classList.remove("selected"));
-    e.target.classList.add("selected"); state.fatigue=Number(e.target.textContent); save();
+    e.target.classList.add("selected"); 
+    workout.setFatigue(Number(e.target.textContent));
+    state = workout.state;
   }
 });
 document.addEventListener("change",e=>{
@@ -408,16 +398,31 @@ document.getElementById("nextExerciseBtn").onclick=()=>{state.activeExercise=(st
 document.getElementById("finishWorkoutBtn").onclick=()=>document.getElementById("fatigueModal").classList.add("show");
 document.getElementById("confirmFinishBtn").onclick=()=>{
   document.getElementById("fatigueModal").classList.remove("show");
-  state.completed=true; save(); renderSummary(); navigate("summary"); clearInterval(timerInterval); clearInterval(elapsedInterval);
+  workout.finishWorkout();
+  workout.stopRestTimer();
+  workout.stopElapsedTimer();
+
+  state = workout.state; 
+  renderSummary(); 
+  navigate("summary");
 };
 document.getElementById("fatigueModal").onclick=e=>{if(e.target.id==="fatigueModal")e.target.classList.remove("show")};
-document.getElementById("add30Btn").onclick=()=>{restRemaining+=30;document.getElementById("timerTime").textContent=formatTime(restRemaining)};
-document.getElementById("stopTimerBtn").onclick=()=>{clearInterval(timerInterval);document.getElementById("timerCard").classList.add("hidden")};
+document.getElementById("add30Btn").onclick = () => {
+  workout.addRestTime(30, (remainingSeconds) => {
+    document.getElementById("timerTime").textContent =
+      workout.formatTime(remainingSeconds);
+  });
+};
+document.getElementById("stopTimerBtn").onclick = () => {
+  workout.stopRestTimer();
+
+  document.getElementById("timerCard").classList.add("hidden");
+};
 document.getElementById("addExerciseDemo").onclick=()=>toast("다음 스프린트에서 운동 추가 편집 화면을 연결합니다.");
 document.getElementById("installInfoBtn").onclick=()=>toast("HTTPS 또는 localhost에서 열면 브라우저의 ‘홈 화면에 추가’를 사용할 수 있습니다.");
 document.getElementById("resetBtn").onclick=()=>{
   if(confirm("프로토타입 기록을 초기화할까요?")){
-    window.JYMLog.storage.clear();
+    workout.resetWorkout();
     location.reload();
   }
 };
@@ -434,7 +439,7 @@ document.getElementById("settingsVersion").textContent =
 
 document.getElementById("settingsUpdated").textContent =
   window.JYMLog.config.updatedAt;
-  
+
 if(state.started && !state.completed){startElapsed();}
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
