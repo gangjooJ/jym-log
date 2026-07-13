@@ -81,16 +81,22 @@ window.JYMLog.workout = (() => {
     fatigue: 3,
     completed: false
   };
+  function createDefaultState() {
+  return {
+    ...defaultState,
+    sets: {}
+  };
+}
 
   /**
    * 브라우저에 저장된 운동 상태를 불러옵니다.
    *
    * 저장된 기록이 없다면 defaultState를 사용합니다.
    */
-  let state = window.JYMLog.storage.load({
-    ...defaultState,
-    sets: {}
-  });
+  let state =
+  window.JYMLog.storage.load(
+    createDefaultState()
+  );
 
   let restTimerId = null;
   let elapsedTimerId = null;
@@ -102,6 +108,65 @@ window.JYMLog.workout = (() => {
   function saveState() {
     return window.JYMLog.storage.save(state);
   }
+
+  /**
+ * 기존 state 객체 자체는 유지하면서
+ * 내부 데이터만 새로운 상태로 교체합니다.
+ *
+ * app.js가 같은 state 객체를 계속 참조하도록
+ * 객체를 새로 대입하지 않는 것이 중요합니다.
+ */
+function replaceState(
+  nextState,
+  persist = true
+) {
+  const normalizedState = {
+    ...createDefaultState(),
+    ...(nextState || {}),
+    sets: {
+      ...(nextState?.sets || {})
+    }
+  };
+
+  Object.keys(state).forEach(
+    (key) => {
+      delete state[key];
+    }
+  );
+
+  Object.assign(
+    state,
+    normalizedState
+  );
+
+  if (persist) {
+    saveState();
+  }
+
+  return state;
+}
+
+/**
+ * 로그인 계정의 전용 운동 기록을 활성화합니다.
+ */
+function activateUser(userId) {
+  const userState =
+    window.JYMLog.storage.activateUser(
+      userId,
+      createDefaultState()
+    );
+
+  replaceState(
+    userState,
+    true
+  );
+
+  return state;
+}
+
+function deactivateUser() {
+  window.JYMLog.storage.deactivateUser();
+}
 
   /**
    * 초 단위 시간을 00:00 형식으로 변환합니다.
@@ -328,16 +393,16 @@ window.JYMLog.workout = (() => {
    * 프로토타입 운동 기록을 초기 상태로 되돌립니다.
    */
   function resetWorkout() {
-    stopRestTimer();
-    stopElapsedTimer();
+  stopRestTimer();
+  stopElapsedTimer();
 
-    state = {
-      ...defaultState,
-      sets: {}
-    };
+  window.JYMLog.storage.clear();
 
-    window.JYMLog.storage.clear();
-  }
+  replaceState(
+    createDefaultState(),
+    false
+  );
+}
 
   /**
    * 다른 파일에서 사용할 기능만 외부로 공개합니다.
@@ -350,6 +415,10 @@ window.JYMLog.workout = (() => {
     },
 
     saveState,
+    replaceState,
+    activateUser,
+    deactivateUser,
+
     formatTime,
     getSet,
     updateSet,

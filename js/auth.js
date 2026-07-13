@@ -15,6 +15,9 @@ import {
   ensureUserProfile
 } from "./profile.js";
 
+const workout =
+  window.JYMLog.workout;
+
 const authScreen =
   document.getElementById("authScreen");
 
@@ -232,9 +235,20 @@ async function initializeAuth() {
   auth,
   async (user) => {
     if (!user) {
+      workout.deactivateUser();
       showSignedOut();
       return;
     }
+
+    workout.activateUser(
+      user.uid
+    );
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "jym-log:user-state-ready"
+      )
+    );
 
     setAuthMessage(
       "사용자 정보를 준비하고 있습니다."

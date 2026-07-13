@@ -364,6 +364,28 @@ document.getElementById("resetBtn").onclick = () => {
     }
 };
 
+window.addEventListener(
+  "jym-log:user-state-ready",
+  () => {
+    state = workout.state;
+
+    renderHome();
+    renderRoutine();
+    renderAnalysis();
+
+    if (
+      state.started &&
+      !state.completed
+    ) {
+      startElapsed();
+    }
+
+    console.info(
+      "[JYM Log] 로그인 사용자 운동 기록 준비 완료"
+    );
+  }
+);
+
 applyAppMetadata();
 
 renderHome();
