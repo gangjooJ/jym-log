@@ -1,40 +1,121 @@
-# Progress Log 클릭형 프로토타입
+# JYM Log
 
-## 포함된 흐름
-- 오늘의 루틴 확인
+JYM Log는 개인의 운동 계획과 운동 일지를 기록하고, 이전 운동 결과에 따라 다음 운동 목표를 관리하기 위한 모바일 중심 PWA입니다.
+
+## 배포 주소
+
+https://gangjooj.github.io/jym-log/
+
+## 현재 버전
+
+- 버전: `v0.1.1`
+- 업데이트 날짜: `2026-07-13`
+- 개발 환경: GitHub Pages
+- 주요 테스트 환경:
+  - Android Chrome
+  - Android 홈 화면 PWA
+  - iPhone Safari
+  - iPhone 홈 화면 웹앱
+
+## 현재 구현된 기능
+
+- 오늘의 운동 화면
 - 운동 시작
-- 운동별 세트 중량/반복 조정
-- 세트 완료 및 휴식 타이머
-- 운동 완료 및 피로도 입력
-- 다음 벤치프레스 목표 추천
-- 기록/분석/루틴/설정 탭
-- LocalStorage 기반 진행 상태 보존
-- PWA Manifest 및 Service Worker
+- 운동별 세트 기록
+- 중량과 반복 수 변경
+- 세트 완료 및 완료 취소
+- 휴식 타이머
+- 휴식 시간 30초 추가
+- 운동별 이전·다음 이동
+- 운동 완료 요약
+- 완료 세트 수 계산
+- 총 운동 볼륨 계산
+- 벤치프레스 성공 여부 판정
+- 피로도 기록
+- 브라우저 LocalStorage 저장
+- 홈 화면 설치형 PWA
+- 오프라인 앱 셸 캐시
 
-## 가장 간단한 실행
-`index.html`을 더블클릭해 브라우저에서 엽니다.
+## 프로젝트 구조
 
-대부분의 인터랙션은 파일 직접 열기에서도 동작합니다.
-PWA 설치와 오프라인 캐시는 HTTPS 또는 localhost가 필요합니다.
+```text
+jym-log/
+├─ index.html
+├─ css/
+│  └─ style.css
+├─ js/
+│  ├─ config.js
+│  ├─ storage.js
+│  ├─ workout.js
+│  └─ app.js
+├─ docs/
+│  └─ manual-test-checklist.md
+├─ manifest.webmanifest
+├─ sw.js
+├─ icon-192.png
+├─ icon-512.png
+├─ README.md
+└─ CHANGELOG.md
+```
 
-## localhost 실행
-프로젝트 폴더에서 다음 명령 중 하나를 실행합니다.
+## 파일별 역할
 
-### Python
-python -m http.server 8000
+| 파일 | 역할 |
+|---|---|
+| `index.html` | 화면 구조 |
+| `css/style.css` | 색상, 크기, 간격, 레이아웃 |
+| `js/config.js` | 앱 이름, 버전, 저장 키, 시간대 |
+| `js/storage.js` | LocalStorage 저장, 불러오기, 삭제 |
+| `js/workout.js` | 운동 데이터, 상태, 계산, 타이머 |
+| `js/app.js` | 화면 렌더링과 사용자 입력 처리 |
+| `manifest.webmanifest` | PWA 설치 정보 |
+| `sw.js` | 오프라인 캐시와 업데이트 처리 |
+| `CHANGELOG.md` | 버전별 변경 기록 |
+| `docs/manual-test-checklist.md` | 수동 회귀 테스트 기준 |
 
-브라우저에서:
-http://localhost:8000
+## 현재 데이터 저장 방식
 
-### Node.js
-npx serve .
+운동 기록은 브라우저의 LocalStorage에 저장됩니다.
 
-## 초기화
-우측 상단의 ↻ 버튼을 누르면 예시 운동 기록이 초기화됩니다.
+현재 제약:
 
-## 다음 스프린트 권장 범위
-1. 루틴 편집 화면
-2. 운동별 증량 규칙 편집
-3. 실제 기록 이력 생성
-4. Supabase 로그인/DB 연동
-5. IndexedDB 오프라인 큐
+- 같은 기기와 같은 브라우저에서만 기록 유지
+- 다른 사용자와 데이터 구분 불가
+- Android와 iPhone 간 자동 동기화 불가
+- 브라우저 사이트 데이터를 삭제하면 기록도 삭제될 수 있음
+
+향후 Supabase를 연결하여 로그인과 사용자별 데이터 저장을 구현할 예정입니다.
+
+## 버전 관리 규칙
+
+```text
+v0.1.1
+구조 개선과 오류 수정
+
+v0.2.0
+로그인 및 회원가입
+
+v0.3.0
+운동 계획과 분할 설정
+```
+
+Commit 메시지 예시:
+
+```text
+feat: 새로운 기능 추가
+fix: 오류 수정
+refactor: 기능 변화 없는 코드 구조 개선
+docs: 문서 수정
+```
+
+## 다음 개발 목표
+
+### v0.2.0
+
+- 회원가입
+- 로그인
+- 로그인 상태 유지
+- 로그아웃
+- 사용자 프로필
+- 사용자별 운동 기록 구분
+- Supabase 연동
