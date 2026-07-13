@@ -1,21 +1,25 @@
 {
-  "name": "Progress Log Prototype",
-  "short_name": "Progress Log",
-  "start_url": "./index.html",
+  "name": "JYM Log",
+  "short_name": "JYM Log",
+  "description": "개인 운동 계획과 운동 일지를 기록하는 모바일 운동 기록 앱",
+  "lang": "ko-KR",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f3f5f7",
   "theme_color": "#111827",
-  "lang": "ko-KR",
   "icons": [
     {
       "src": "./icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "./icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
