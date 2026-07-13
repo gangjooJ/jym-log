@@ -51,6 +51,51 @@ const syncStatusText =
   let historySessionsCache = [];
   let historyWeekOffset = 0;
 
+  const sessionDetailTitle =
+    document.getElementById(
+      "sessionDetailTitle"
+    );
+
+  const sessionDetailDate =
+    document.getElementById(
+      "sessionDetailDate"
+    );
+
+  const sessionDetailDuration =
+    document.getElementById(
+      "sessionDetailDuration"
+    );
+
+  const sessionDetailSets =
+    document.getElementById(
+      "sessionDetailSets"
+    );
+
+  const sessionDetailVolume =
+    document.getElementById(
+      "sessionDetailVolume"
+    );
+
+  const sessionDetailFatigue =
+    document.getElementById(
+      "sessionDetailFatigue"
+    );
+
+  const sessionDetailExerciseCount =
+    document.getElementById(
+      "sessionDetailExerciseCount"
+    );
+
+  const sessionDetailExerciseList =
+    document.getElementById(
+      "sessionDetailExerciseList"
+    );
+
+  const sessionDetailBackBtn =
+    document.getElementById(
+      "sessionDetailBackBtn"
+    );
+
   const analysisWeekRange =
   document.getElementById(
     "analysisWeekRange"
@@ -424,7 +469,16 @@ function renderHistorySessions(
     recentSessions
       .map(
         (session) => `
-          <div class="card history-card">
+          <button
+            class="card history-card history-card-button"
+            type="button"
+            data-session-id="${escapeHtml(
+              session.id
+            )}"
+            aria-label="${escapeHtml(
+              session.routineName
+            )} 운동 기록 상세 보기"
+          >
             <div class="history-head">
               <div>
                 <h3>
@@ -460,7 +514,11 @@ function renderHistorySessions(
                 ◈ ${session.totalVolume.toLocaleString()}kg
               </span>
             </div>
-          </div>
+
+            <div class="history-card-action">
+              상세 보기 ›
+            </div>
+          </button>
         `
       )
       .join("");
@@ -530,6 +588,268 @@ async function loadHistory() {
       <div class="card history-state error">
         운동 기록을 불러오지 못했습니다.<br>
         네트워크 연결을 확인한 뒤 다시 열어 주세요.
+      </div>
+    `;
+  }
+}
+
+function formatSessionDateTime(
+  timestampMillis
+) {
+  if (!timestampMillis) {
+    return "날짜 정보 없음";
+  }
+
+  return new Intl.DateTimeFormat(
+    window.JYMLog.config.locale,
+    {
+      timeZone:
+        window.JYMLog.config.timezone,
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      weekday: "long",
+      hour: "2-digit",
+      minute: "2-digit"
+    }
+  ).format(
+    new Date(timestampMillis)
+  );
+}
+
+function renderSessionDetail(
+  session
+) {
+  if (!session) {
+    return;
+  }
+
+  sessionDetailTitle.textContent =
+    session.routineName;
+
+  sessionDetailDate.textContent =
+    formatSessionDateTime(
+      session.completedAtMillis
+    );
+
+  sessionDetailDuration.textContent =
+    formatSessionDuration(
+      session.durationSeconds
+    );
+
+  sessionDetailSets.textContent =
+    `${session.completedSets.toLocaleString()}세트`;
+
+  sessionDetailVolume.textContent =
+    `${session.totalVolume.toLocaleString()}kg`;
+
+  sessionDetailFatigue.textContent =
+    session.fatigue > 0
+      ? `${session.fatigue} / 5`
+      : "미입력";
+
+  const recordedExercises =
+    session.exercises.filter(
+      (exercise) =>
+        Array.isArray(
+          exercise.sets
+        ) &&
+        exercise.sets.some(
+          (set) => set.done
+        )
+    );
+
+  sessionDetailExerciseCount.textContent =
+    `${recordedExercises.length}개 운동`;
+
+  sessionDetailExerciseList.setAttribute(
+    "aria-busy",
+    "false"
+  );
+
+  if (
+    recordedExercises.length === 0
+  ) {
+    sessionDetailExerciseList.innerHTML = `
+      <div class="card history-state">
+        완료 처리된 운동 세트가 없습니다.
+      </div>
+    `;
+
+    return;
+  }
+
+  sessionDetailExerciseList.innerHTML =
+    recordedExercises
+      .map(
+        (exercise) => {
+          const sets =
+            Array.isArray(exercise.sets)
+              ? exercise.sets
+              : [];
+
+          const completedCount =
+            sets.filter(
+              (set) => set.done
+            ).length;
+
+          return `
+            <div class="card session-exercise-card">
+              <div class="session-exercise-head">
+                <div>
+                  <h3>
+                    ${escapeHtml(
+                      exercise.name ||
+                      "운동"
+                    )}
+                  </h3>
+
+                  <p>
+                    ${escapeHtml(
+                      exercise.type ||
+                      "운동 기록"
+                    )}
+                  </p>
+                </div>
+
+                <span class="session-exercise-count">
+                  ${completedCount} / ${sets.length}세트
+                </span>
+              </div>
+
+              <div class="session-set-list">
+                ${sets
+                  .map(
+                    (set) => `
+                      <div
+                        class="session-set-row ${
+                          set.done
+                            ? ""
+                            : "not-done"
+                        }"
+                      >
+                        <span>
+                          ${Number(
+                            set.setNumber
+                          ) || 0}세트
+                        </span>
+
+                        <strong>
+                          ${
+                            Number(
+                              set.weight
+                            ) || 0
+                          }kg × ${
+                            Number(
+                              set.reps
+                            ) || 0
+                          }회
+                        </strong>
+
+                        <em class="session-set-status">
+                          ${
+                            set.done
+                              ? "완료"
+                              : "미완료"
+                          }
+                        </em>
+                      </div>
+                    `
+                  )
+                  .join("")}
+              </div>
+            </div>
+          `;
+        }
+      )
+      .join("");
+}
+
+async function loadSessionDetail(
+  sessionId
+) {
+  navigate(
+    "session-detail"
+  );
+
+  sessionDetailTitle.textContent =
+    "운동 기록";
+
+  sessionDetailDate.textContent =
+    "기록을 불러오고 있습니다.";
+
+  sessionDetailDuration.textContent =
+    "—";
+
+  sessionDetailSets.textContent =
+    "—";
+
+  sessionDetailVolume.textContent =
+    "—";
+
+  sessionDetailFatigue.textContent =
+    "—";
+
+  sessionDetailExerciseCount.textContent =
+    "불러오는 중";
+
+  sessionDetailExerciseList.setAttribute(
+    "aria-busy",
+    "true"
+  );
+
+  sessionDetailExerciseList.innerHTML = `
+    <div class="card history-state">
+      운동 기록을 불러오고 있습니다.
+    </div>
+  `;
+
+  try {
+    const historyApi =
+      window.JYMLog.history;
+
+    if (!historyApi) {
+      throw new Error(
+        "운동 기록 모듈을 찾을 수 없습니다."
+      );
+    }
+
+    const session =
+      await historyApi
+        .loadWorkoutSessionById(
+          sessionId
+        );
+
+    if (!session) {
+      throw new Error(
+        "운동 기록을 찾을 수 없습니다."
+      );
+    }
+
+    renderSessionDetail(
+      session
+    );
+  } catch (error) {
+    console.error(
+      "[JYM Log] 운동 상세 기록 불러오기 실패",
+      error
+    );
+
+    sessionDetailDate.textContent =
+      "기록을 불러오지 못했습니다.";
+
+    sessionDetailExerciseCount.textContent =
+      "오류";
+
+    sessionDetailExerciseList.setAttribute(
+      "aria-busy",
+      "false"
+    );
+
+    sessionDetailExerciseList.innerHTML = `
+      <div class="card history-state error">
+        운동 상세 기록을 불러오지 못했습니다.<br>
+        네트워크 연결을 확인한 뒤 다시 시도해 주세요.
       </div>
     `;
   }
@@ -786,8 +1106,30 @@ function navigate(name) {
     document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
     document.getElementById(`screen-${name}`).classList.add("active");
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.nav === name));
-    document.getElementById("bottomNav").classList.toggle("hidden", name === "workout" || name === "summary");
-    const labels = { home: "오늘의 운동", workout: "운동 진행", summary: "운동 완료", history: "운동 기록", analysis: "진행 분석", routine: "루틴 관리", settings: "설정" };
+    const shouldHideBottomNav = [
+      "workout",
+      "summary",
+      "session-detail"
+    ].includes(name);
+
+    document
+      .getElementById("bottomNav")
+      .classList.toggle(
+        "hidden",
+        shouldHideBottomNav
+      );
+
+    const labels = {
+      home: "오늘의 운동",
+      workout: "운동 진행",
+      summary: "운동 완료",
+      history: "운동 기록",
+      "session-detail": "운동 기록 상세",
+      analysis: "진행 분석",
+      routine: "루틴 관리",
+      settings: "설정"
+    };
+
     document.getElementById("headerSub").textContent =
         labels[name] || window.JYMLog.config.appName;
 
@@ -993,6 +1335,18 @@ function renderRoutine() {
 
 document.addEventListener("click", e => {
     const nav = e.target.closest("[data-nav]"); if (nav) { navigate(nav.dataset.nav); return; }
+    const sessionCard =
+      e.target.closest(
+        "[data-session-id]"
+      );
+
+    if (sessionCard) {
+      void loadSessionDetail(
+        sessionCard.dataset.sessionId
+      );
+
+      return;
+    }
     const action = e.target.dataset.action;
     if (action) {
   const exerciseIndex = state.activeExercise;
@@ -1152,6 +1506,16 @@ document.getElementById("stopTimerBtn").onclick = () => {
 
     document.getElementById("timerCard").classList.add("hidden");
 };
+
+if (sessionDetailBackBtn) {
+  sessionDetailBackBtn.addEventListener(
+    "click",
+    () => {
+      navigate("history");
+    }
+  );
+}
+
 document.getElementById("addExerciseDemo").onclick = () => toast("다음 스프린트에서 운동 추가 편집 화면을 연결합니다.");
 document.getElementById("installInfoBtn").onclick = () => toast("HTTPS 또는 localhost에서 열면 브라우저의 ‘홈 화면에 추가’를 사용할 수 있습니다.");
 document.getElementById("resetBtn").onclick = () => {

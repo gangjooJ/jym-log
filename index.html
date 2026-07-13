@@ -253,6 +253,72 @@
         </div>
     </section>
 
+    <section class="screen" id="screen-session-detail">
+      <button
+        class="session-back-btn"
+        id="sessionDetailBackBtn"
+        type="button"
+      >
+        ‹ 기록으로 돌아가기
+      </button>
+
+      <div class="eyebrow">
+        운동 기록 상세
+      </div>
+
+      <h1 id="sessionDetailTitle">
+        운동 세션
+      </h1>
+
+      <p
+        class="session-detail-date"
+        id="sessionDetailDate"
+      >
+        기록을 불러오고 있습니다.
+      </p>
+
+      <div class="session-detail-summary">
+        <div class="card session-detail-stat">
+          <span>운동 시간</span>
+          <strong id="sessionDetailDuration">—</strong>
+        </div>
+
+        <div class="card session-detail-stat">
+          <span>완료 세트</span>
+          <strong id="sessionDetailSets">—</strong>
+        </div>
+
+        <div class="card session-detail-stat">
+          <span>총 볼륨</span>
+          <strong id="sessionDetailVolume">—</strong>
+        </div>
+
+        <div class="card session-detail-stat">
+          <span>피로도</span>
+          <strong id="sessionDetailFatigue">—</strong>
+        </div>
+      </div>
+
+      <div class="section-title">
+        <h2>운동별 세트</h2>
+
+        <small id="sessionDetailExerciseCount">
+          불러오는 중
+        </small>
+      </div>
+
+      <div
+        class="session-exercise-list"
+        id="sessionDetailExerciseList"
+        aria-live="polite"
+        aria-busy="false"
+      >
+        <div class="card history-state">
+          운동 기록을 불러오고 있습니다.
+        </div>
+      </div>
+    </section>
+
     <section class="screen" id="screen-analysis">
       <div class="eyebrow">진행 분석</div>
 

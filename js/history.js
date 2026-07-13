@@ -1,5 +1,7 @@
 import {
   collection,
+  doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -14,10 +16,6 @@ import {
 window.JYMLog =
   window.JYMLog || {};
 
-/**
- * Firestore Timestamp 또는 숫자형 시각을
- * 밀리초 숫자로 정리합니다.
- */
 function getTimestampMillis(
   timestamp,
   fallbackValue
@@ -38,9 +36,69 @@ function getTimestampMillis(
 }
 
 /**
- * 로그인 사용자의 최근 완료 운동 기록을
- * 완료 시각이 최신인 순서로 불러옵니다.
+ * Firestore 운동 세션 문서를
+ * 화면에서 사용할 공통 형식으로 변환합니다.
  */
+function normalizeWorkoutSession(
+  documentSnapshot
+) {
+  const data =
+    documentSnapshot.data();
+
+  return {
+    id:
+      documentSnapshot.id,
+
+    routineName:
+      data.routineName ||
+      "운동 세션",
+
+    completedAtMillis:
+      getTimestampMillis(
+        data.completedAt,
+        data.completedAtMillis
+      ),
+
+    startedAtMillis:
+      getTimestampMillis(
+        data.startedAt,
+        data.startedAtMillis
+      ),
+
+    durationSeconds:
+      Number(
+        data.durationSeconds
+      ) || 0,
+
+    completedSets:
+      Number(
+        data.completedSets
+      ) || 0,
+
+    totalVolume:
+      Number(
+        data.totalVolume
+      ) || 0,
+
+    fatigue:
+      Number(
+        data.fatigue
+      ) || 0,
+
+    benchPressSuccess:
+      Boolean(
+        data.benchPressSuccess
+      ),
+
+    exercises:
+      Array.isArray(
+        data.exercises
+      )
+        ? data.exercises
+        : []
+  };
+}
+
 async function loadRecentWorkoutSessions(
   maxResults = 20
 ) {
@@ -75,71 +133,60 @@ async function loadRecentWorkoutSessions(
     await getDocs(sessionQuery);
 
   return snapshot.docs.map(
-    (documentSnapshot) => {
-      const data =
-        documentSnapshot.data();
+    normalizeWorkoutSession
+  );
+}
 
-      return {
-        id:
-          documentSnapshot.id,
+/**
+ * 운동 세션 문서 ID를 이용해
+ * 완료 기록 한 건을 불러옵니다.
+ */
+async function loadWorkoutSessionById(
+  sessionId
+) {
+  const user =
+    auth.currentUser;
 
-        routineName:
-          data.routineName ||
-          "운동 세션",
+  if (!user?.uid) {
+    throw new Error(
+      "로그인 사용자를 확인할 수 없습니다."
+    );
+  }
 
-        completedAtMillis:
-          getTimestampMillis(
-            data.completedAt,
-            data.completedAtMillis
-          ),
+  if (!sessionId) {
+    throw new Error(
+      "운동 세션 ID가 없습니다."
+    );
+  }
 
-        startedAtMillis:
-          getTimestampMillis(
-            data.startedAt,
-            data.startedAtMillis
-          ),
+  const sessionDocument =
+    doc(
+      db,
+      "users",
+      user.uid,
+      "workoutSessions",
+      sessionId
+    );
 
-        durationSeconds:
-          Number(
-            data.durationSeconds
-          ) || 0,
+  const snapshot =
+    await getDoc(sessionDocument);
 
-        completedSets:
-          Number(
-            data.completedSets
-          ) || 0,
+  if (!snapshot.exists()) {
+    return null;
+  }
 
-        totalVolume:
-          Number(
-            data.totalVolume
-          ) || 0,
-
-        fatigue:
-          Number(
-            data.fatigue
-          ) || 0,
-
-        benchPressSuccess:
-          Boolean(
-            data.benchPressSuccess
-          ),
-
-        exercises:
-          Array.isArray(
-            data.exercises
-          )
-            ? data.exercises
-            : []
-      };
-    }
+  return normalizeWorkoutSession(
+    snapshot
   );
 }
 
 window.JYMLog.history =
   Object.freeze({
-    loadRecentWorkoutSessions
+    loadRecentWorkoutSessions,
+    loadWorkoutSessionById
   });
 
 export {
-  loadRecentWorkoutSessions
+  loadRecentWorkoutSessions,
+  loadWorkoutSessionById
 };
