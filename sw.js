@@ -1,4 +1,4 @@
-const CACHE_NAME = "jym-log-v0.2.0-dev-4";
+const CACHE_NAME = "jym-log-v0.2.0-dev-5";
 
 const APP_SHELL = [
   "./",
@@ -7,6 +7,7 @@ const APP_SHELL = [
   "./js/config.js",
   "./js/firebase-client.js",
   "./js/profile.js",
+  "./js/sync.js",
   "./js/auth.js",
   "./js/storage.js",
   "./js/workout.js",

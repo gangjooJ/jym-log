@@ -15,6 +15,11 @@ import {
   ensureUserProfile
 } from "./profile.js";
 
+import {
+  initializeWorkoutSync,
+  stopWorkoutSync
+} from "./sync.js";
+
 const workout =
   window.JYMLog.workout;
 
@@ -235,23 +240,23 @@ async function initializeAuth() {
   auth,
   async (user) => {
     if (!user) {
+      stopWorkoutSync();
       workout.deactivateUser();
+
       showSignedOut();
       return;
     }
 
+    setAuthMessage(
+      "사용자 운동 기록을 준비하고 있습니다."
+    );
+
+    /**
+     * 먼저 이 기기의 사용자별
+     * LocalStorage 공간을 활성화합니다.
+     */
     workout.activateUser(
       user.uid
-    );
-
-    window.dispatchEvent(
-      new CustomEvent(
-        "jym-log:user-state-ready"
-      )
-    );
-
-    setAuthMessage(
-      "사용자 정보를 준비하고 있습니다."
     );
 
     try {
@@ -262,6 +267,23 @@ async function initializeAuth() {
         error
       );
     }
+
+    try {
+      await initializeWorkoutSync(
+        user.uid
+      );
+    } catch (error) {
+      console.error(
+        "[JYM Log] 운동 기록 동기화 초기화 실패",
+        error
+      );
+    }
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "jym-log:user-state-ready"
+      )
+    );
 
     showSignedIn(user);
   }
