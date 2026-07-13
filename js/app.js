@@ -28,6 +28,29 @@ const syncStatusText =
       "historySessionList"
     );
 
+  const historyWeekRange =
+    document.getElementById(
+      "historyWeekRange"
+    );
+
+  const historyPrevWeekBtn =
+    document.getElementById(
+      "historyPrevWeekBtn"
+    );
+
+  const historyTodayBtn =
+    document.getElementById(
+      "historyTodayBtn"
+    );
+
+  const historyNextWeekBtn =
+    document.getElementById(
+      "historyNextWeekBtn"
+    );
+
+  let historySessionsCache = [];
+  let historyWeekOffset = 0;
+
 function applyAppMetadata() {
   const config = window.JYMLog.config;
 
@@ -144,7 +167,7 @@ function getDateKey(dateValue) {
 }
 
 function renderHistoryCalendar(
-  sessions
+  sessions = historySessionsCache
 ) {
   if (!historyCalendar) {
     return;
@@ -153,12 +176,24 @@ function renderHistoryCalendar(
   const today =
     new Date();
 
-  const currentDay =
-    today.getDay();
+  /*
+   * 현재 주에서 historyWeekOffset만큼
+   * 앞뒤로 이동한 날짜를 기준으로 사용합니다.
+   */
+  const referenceDate =
+    new Date(today);
 
-  /**
-   * JavaScript에서 일요일은 0입니다.
-   * 월요일 시작 달력을 만들기 위해 변환합니다.
+  referenceDate.setDate(
+    today.getDate() +
+    historyWeekOffset * 7
+  );
+
+  const currentDay =
+    referenceDate.getDay();
+
+  /*
+   * JavaScript에서는 일요일이 0입니다.
+   * 월요일부터 시작하는 주간 달력으로 변환합니다.
    */
   const mondayOffset =
     currentDay === 0
@@ -166,7 +201,7 @@ function renderHistoryCalendar(
       : 1 - currentDay;
 
   const monday =
-    new Date(today);
+    new Date(referenceDate);
 
   monday.setHours(
     0,
@@ -176,8 +211,15 @@ function renderHistoryCalendar(
   );
 
   monday.setDate(
-    today.getDate() +
+    referenceDate.getDate() +
     mondayOffset
+  );
+
+  const sunday =
+    new Date(monday);
+
+  sunday.setDate(
+    monday.getDate() + 6
   );
 
   const sessionDateKeys =
@@ -250,15 +292,53 @@ function renderHistoryCalendar(
   historyCalendar.innerHTML =
     calendarDays.join("");
 
-  historyMonthLabel.textContent =
+  const monthFormatter =
     new Intl.DateTimeFormat(
       window.JYMLog.config.locale,
       {
         timeZone:
           window.JYMLog.config.timezone,
+        year: "numeric",
         month: "long"
       }
-    ).format(today);
+    );
+
+  const mondayMonth =
+    monthFormatter.format(monday);
+
+  const sundayMonth =
+    monthFormatter.format(sunday);
+
+  historyMonthLabel.textContent =
+    mondayMonth === sundayMonth
+      ? mondayMonth
+      : `${mondayMonth} – ${sundayMonth}`;
+
+  if (historyWeekRange) {
+    const rangeFormatter =
+      new Intl.DateTimeFormat(
+        window.JYMLog.config.locale,
+        {
+          timeZone:
+            window.JYMLog.config.timezone,
+          month: "numeric",
+          day: "numeric"
+        }
+      );
+
+    historyWeekRange.textContent =
+      `${rangeFormatter.format(monday)} – ${rangeFormatter.format(sunday)}`;
+  }
+
+  if (historyNextWeekBtn) {
+    historyNextWeekBtn.disabled =
+      historyWeekOffset >= 0;
+  }
+
+  if (historyTodayBtn) {
+    historyTodayBtn.disabled =
+      historyWeekOffset === 0;
+  }
 }
 
 function renderHistorySessions(
@@ -375,14 +455,17 @@ async function loadHistory() {
 
     const sessions =
       await historyApi
-        .loadRecentWorkoutSessions(20);
+        .loadRecentWorkoutSessions(100);
+
+    historySessionsCache =
+      sessions;
 
     renderHistoryCalendar(
-      sessions
+      historySessionsCache
     );
 
     renderHistorySessions(
-      sessions
+      historySessionsCache
     );
   } catch (error) {
     console.error(
@@ -786,6 +869,49 @@ document.getElementById("resetBtn").onclick = () => {
     }
 };
 
+if (historyPrevWeekBtn) {
+  historyPrevWeekBtn.addEventListener(
+    "click",
+    () => {
+      historyWeekOffset -= 1;
+
+      renderHistoryCalendar(
+        historySessionsCache
+      );
+    }
+  );
+}
+
+if (historyNextWeekBtn) {
+  historyNextWeekBtn.addEventListener(
+    "click",
+    () => {
+      if (historyWeekOffset >= 0) {
+        return;
+      }
+
+      historyWeekOffset += 1;
+
+      renderHistoryCalendar(
+        historySessionsCache
+      );
+    }
+  );
+}
+
+if (historyTodayBtn) {
+  historyTodayBtn.addEventListener(
+    "click",
+    () => {
+      historyWeekOffset = 0;
+
+      renderHistoryCalendar(
+        historySessionsCache
+      );
+    }
+  );
+}
+
 window.addEventListener(
   "jym-log:user-state-ready",
   () => {
@@ -794,7 +920,12 @@ window.addEventListener(
     renderHome();
     renderRoutine();
     renderAnalysis();
-    renderHistoryCalendar([]);
+    historyWeekOffset = 0;
+    historySessionsCache = [];
+
+    renderHistoryCalendar(
+      historySessionsCache
+    );
 
     if (
       state.started &&

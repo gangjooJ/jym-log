@@ -543,3 +543,47 @@
 .day.today.has-session::after {
   background: currentColor;
 }
+
+.history-calendar-title {
+  align-items: center;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.calendar-nav button {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.calendar-nav #historyTodayBtn {
+  min-width: auto;
+  font-size: 12px;
+}
+
+.calendar-nav button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.calendar-nav button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+/*
+ * 오늘 날짜에 운동 기록이 있어도
+ * 운동 표시 점은 항상 초록색으로 표시합니다.
+ */
+.day.today.has-session::after {
+  background: var(--good);
+}
