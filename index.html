@@ -169,6 +169,35 @@
         <div class="setting-row"><div><p>화면 꺼짐 방지</p><span>운동 진행 화면에서 유지</span></div><button class="switch on" aria-label="화면 토글"></button></div>
         <div class="setting-row"><div><p>오프라인 우선 저장</p><span>연결 복구 시 자동 동기화</span></div><button class="switch on" aria-label="저장 토글"></button></div>
       </div>
+      <div class="section-title">
+        <h2>앱 정보</h2>
+      </div>
+
+      <div class="settings-list">
+        <div class="setting-row">
+          <div>
+            <p>앱 이름</p>
+            <span>현재 설치된 서비스</span>
+          </div>
+          <strong id="settingsAppName"></strong>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <p>현재 버전</p>
+            <span>테스트 피드백에 사용</span>
+          </div>
+          <strong id="settingsVersion"></strong>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <p>업데이트 날짜</p>
+            <span>최근 배포 기준</span>
+          </div>
+          <strong id="settingsUpdated"></strong>
+        </div>
+      </div>
       <div class="section-title"><h2>프로토타입</h2></div>
       <button class="ghost-btn full" id="installInfoBtn">PWA 설치 방법 보기</button>
     </section>
@@ -393,7 +422,19 @@ document.getElementById("resetBtn").onclick=()=>{
   }
 };
 
-renderHome(); renderRoutine(); renderAnalysis();
+renderHome(); 
+renderRoutine(); 
+renderAnalysis();
+
+document.getElementById("settingsAppName").textContent =
+  window.JYMLog.config.appName;
+
+document.getElementById("settingsVersion").textContent =
+  window.JYMLog.config.version;
+
+document.getElementById("settingsUpdated").textContent =
+  window.JYMLog.config.updatedAt;
+  
 if(state.started && !state.completed){startElapsed();}
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
