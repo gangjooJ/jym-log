@@ -22,6 +22,7 @@ import {
 
 import "./sessions.js";
 import "./history.js";
+import "./analysis.js";
 
 const workout =
   window.JYMLog.workout;

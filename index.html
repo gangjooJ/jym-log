@@ -254,18 +254,96 @@
     </section>
 
     <section class="screen" id="screen-analysis">
-      <div class="eyebrow">진행 분석</div><h1>숫자는 적게,<br>변화는 선명하게.</h1>
-      <div class="section-title"><h2>벤치프레스</h2><small>최근 6회 최고 중량</small></div>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:end"><div><div class="metric-label">현재 작업 중량</div><strong style="font-size:28px">80kg</strong></div><span class="tag">+5kg</span></div>
-        <div class="bars" id="analysisBars"></div>
+      <div class="eyebrow">진행 분석</div>
+
+      <h1>
+        숫자는 적게,<br>
+        변화는 선명하게.
+      </h1>
+
+      <div class="section-title">
+        <h2>이번 주 요약</h2>
+
+        <small id="analysisWeekRange">
+          불러오는 중
+        </small>
       </div>
-      <div class="section-title"><h2>이번 주 볼륨</h2><small>부위별 세트</small></div>
-      <div class="mini-grid">
-        <div class="metric"><div class="metric-label">가슴</div><strong>11세트</strong><small>목표 10세트 달성</small></div>
-        <div class="metric"><div class="metric-label">등</div><strong>14세트</strong><small>목표 범위</small></div>
-        <div class="metric"><div class="metric-label">어깨</div><strong>16세트</strong><small style="color:var(--warn)">피로 확인 필요</small></div>
-        <div class="metric"><div class="metric-label">팔</div><strong>12세트</strong><small>목표 범위</small></div>
+
+      <div class="analysis-summary-grid">
+        <div class="card analysis-summary-card">
+          <span>운동 횟수</span>
+
+          <strong id="analysisSessionCount">
+            —
+          </strong>
+
+          <small>완료 운동</small>
+        </div>
+
+        <div class="card analysis-summary-card">
+          <span>완료 세트</span>
+
+          <strong id="analysisWeeklySets">
+            —
+          </strong>
+
+          <small>이번 주 합계</small>
+        </div>
+
+        <div class="card analysis-summary-card">
+          <span>총 볼륨</span>
+
+          <strong id="analysisWeeklyVolume">
+            —
+          </strong>
+
+          <small>중량 × 반복</small>
+        </div>
+      </div>
+
+      <div class="section-title">
+        <h2>벤치프레스</h2>
+
+        <small>최근 완료 세션 기준</small>
+      </div>
+
+      <div
+        class="card analysis-bench-card"
+        id="analysisBenchCard"
+        aria-busy="true"
+      >
+        <div class="analysis-bench-head">
+          <div>
+            <span>현재 작업 중량</span>
+
+            <strong id="analysisBenchWeight">
+              —
+            </strong>
+          </div>
+
+          <span
+            class="analysis-change"
+            id="analysisBenchChange"
+            data-trend="neutral"
+          >
+            —
+          </span>
+        </div>
+
+        <div
+          class="analysis-bars"
+          id="analysisBars"
+          aria-label="최근 벤치프레스 작업 중량 변화"
+        ></div>
+
+        <div
+          class="analysis-state"
+          id="analysisState"
+          role="status"
+          aria-live="polite"
+        >
+          운동 기록을 분석하고 있습니다.
+        </div>
       </div>
     </section>
 
