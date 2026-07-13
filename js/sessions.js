@@ -116,9 +116,20 @@ function buildExerciseResults(state) {
       }
 
       return {
+        exerciseId:
+          exercise.id ||
+          `exercise-${exerciseIndex + 1}`,
+
         exerciseIndex,
-        name: exercise.name,
-        type: exercise.type,
+
+        order:
+          exerciseIndex,
+
+        name:
+          exercise.name,
+
+        type:
+          exercise.type,
 
         target: {
           weight: exercise.weight,
@@ -196,6 +207,10 @@ async function saveCompletedWorkoutSession(
       sessionId
     );
 
+  const activeRoutine =
+    window.JYMLog.routines
+      ?.activeRoutine;
+  
   await setDoc(
     sessionDocument,
     {
@@ -203,8 +218,17 @@ async function saveCompletedWorkoutSession(
       schemaVersion:
         SESSION_SCHEMA_VERSION,
 
-      routineName: "가슴 · 팔",
-      routineCode: "upper-a",
+      routineId:
+        activeRoutine?.id ||
+        "main",
+
+      routineName:
+        activeRoutine?.name ||
+        "가슴 · 팔 A",
+
+      routineCode:
+        activeRoutine?.code ||
+        "upper-a",
 
       startedAt:
         Timestamp.fromMillis(

@@ -141,6 +141,41 @@ const analysisState =
     "analysisState"
   );
 
+const homeRoutineName =
+  document.getElementById(
+    "homeRoutineName"
+  );
+
+const homeRoutineDescription =
+  document.getElementById(
+    "homeRoutineDescription"
+  );
+
+const homeRoutineSets =
+  document.getElementById(
+    "homeRoutineSets"
+  );
+
+const homeRoutineGoal =
+  document.getElementById(
+    "homeRoutineGoal"
+  );
+
+const homeRoutineGoalLabel =
+  document.getElementById(
+    "homeRoutineGoalLabel"
+  );
+
+const routineNameLabel =
+  document.getElementById(
+    "routineNameLabel"
+  );
+
+const routineExerciseCount =
+  document.getElementById(
+    "routineExerciseCount"
+  );
+
 function applyAppMetadata() {
   const config = window.JYMLog.config;
 
@@ -1143,6 +1178,70 @@ function navigate(name) {
 
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
+
+function renderRoutineMetadata(
+  routine =
+    window.JYMLog.routines
+      ?.activeRoutine
+) {
+  if (!routine) {
+    return;
+  }
+
+  const totalSets =
+    exercises.reduce(
+      (total, exercise) =>
+        total +
+        (
+          Number(exercise.sets) ||
+          0
+        ),
+      0
+    );
+
+  const firstExercise =
+    exercises[0];
+
+  if (homeRoutineName) {
+    homeRoutineName.textContent =
+      routine.name;
+  }
+
+  if (homeRoutineDescription) {
+    homeRoutineDescription.textContent =
+      `${routine.description} · 총 ${exercises.length}개 운동`;
+  }
+
+  if (homeRoutineSets) {
+    homeRoutineSets.textContent =
+      `${totalSets}세트`;
+  }
+
+  if (homeRoutineGoal) {
+    homeRoutineGoal.textContent =
+      firstExercise
+        ? `${firstExercise.weight}kg`
+        : "—";
+  }
+
+  if (homeRoutineGoalLabel) {
+    homeRoutineGoalLabel.textContent =
+      firstExercise
+        ? `${firstExercise.name} 목표`
+        : "운동 목표 준비 중";
+  }
+
+  if (routineNameLabel) {
+    routineNameLabel.textContent =
+      routine.name;
+  }
+
+  if (routineExerciseCount) {
+    routineExerciseCount.textContent =
+      `${exercises.length}개 운동`;
+  }
+}
+
 function renderHome() {
     document.getElementById("homeExerciseList").innerHTML = exercises.map((e, i) => `
     <div class="exercise-row">
@@ -1573,6 +1672,7 @@ window.addEventListener(
   () => {
     state = workout.state;
 
+    renderRoutineMetadata();
     renderHome();
     renderRoutine();
     
@@ -1592,6 +1692,25 @@ window.addEventListener(
 
     console.info(
       "[JYM Log] 로그인 사용자 운동 기록 준비 완료"
+    );
+  }
+);
+
+window.addEventListener(
+  "jym-log:routine-ready",
+  (event) => {
+    const routine =
+      event.detail?.routine;
+
+    renderRoutineMetadata(
+      routine
+    );
+
+    renderHome();
+    renderRoutine();
+
+    console.info(
+      "[JYM Log] 사용자 루틴 화면 반영 완료"
     );
   }
 );

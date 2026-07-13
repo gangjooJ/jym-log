@@ -21,6 +21,10 @@ import {
   stopWorkoutSync
 } from "./sync.js";
 
+import {
+  ensureActiveRoutine
+} from "./routines.js";
+
 import "./sessions.js";
 import "./history.js";
 import "./analysis.js";
@@ -414,6 +418,17 @@ async function initializeAuth() {
     } catch (error) {
       console.error(
         "[JYM Log] 사용자 프로필 저장 실패",
+        error
+      );
+    }
+
+    try {
+      await ensureActiveRoutine(
+        user.uid
+      );
+    } catch (error) {
+      console.error(
+        "[JYM Log] 사용자 루틴 준비 실패",
         error
       );
     }

@@ -110,6 +110,149 @@ window.JYMLog.workout = (() => {
     return window.JYMLog.storage.save(state);
   }
 
+  function normalizeExercise(
+    exercise,
+    index
+  ) {
+    const fallbackName =
+      `운동 ${index + 1}`;
+
+    const name =
+      String(
+        exercise?.name ||
+        fallbackName
+      ).trim() ||
+      fallbackName;
+
+    const minReps =
+      Math.max(
+        1,
+        Math.round(
+          Number(exercise?.min) || 1
+        )
+      );
+
+    const maxReps =
+      Math.max(
+        minReps,
+        Math.round(
+          Number(exercise?.max) ||
+          minReps
+        )
+      );
+
+    const increment =
+      Number(exercise?.increment);
+
+    return {
+      id:
+        String(
+          exercise?.id ||
+          `exercise-${index + 1}`
+        ),
+
+      order:
+        index,
+
+      name,
+
+      icon:
+        String(
+          exercise?.icon ||
+          name.charAt(0) ||
+          "E"
+        ).slice(0, 2),
+
+      weight:
+        Math.max(
+          0,
+          Number(exercise?.weight) || 0
+        ),
+
+      sets:
+        Math.max(
+          1,
+          Math.round(
+            Number(exercise?.sets) || 1
+          )
+        ),
+
+      min:
+        minReps,
+
+      max:
+        maxReps,
+
+      previous:
+        String(
+          exercise?.previous ||
+          "이전 기록 없음"
+        ),
+
+      rest:
+        Math.max(
+          0,
+          Math.round(
+            Number(exercise?.rest) || 0
+          )
+        ),
+
+      increment:
+        Number.isFinite(increment) &&
+        increment > 0
+          ? increment
+          : 2.5,
+
+      type:
+        String(
+          exercise?.type ||
+          "반복 범위형"
+        )
+    };
+  }
+
+/**
+ * exercises 배열 자체는 유지하면서
+ * 내부 항목만 Firestore 루틴으로 교체합니다.
+ *
+ * app.js가 같은 배열을 계속 참조하도록
+ * 새로운 배열을 대입하지 않습니다.
+ */
+function replaceExercises(
+  nextExercises
+) {
+  if (
+    !Array.isArray(nextExercises) ||
+    nextExercises.length === 0
+  ) {
+    throw new Error(
+      "루틴에 하나 이상의 운동이 필요합니다."
+    );
+  }
+
+  const normalizedExercises =
+    nextExercises.map(
+      normalizeExercise
+    );
+
+  exercises.splice(
+    0,
+    exercises.length,
+    ...normalizedExercises
+  );
+
+  if (
+    state.activeExercise >=
+    exercises.length
+  ) {
+    state.activeExercise = 0;
+  }
+
+  saveState();
+
+  return exercises;
+}
+
   /**
  * 기존 state 객체 자체는 유지하면서
  * 내부 데이터만 새로운 상태로 교체합니다.
@@ -433,6 +576,7 @@ function deactivateUser() {
     },
 
     saveState,
+    replaceExercises,
     replaceState,
     activateUser,
     deactivateUser,
