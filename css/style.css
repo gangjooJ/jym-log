@@ -900,3 +900,89 @@
     grid-template-columns: 44px minmax(0, 1fr) 42px;
   }
 }
+
+.nickname-editor {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+}
+
+.nickname-editor label {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.nickname-editor > p {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.nickname-input-row {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.nickname-input-row input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  color: var(--text);
+
+  /*
+   * iPhone Safari에서 입력 시
+   * 화면이 자동 확대되지 않도록 16px로 설정합니다.
+   */
+  font-size: 16px;
+  font-weight: 800;
+  outline: none;
+}
+
+.nickname-input-row input:focus {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.nickname-save-btn {
+  min-width: 62px;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 13px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.nickname-save-btn:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.nickname-save-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.nickname-message {
+  min-height: 18px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.nickname-message.success {
+  color: var(--good);
+}
+
+.nickname-message.error {
+  color: var(--danger);
+}

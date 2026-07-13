@@ -12,7 +12,8 @@ import {
 } from "./firebase-client.js";
 
 import {
-  ensureUserProfile
+  ensureUserProfile,
+  updateUserNickname
 } from "./profile.js";
 
 import {
@@ -51,6 +52,23 @@ const userEmail =
 const userInitial =
   document.getElementById("userInitial");
 
+const nicknameInput =
+  document.getElementById(
+    "nicknameInput"
+  );
+
+const saveNicknameBtn =
+  document.getElementById(
+    "saveNicknameBtn"
+  );
+
+const nicknameMessage =
+  document.getElementById(
+    "nicknameMessage"
+  );
+
+let signedInUser = null;
+
 const googleProvider =
   new GoogleAuthProvider();
 
@@ -70,6 +88,24 @@ function setAuthMessage(
   );
 }
 
+function setNicknameMessage(
+  message,
+  status = "default"
+) {
+  nicknameMessage.textContent =
+    message;
+
+  nicknameMessage.classList.toggle(
+    "success",
+    status === "success"
+  );
+
+  nicknameMessage.classList.toggle(
+    "error",
+    status === "error"
+  );
+}
+
 function setLoginLoading(isLoading) {
   googleLoginBtn.disabled = isLoading;
 
@@ -80,11 +116,15 @@ function setLoginLoading(isLoading) {
     : "Google로 계속하기";
 }
 
-function getUserInitial(user) {
+function getUserInitial(sourceValue) {
   const source =
-    user.displayName ||
-    user.email ||
-    "J";
+    typeof sourceValue === "string"
+      ? sourceValue
+      : (
+          sourceValue?.displayName ||
+          sourceValue?.email ||
+          "J"
+        );
 
   return source
     .trim()
@@ -93,6 +133,8 @@ function getUserInitial(user) {
 }
 
 function showSignedOut() {
+  signedInUser = null;
+
   mainApp.classList.add("hidden");
   authScreen.classList.remove("hidden");
 
@@ -103,6 +145,12 @@ function showSignedOut() {
 
   userInitial.textContent = "J";
 
+  nicknameInput.value = "";
+
+  setNicknameMessage(
+    "공백을 제외하고 2자 이상 입력해 주세요."
+  );
+
   setLoginLoading(false);
 
   setAuthMessage(
@@ -110,19 +158,35 @@ function showSignedOut() {
   );
 }
 
-function showSignedIn(user) {
+function showSignedIn(
+  user,
+  profile = {}
+) {
+  signedInUser = user;
+
+  const nickname =
+    profile.nickname ||
+    user.displayName ||
+    "JYM Log 사용자";
+
   authScreen.classList.add("hidden");
   mainApp.classList.remove("hidden");
 
   userName.textContent =
-    user.displayName ||
-    "JYM Log 사용자";
+    nickname;
 
   userEmail.textContent =
     user.email || "";
 
   userInitial.textContent =
-    getUserInitial(user);
+    getUserInitial(nickname);
+
+  nicknameInput.value =
+    nickname;
+
+  setNicknameMessage(
+    "PC와 모바일에서 동일한 닉네임이 사용됩니다."
+  );
 
   setLoginLoading(false);
 
@@ -206,12 +270,70 @@ async function logout() {
   }
 }
 
+async function saveNickname() {
+  if (!signedInUser?.uid) {
+    setNicknameMessage(
+      "로그인 사용자를 확인할 수 없습니다.",
+      "error"
+    );
+
+    return;
+  }
+
+  saveNicknameBtn.disabled = true;
+  nicknameInput.disabled = true;
+
+  setNicknameMessage(
+    "닉네임을 저장하고 있습니다."
+  );
+
+  try {
+    const nickname =
+      await updateUserNickname(
+        signedInUser.uid,
+        nicknameInput.value
+      );
+
+    nicknameInput.value =
+      nickname;
+
+    userName.textContent =
+      nickname;
+
+    userInitial.textContent =
+      getUserInitial(nickname);
+
+    setNicknameMessage(
+      "닉네임이 저장되었습니다.",
+      "success"
+    );
+  } catch (error) {
+    console.error(
+      "[JYM Log] 닉네임 저장 실패",
+      error
+    );
+
+    setNicknameMessage(
+      error.message ||
+      "닉네임을 저장하지 못했습니다.",
+      "error"
+    );
+  } finally {
+    saveNicknameBtn.disabled = false;
+    nicknameInput.disabled = false;
+    nicknameInput.focus();
+  }
+}
+
 async function initializeAuth() {
   if (
     !authScreen ||
     !mainApp ||
     !googleLoginBtn ||
-    !logoutBtn
+    !logoutBtn ||
+    !nicknameInput ||
+    !saveNicknameBtn ||
+    !nicknameMessage
   ) {
     throw new Error(
       "인증 화면 요소를 찾을 수 없습니다. index.html의 ID를 확인하세요."
@@ -226,6 +348,24 @@ async function initializeAuth() {
   logoutBtn.addEventListener(
     "click",
     logout
+  );
+
+  saveNicknameBtn.addEventListener(
+    "click",
+    saveNickname
+  );
+
+  nicknameInput.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.key !== "Enter") {
+        return;
+      }
+
+      event.preventDefault();
+
+      void saveNickname();
+    }
   );
 
   try {
@@ -263,8 +403,14 @@ async function initializeAuth() {
       user.uid
     );
 
+    let userProfile = null;
+
     try {
-      await ensureUserProfile(user);
+      const profileResult =
+        await ensureUserProfile(user);
+
+      userProfile =
+        profileResult.profile;
     } catch (error) {
       console.error(
         "[JYM Log] 사용자 프로필 저장 실패",
@@ -289,7 +435,10 @@ async function initializeAuth() {
       )
     );
 
-    showSignedIn(user);
+    showSignedIn(
+      user,
+      userProfile || {}
+    );
   }
 );
 }

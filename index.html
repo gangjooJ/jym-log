@@ -438,9 +438,51 @@
     </div>
 
     <div class="account-copy">
-      <strong id="userName">로그인 사용자</strong>
+      <strong id="userName">
+        로그인 사용자
+      </strong>
+
       <span id="userEmail"></span>
     </div>
+  </div>
+
+  <div class="nickname-editor">
+    <label for="nicknameInput">
+      JYM Log 닉네임
+    </label>
+
+    <p>
+      Google 계정 이름과 별도로 앱에서 사용할 이름입니다.
+    </p>
+
+    <div class="nickname-input-row">
+      <input
+        id="nicknameInput"
+        type="text"
+        maxlength="20"
+        autocomplete="off"
+        enterkeyhint="done"
+        aria-describedby="nicknameMessage"
+        placeholder="닉네임을 입력하세요"
+      >
+
+      <button
+        class="nickname-save-btn"
+        id="saveNicknameBtn"
+        type="button"
+      >
+        저장
+      </button>
+    </div>
+
+    <p
+      class="nickname-message"
+      id="nicknameMessage"
+      role="status"
+      aria-live="polite"
+    >
+      공백을 제외하고 2자 이상 입력해 주세요.
+    </p>
   </div>
 
   <button
