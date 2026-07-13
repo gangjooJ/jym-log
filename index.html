@@ -16,7 +16,53 @@
 </head>
 
 <body>
-<div class="app-shell">
+<section
+  class="auth-screen"
+  id="authScreen"
+  aria-labelledby="authTitle"
+>
+  <div class="auth-card">
+    <div class="auth-logo">JL</div>
+
+    <p class="auth-eyebrow">JYM Log</p>
+
+    <h1 id="authTitle">
+      내 운동 기록을<br>
+      어디서든 이어가세요.
+    </h1>
+
+    <p class="auth-description">
+      Google 계정으로 로그인하면 운동 계획과 기록을
+      안전하게 관리할 수 있습니다.
+    </p>
+
+    <button
+      class="google-login-btn"
+      id="googleLoginBtn"
+      type="button"
+      disabled
+    >
+      <span class="google-icon" aria-hidden="true">G</span>
+      <span>Google로 계속하기</span>
+    </button>
+
+    <p
+      class="auth-message"
+      id="authMessage"
+      role="status"
+      aria-live="polite"
+    >
+      로그인 상태를 확인하고 있습니다.
+    </p>
+
+    <p class="auth-policy">
+      로그인하면 JYM Log의 서비스 이용을 위한
+      기본 계정 정보가 사용됩니다.
+    </p>
+  </div>
+</section>
+
+<div class="app-shell hidden" id="mainApp">
   <div class="statusbar"></div>
   <header class="topbar">
     <div class="brand">
@@ -166,6 +212,35 @@
 
     <section class="screen" id="screen-settings">
       <div class="eyebrow">설정</div><h1>내 운동 방식에<br>맞게 조정합니다.</h1>
+      <div class="section-title">
+  <h2>계정</h2>
+  <small>Google 로그인</small>
+</div>
+
+<div class="card account-card">
+  <div class="account-profile">
+    <div
+      class="account-avatar"
+      id="userInitial"
+      aria-hidden="true"
+    >
+      J
+    </div>
+
+    <div class="account-copy">
+      <strong id="userName">로그인 사용자</strong>
+      <span id="userEmail"></span>
+    </div>
+  </div>
+
+  <button
+    class="ghost-btn full"
+    id="logoutBtn"
+    type="button"
+  >
+    로그아웃
+  </button>
+</div>
       <div class="section-title"><h2>운동 환경</h2></div>
       <div class="settings-list">
         <div class="setting-row"><div><p>중량 단위</p><span>모든 운동 기록에 적용</span></div><strong>kg</strong></div>
@@ -234,11 +309,15 @@
 <script src="./js/config.js"></script>
 <script
   type="module"
-  src="./js/firebase-client.js">
-</script>
+  src="./js/firebase-client.js"
+></script>
 <script src="./js/storage.js"></script>
 <script src="./js/workout.js"></script>
 <script src="./js/app.js"></script>
+<script
+  type="module"
+  src="./js/auth.js"
+></script>
 
 </body>
 </html>
