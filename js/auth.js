@@ -20,6 +20,8 @@ import {
   stopWorkoutSync
 } from "./sync.js";
 
+import "./sessions.js";
+
 const workout =
   window.JYMLog.workout;
 

@@ -77,6 +77,7 @@ window.JYMLog.workout = (() => {
     activeExercise: 0,
     started: false,
     startedAt: null,
+    completedAt: null,
     sets: {},
     fatigue: 3,
     completed: false
@@ -242,8 +243,20 @@ function deactivateUser() {
    * 운동을 시작 상태로 변경합니다.
    */
   function beginWorkout() {
+  /**
+   * 이전 운동이 완료된 상태에서 새 운동을 시작하면
+   * 새로운 운동 상태로 초기화합니다.
+   */
+    if (state.completed) {
+      replaceState(
+        createDefaultState(),
+        false
+      );
+    }
+
     state.started = true;
     state.completed = false;
+    state.completedAt = null;
 
     if (!state.startedAt) {
       state.startedAt = Date.now();
@@ -257,6 +270,11 @@ function deactivateUser() {
    */
   function finishWorkout() {
     state.completed = true;
+
+    if (!state.completedAt) {
+      state.completedAt = Date.now();
+    }
+
     saveState();
   }
 

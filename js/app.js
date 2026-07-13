@@ -224,7 +224,21 @@ function totalVolume() {
     return workout.getTotalVolume();
 }
 function renderSummary() {
-    const sec = state.startedAt ? Math.max(60, Math.floor((Date.now() - state.startedAt) / 1000)) : 0;
+    const endAt =
+        state.completedAt ||
+        Date.now();
+
+        const sec = state.startedAt
+        ? Math.max(
+            60,
+            Math.floor(
+                (
+                endAt -
+                state.startedAt
+                ) / 1000
+            )
+            )
+        : 0;
     document.getElementById("summaryDuration").textContent = `${Math.round(sec / 60)}분`;
     document.getElementById("summarySets").textContent = allDoneCount();
     document.getElementById("summaryVolume").textContent = `${totalVolume().toLocaleString()}kg`;
@@ -362,16 +376,42 @@ document.getElementById("nextExerciseBtn").onclick = () => {
   window.scrollTo(0, 0);
 };
 document.getElementById("finishWorkoutBtn").onclick = () => document.getElementById("fatigueModal").classList.add("show");
-document.getElementById("confirmFinishBtn").onclick = () => {
-    document.getElementById("fatigueModal").classList.remove("show");
+document.getElementById(
+    "confirmFinishBtn"
+    ).onclick = async () => {
+    document
+        .getElementById("fatigueModal")
+        .classList.remove("show");
+
     workout.finishWorkout();
     workout.stopRestTimer();
     workout.stopElapsedTimer();
 
     state = workout.state;
+
     renderSummary();
     navigate("summary");
-};
+
+    try {
+        await window.JYMLog.sessions
+        .saveCompletedWorkoutSession(
+            state
+        );
+
+        toast(
+        "완료한 운동 기록이 저장되었습니다."
+        );
+    } catch (error) {
+        console.error(
+        "[JYM Log] 완료 운동 세션 저장 실패",
+        error
+        );
+
+        toast(
+        "현재 운동은 저장됐지만 완료 기록 저장을 확인해 주세요."
+        );
+    }
+    };
 document.getElementById("fatigueModal").onclick = e => { if (e.target.id === "fatigueModal") e.target.classList.remove("show") };
 document.getElementById("add30Btn").onclick = () => {
     workout.addRestTime(30, (remainingSeconds) => {
