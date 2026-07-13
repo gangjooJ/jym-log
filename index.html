@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
   <title>Progress Log Prototype</title>
-  
+
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon-192.png" />
   <link rel="stylesheet" href="./css/style.css"/>
@@ -198,7 +198,10 @@
   </div>
 </div>
 
+<script src="./js/config.js"></script>
+<script src="./js/storage.js"></script>
 <script>
+
 const exercises = [
   {name:"벤치프레스", icon:"B", weight:80, sets:5, min:5, max:5, prev:"80kg · 5 / 5 / 5 / 5 / 4", rest:180, increment:2.5, type:"고정 반복형"},
   {name:"인클라인 벤치프레스", icon:"I", weight:50, sets:3, min:8, max:12, prev:"50kg · 12 / 11 / 10", rest:120, increment:2.5, type:"반복 범위형"},
@@ -207,17 +210,22 @@ const exercises = [
   {name:"바벨 컬", icon:"A", weight:25, sets:3, min:8, max:12, prev:"25kg · 11 / 10 / 9", rest:90, increment:2.5, type:"반복 범위형"}
 ];
 
-let state = JSON.parse(localStorage.getItem("pl-prototype-state") || "null") || {
-  activeExercise:0,
-  started:false,
-  startedAt:null,
-  sets:{},
-  fatigue:3,
-  completed:false
+const defaultState = {
+  activeExercise: 0,
+  started: false,
+  startedAt: null,
+  sets: {},
+  fatigue: 3,
+  completed: false
 };
+
+let state = window.JYMLog.storage.load(defaultState);
+
 let timerInterval=null, restRemaining=0, elapsedInterval=null;
 
-function save(){ localStorage.setItem("pl-prototype-state", JSON.stringify(state)); }
+function save(){ 
+  window.JYMLog.storage.save(state);
+}
 function toast(msg){
   const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
   setTimeout(()=>t.classList.remove("show"),1900);
@@ -380,7 +388,8 @@ document.getElementById("addExerciseDemo").onclick=()=>toast("다음 스프린�
 document.getElementById("installInfoBtn").onclick=()=>toast("HTTPS 또는 localhost에서 열면 브라우저의 ‘홈 화면에 추가’를 사용할 수 있습니다.");
 document.getElementById("resetBtn").onclick=()=>{
   if(confirm("프로토타입 기록을 초기화할까요?")){
-    localStorage.removeItem("pl-prototype-state"); location.reload();
+    window.JYMLog.storage.clear();
+    location.reload();
   }
 };
 
