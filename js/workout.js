@@ -219,7 +219,8 @@ window.JYMLog.workout = (() => {
  * 새로운 배열을 대입하지 않습니다.
  */
 function replaceExercises(
-  nextExercises
+  nextExercises,
+  persist = true
 ) {
   if (
     !Array.isArray(nextExercises) ||
@@ -248,7 +249,9 @@ function replaceExercises(
     state.activeExercise = 0;
   }
 
-  saveState();
+  if (persist) {
+    saveState();
+  }
 
   return exercises;
 }

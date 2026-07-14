@@ -206,6 +206,83 @@ const summaryRoutineName =
     "summaryRoutineName"
   );
 
+const exerciseEditorModal =
+  document.getElementById(
+    "exerciseEditorModal"
+  );
+
+const exerciseEditorForm =
+  document.getElementById(
+    "exerciseEditorForm"
+  );
+
+const exerciseEditorTitle =
+  document.getElementById(
+    "exerciseEditorTitle"
+  );
+
+const exerciseNameInput =
+  document.getElementById(
+    "exerciseNameInput"
+  );
+
+const exerciseTypeInput =
+  document.getElementById(
+    "exerciseTypeInput"
+  );
+
+const exerciseWeightInput =
+  document.getElementById(
+    "exerciseWeightInput"
+  );
+
+const exerciseSetsInput =
+  document.getElementById(
+    "exerciseSetsInput"
+  );
+
+const exerciseMinRepsInput =
+  document.getElementById(
+    "exerciseMinRepsInput"
+  );
+
+const exerciseMaxRepsInput =
+  document.getElementById(
+    "exerciseMaxRepsInput"
+  );
+
+const exerciseRestInput =
+  document.getElementById(
+    "exerciseRestInput"
+  );
+
+const exerciseIncrementInput =
+  document.getElementById(
+    "exerciseIncrementInput"
+  );
+
+const exerciseEditorMessage =
+  document.getElementById(
+    "exerciseEditorMessage"
+  );
+
+const saveExerciseEditorBtn =
+  document.getElementById(
+    "saveExerciseEditorBtn"
+  );
+
+const cancelExerciseEditorBtn =
+  document.getElementById(
+    "cancelExerciseEditorBtn"
+  );
+
+const closeExerciseEditorBtn =
+  document.getElementById(
+    "closeExerciseEditorBtn"
+  );
+
+let editingExerciseIndex = null;
+
 function applyAppMetadata() {
   const config = window.JYMLog.config;
 
@@ -1567,10 +1644,293 @@ function renderSummary() {
     }
 }
 function renderRoutine() {
-    document.getElementById("routineList").innerHTML = exercises.map((e, i) => `
-    <div class="card routine-card">
-      <div class="routine-top"><div style="display:flex;gap:12px;align-items:center"><div class="exercise-icon">${e.icon}</div><div><h3>${e.name}</h3><p style="font-size:12px;color:var(--muted);margin-top:5px">${e.sets}세트 · ${e.min === e.max ? e.min : `${e.min}–${e.max}`}회 · ${e.type}</p></div></div><span class="drag">☷</span></div>
-    </div>`).join("");
+  const routineList =
+    document.getElementById(
+      "routineList"
+    );
+
+  routineList.innerHTML =
+    exercises
+      .map(
+        (exercise, index) => `
+          <div class="card routine-card">
+            <div class="routine-top">
+              <div
+                style="
+                  display: flex;
+                  gap: 12px;
+                  align-items: center;
+                  min-width: 0;
+                "
+              >
+                <div class="exercise-icon">
+                  ${escapeHtml(
+                    exercise.icon
+                  )}
+                </div>
+
+                <div style="min-width: 0">
+                  <h3>
+                    ${escapeHtml(
+                      exercise.name
+                    )}
+                  </h3>
+
+                  <p
+                    style="
+                      font-size: 12px;
+                      color: var(--muted);
+                      margin-top: 5px;
+                      line-height: 1.5;
+                    "
+                  >
+                    ${exercise.weight}kg ·
+                    ${exercise.sets}세트 ·
+                    ${
+                      exercise.min ===
+                      exercise.max
+                        ? exercise.min
+                        : `${exercise.min}–${exercise.max}`
+                    }회
+                    · 휴식 ${exercise.rest}초
+                  </p>
+                </div>
+              </div>
+
+              <button
+                class="routine-edit-btn"
+                type="button"
+                data-edit-exercise-index="${index}"
+              >
+                편집
+              </button>
+            </div>
+          </div>
+        `
+      )
+      .join("");
+}
+
+function setExerciseEditorMessage(
+  message,
+  isError = false
+) {
+  if (!exerciseEditorMessage) {
+    return;
+  }
+
+  exerciseEditorMessage.textContent =
+    message;
+
+  exerciseEditorMessage.classList.toggle(
+    "error",
+    isError
+  );
+}
+
+function syncExerciseTypeFields() {
+  if (
+    !exerciseTypeInput ||
+    !exerciseMinRepsInput ||
+    !exerciseMaxRepsInput
+  ) {
+    return;
+  }
+
+  const isFixed =
+    exerciseTypeInput.value ===
+    "고정 반복형";
+
+  exerciseMaxRepsInput.disabled =
+    isFixed;
+
+  if (isFixed) {
+    exerciseMaxRepsInput.value =
+      exerciseMinRepsInput.value;
+  }
+}
+
+function openExerciseEditor(
+  exerciseIndex
+) {
+  if (
+    state.started &&
+    !state.completed
+  ) {
+    toast(
+      "운동 진행 중에는 루틴을 수정할 수 없습니다."
+    );
+
+    return;
+  }
+
+  const exercise =
+    exercises[exerciseIndex];
+
+  if (!exercise) {
+    toast(
+      "편집할 운동을 찾을 수 없습니다."
+    );
+
+    return;
+  }
+
+  editingExerciseIndex =
+    exerciseIndex;
+
+  exerciseEditorTitle.textContent =
+    exercise.name;
+
+  exerciseNameInput.value =
+    exercise.name;
+
+  exerciseTypeInput.value =
+    exercise.type;
+
+  exerciseWeightInput.value =
+    exercise.weight;
+
+  exerciseSetsInput.value =
+    exercise.sets;
+
+  exerciseMinRepsInput.value =
+    exercise.min;
+
+  exerciseMaxRepsInput.value =
+    exercise.max;
+
+  exerciseRestInput.value =
+    exercise.rest;
+
+  exerciseIncrementInput.value =
+    exercise.increment;
+
+  setExerciseEditorMessage(
+    "변경한 설정은 다음 운동부터 적용됩니다."
+  );
+
+  syncExerciseTypeFields();
+
+  exerciseEditorModal.classList.remove(
+    "hidden"
+  );
+
+  document.body.style.overflow =
+    "hidden";
+
+  window.setTimeout(
+    () => {
+      exerciseNameInput.focus();
+    },
+    50
+  );
+}
+
+function closeExerciseEditor() {
+  exerciseEditorModal.classList.add(
+    "hidden"
+  );
+
+  document.body.style.overflow = "";
+
+  editingExerciseIndex = null;
+}
+
+async function saveExerciseEditor(
+  event
+) {
+  event.preventDefault();
+
+  if (
+    editingExerciseIndex === null
+  ) {
+    return;
+  }
+
+  const routineApi =
+    window.JYMLog.routines;
+
+  if (!routineApi) {
+    setExerciseEditorMessage(
+      "루틴 기능을 불러오지 못했습니다.",
+      true
+    );
+
+    return;
+  }
+
+  saveExerciseEditorBtn.disabled =
+    true;
+
+  saveExerciseEditorBtn.textContent =
+    "저장 중...";
+
+  setExerciseEditorMessage(
+    "운동 설정을 저장하고 있습니다."
+  );
+
+  try {
+    await routineApi
+      .updateActiveRoutineExercise(
+        editingExerciseIndex,
+        {
+          name:
+            exerciseNameInput.value,
+
+          type:
+            exerciseTypeInput.value,
+
+          weight:
+            exerciseWeightInput.value,
+
+          sets:
+            Number(
+              exerciseSetsInput.value
+            ),
+
+          min:
+            Number(
+              exerciseMinRepsInput.value
+            ),
+
+          max:
+            Number(
+              exerciseMaxRepsInput.value
+            ),
+
+          rest:
+            Number(
+              exerciseRestInput.value
+            ),
+
+          increment:
+            exerciseIncrementInput.value
+        }
+      );
+
+    toast(
+      "운동 설정이 저장되었습니다."
+    );
+
+    closeExerciseEditor();
+  } catch (error) {
+    console.error(
+      "[JYM Log] 운동 설정 저장 실패",
+      error
+    );
+
+    setExerciseEditorMessage(
+      error.message ||
+      "운동 설정을 저장하지 못했습니다.",
+      true
+    );
+  } finally {
+    saveExerciseEditorBtn.disabled =
+      false;
+
+    saveExerciseEditorBtn.textContent =
+      "운동 설정 저장";
+  }
 }
 
 document.addEventListener("click", e => {
@@ -1587,7 +1947,25 @@ document.addEventListener("click", e => {
 
       return;
     }
-    const action = e.target.dataset.action;
+
+    const exerciseEditButton =
+      e.target.closest(
+        "[data-edit-exercise-index]"
+      );
+
+    if (exerciseEditButton) {
+      openExerciseEditor(
+        Number(
+          exerciseEditButton.dataset
+            .editExerciseIndex
+        )
+      );
+
+      return;
+    }
+
+    const action =
+      e.target.dataset.action;
     if (action) {
   const exerciseIndex = state.activeExercise;
   const setIndex = Number(e.target.dataset.set);
@@ -1760,6 +2138,63 @@ if (routineInfoForm) {
   routineInfoForm.addEventListener(
     "submit",
     saveRoutineInfo
+  );
+}
+
+if (exerciseEditorForm) {
+  exerciseEditorForm.addEventListener(
+    "submit",
+    saveExerciseEditor
+  );
+}
+
+if (exerciseTypeInput) {
+  exerciseTypeInput.addEventListener(
+    "change",
+    syncExerciseTypeFields
+  );
+}
+
+if (exerciseMinRepsInput) {
+  exerciseMinRepsInput.addEventListener(
+    "input",
+    () => {
+      if (
+        exerciseTypeInput.value ===
+        "고정 반복형"
+      ) {
+        exerciseMaxRepsInput.value =
+          exerciseMinRepsInput.value;
+      }
+    }
+  );
+}
+
+if (cancelExerciseEditorBtn) {
+  cancelExerciseEditorBtn.addEventListener(
+    "click",
+    closeExerciseEditor
+  );
+}
+
+if (closeExerciseEditorBtn) {
+  closeExerciseEditorBtn.addEventListener(
+    "click",
+    closeExerciseEditor
+  );
+}
+
+if (exerciseEditorModal) {
+  exerciseEditorModal.addEventListener(
+    "click",
+    (event) => {
+      if (
+        event.target ===
+        exerciseEditorModal
+      ) {
+        closeExerciseEditor();
+      }
+    }
   );
 }
 

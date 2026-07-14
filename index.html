@@ -630,6 +630,194 @@
 
 <div class="toast" id="toast"></div>
 
+<div
+  class="exercise-editor-modal hidden"
+  id="exerciseEditorModal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="exerciseEditorTitle"
+>
+  <div class="exercise-editor-sheet">
+    <div class="exercise-editor-head">
+      <div>
+        <p class="eyebrow">
+          운동 설정
+        </p>
+
+        <h2 id="exerciseEditorTitle">
+          운동 편집
+        </h2>
+      </div>
+
+      <button
+        class="exercise-editor-close"
+        id="closeExerciseEditorBtn"
+        type="button"
+        aria-label="운동 편집 닫기"
+      >
+        ×
+      </button>
+    </div>
+
+    <form id="exerciseEditorForm">
+      <div class="exercise-editor-field full">
+        <label for="exerciseNameInput">
+          운동 이름
+        </label>
+
+        <input
+          id="exerciseNameInput"
+          type="text"
+          maxlength="30"
+          autocomplete="off"
+          required
+        >
+      </div>
+
+      <div class="exercise-editor-field full">
+        <label for="exerciseTypeInput">
+          진행 방식
+        </label>
+
+        <select id="exerciseTypeInput">
+          <option value="고정 반복형">
+            고정 반복형
+          </option>
+
+          <option value="반복 범위형">
+            반복 범위형
+          </option>
+        </select>
+      </div>
+
+      <div class="exercise-editor-grid">
+        <div class="exercise-editor-field">
+          <label for="exerciseWeightInput">
+            목표 중량(kg)
+          </label>
+
+          <input
+            id="exerciseWeightInput"
+            type="number"
+            min="0"
+            max="1000"
+            step="0.5"
+            inputmode="decimal"
+            required
+          >
+        </div>
+
+        <div class="exercise-editor-field">
+          <label for="exerciseSetsInput">
+            세트 수
+          </label>
+
+          <input
+            id="exerciseSetsInput"
+            type="number"
+            min="1"
+            max="20"
+            step="1"
+            inputmode="numeric"
+            required
+          >
+        </div>
+
+        <div class="exercise-editor-field">
+          <label for="exerciseMinRepsInput">
+            최소 반복
+          </label>
+
+          <input
+            id="exerciseMinRepsInput"
+            type="number"
+            min="1"
+            max="100"
+            step="1"
+            inputmode="numeric"
+            required
+          >
+        </div>
+
+        <div class="exercise-editor-field">
+          <label for="exerciseMaxRepsInput">
+            최대 반복
+          </label>
+
+          <input
+            id="exerciseMaxRepsInput"
+            type="number"
+            min="1"
+            max="100"
+            step="1"
+            inputmode="numeric"
+            required
+          >
+        </div>
+
+        <div class="exercise-editor-field">
+          <label for="exerciseRestInput">
+            휴식 시간(초)
+          </label>
+
+          <input
+            id="exerciseRestInput"
+            type="number"
+            min="0"
+            max="1800"
+            step="10"
+            inputmode="numeric"
+            required
+          >
+        </div>
+
+        <div class="exercise-editor-field">
+          <label for="exerciseIncrementInput">
+            증량 단위(kg)
+          </label>
+
+          <input
+            id="exerciseIncrementInput"
+            type="number"
+            min="0.5"
+            max="100"
+            step="0.5"
+            inputmode="decimal"
+            required
+          >
+        </div>
+      </div>
+
+      <p
+        class="exercise-editor-message"
+        id="exerciseEditorMessage"
+        role="status"
+        aria-live="polite"
+      >
+        변경한 설정은 다음 운동부터 적용됩니다.
+      </p>
+
+      <div class="exercise-editor-actions">
+        <button
+          class="ghost-btn"
+          id="cancelExerciseEditorBtn"
+          type="button"
+        >
+          취소
+        </button>
+
+        <button
+          class="primary-btn"
+          id="saveExerciseEditorBtn"
+          type="submit"
+        >
+          운동 설정 저장
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="modal" id="fatigueModal">
   <div class="sheet">
     <div class="sheet-handle"></div>

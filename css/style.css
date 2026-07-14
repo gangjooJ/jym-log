@@ -1043,3 +1043,161 @@
 .routine-editor-message.error {
   color: var(--danger);
 }
+
+.routine-edit-btn {
+  min-width: 58px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.routine-edit-btn:active {
+  transform: scale(0.97);
+}
+
+.exercise-editor-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  padding-top:
+    env(safe-area-inset-top);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background:
+    rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(5px);
+}
+
+.exercise-editor-modal.hidden {
+  display: none;
+}
+
+.exercise-editor-sheet {
+  width: min(100%, 520px);
+  max-height:
+    calc(100dvh - 24px);
+  padding:
+    22px
+    20px
+    calc(22px + env(safe-area-inset-bottom));
+  border-radius: 26px 26px 0 0;
+  overflow-y: auto;
+  background: var(--surface);
+  box-shadow:
+    0 -20px 60px
+    rgba(15, 23, 42, 0.2);
+}
+
+.exercise-editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.exercise-editor-close {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 24px;
+}
+
+#exerciseEditorForm {
+  margin-top: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.exercise-editor-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.exercise-editor-field {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.exercise-editor-field.full {
+  grid-column: 1 / -1;
+}
+
+.exercise-editor-field label {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.exercise-editor-field input,
+.exercise-editor-field select {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 800;
+  outline: none;
+}
+
+.exercise-editor-field input:focus,
+.exercise-editor-field select:focus {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px
+    rgba(79, 70, 229, 0.12);
+}
+
+.exercise-editor-field input:disabled {
+  opacity: 0.55;
+}
+
+.exercise-editor-message {
+  min-height: 18px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.exercise-editor-message.error {
+  color: var(--danger);
+}
+
+.exercise-editor-actions {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1.5fr);
+  gap: 9px;
+}
+
+.exercise-editor-actions button {
+  min-height: 48px;
+}
+
+@media (min-width: 700px) {
+  .exercise-editor-modal {
+    padding: 24px;
+    align-items: center;
+  }
+
+  .exercise-editor-sheet {
+    border-radius: 26px;
+  }
+}

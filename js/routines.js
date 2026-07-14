@@ -71,6 +71,142 @@ function normalizeDescription(value) {
     "사용자 설정 루틴";
 }
 
+function validateExerciseInput(
+  currentExercise,
+  input,
+  exerciseIndex
+) {
+  const name =
+    normalizeText(input.name);
+
+  const nameLength =
+    Array.from(name).length;
+
+  if (nameLength < 2) {
+    throw new Error(
+      "운동 이름은 2자 이상 입력해 주세요."
+    );
+  }
+
+  if (nameLength > 30) {
+    throw new Error(
+      "운동 이름은 30자 이하로 입력해 주세요."
+    );
+  }
+
+  const type =
+    input.type === "고정 반복형"
+      ? "고정 반복형"
+      : "반복 범위형";
+
+  const weight =
+    Number(input.weight);
+
+  if (
+    !Number.isFinite(weight) ||
+    weight < 0 ||
+    weight > 1000
+  ) {
+    throw new Error(
+      "중량은 0~1000kg 사이로 입력해 주세요."
+    );
+  }
+
+  const sets =
+    Number(input.sets);
+
+  if (
+    !Number.isInteger(sets) ||
+    sets < 1 ||
+    sets > 20
+  ) {
+    throw new Error(
+      "세트 수는 1~20 사이의 정수로 입력해 주세요."
+    );
+  }
+
+  const minReps =
+    Number(input.min);
+
+  if (
+    !Number.isInteger(minReps) ||
+    minReps < 1 ||
+    minReps > 100
+  ) {
+    throw new Error(
+      "최소 반복 수는 1~100 사이로 입력해 주세요."
+    );
+  }
+
+  let maxReps =
+    type === "고정 반복형"
+      ? minReps
+      : Number(input.max);
+
+  if (
+    !Number.isInteger(maxReps) ||
+    maxReps < minReps ||
+    maxReps > 100
+  ) {
+    throw new Error(
+      "최대 반복 수는 최소 반복 수 이상, 100회 이하로 입력해 주세요."
+    );
+  }
+
+  const rest =
+    Number(input.rest);
+
+  if (
+    !Number.isInteger(rest) ||
+    rest < 0 ||
+    rest > 1800
+  ) {
+    throw new Error(
+      "휴식 시간은 0~1800초 사이로 입력해 주세요."
+    );
+  }
+
+  const increment =
+    Number(input.increment);
+
+  if (
+    !Number.isFinite(increment) ||
+    increment <= 0 ||
+    increment > 100
+  ) {
+    throw new Error(
+      "증량 단위는 0보다 크고 100kg 이하여야 합니다."
+    );
+  }
+
+  return {
+    ...currentExercise,
+
+    id:
+      currentExercise.id ||
+      `exercise-${exerciseIndex + 1}`,
+
+    order:
+      exerciseIndex,
+
+    name,
+
+    icon:
+      currentExercise.icon ||
+      name.charAt(0),
+
+    type,
+    weight,
+    sets,
+    min:
+      minReps,
+    max:
+      maxReps,
+    rest,
+    increment
+  };
+}
+
 function emitRoutineReady() {
   window.dispatchEvent(
     new CustomEvent(
@@ -338,10 +474,115 @@ async function updateActiveRoutineMetadata(
   return activeRoutine;
 }
 
+async function updateActiveRoutineExercise(
+  exerciseIndex,
+  exerciseInput
+) {
+  if (!activeRoutine?.userId) {
+    throw new Error(
+      "수정할 사용자 루틴을 찾을 수 없습니다."
+    );
+  }
+
+  if (
+    workout.state.started &&
+    !workout.state.completed
+  ) {
+    throw new Error(
+      "운동 진행 중에는 루틴을 수정할 수 없습니다."
+    );
+  }
+
+  const currentExercise =
+    activeRoutine.exercises[
+      exerciseIndex
+    ];
+
+  if (!currentExercise) {
+    throw new Error(
+      "수정할 운동을 찾을 수 없습니다."
+    );
+  }
+
+  const updatedExercise =
+    validateExerciseInput(
+      currentExercise,
+      exerciseInput,
+      exerciseIndex
+    );
+
+  const nextExercises =
+    activeRoutine.exercises.map(
+      (exercise, index) =>
+        index === exerciseIndex
+          ? updatedExercise
+          : {
+              ...exercise,
+              order: index
+            }
+    );
+
+  const routineDocument =
+    doc(
+      db,
+      "users",
+      activeRoutine.userId,
+      "routines",
+      activeRoutine.id
+    );
+
+  await setDoc(
+    routineDocument,
+    {
+      userId:
+        activeRoutine.userId,
+
+      schemaVersion:
+        ROUTINE_SCHEMA_VERSION,
+
+      exercises:
+        nextExercises,
+
+      updatedAt:
+        serverTimestamp()
+    },
+    {
+      merge: true
+    }
+  );
+
+  activeRoutine = {
+    ...activeRoutine,
+    exercises:
+      nextExercises
+  };
+
+  workout.replaceExercises(
+    nextExercises,
+    false
+  );
+
+  /*
+   * 바뀐 세트 수와 반복 범위가
+   * 기존 운동 초안에 섞이지 않도록 초기화합니다.
+   */
+  workout.resetWorkout();
+  workout.saveState();
+
+  emitRoutineReady();
+
+  console.info(
+    "[JYM Log] 운동 설정 저장 완료"
+  );
+
+  return updatedExercise;
+}
+
 window.JYMLog.routines =
   Object.freeze({
     ensureActiveRoutine,
     updateActiveRoutineMetadata,
+    updateActiveRoutineExercise,
 
     get activeRoutine() {
       return activeRoutine;
@@ -350,5 +591,6 @@ window.JYMLog.routines =
 
 export {
   ensureActiveRoutine,
-  updateActiveRoutineMetadata
+  updateActiveRoutineMetadata,
+  updateActiveRoutineExercise
 };
