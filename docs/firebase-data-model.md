@@ -112,6 +112,8 @@ users/{uid}/appData/currentWorkout
 | `state` | map | O | 현재 운동 상태 |
 | `updatedAt` | timestamp | O | Firestore 서버 저장 시각 |
 | `clientUpdatedAt` | number | O | 기기에서 현재 운동 상태가 마지막으로 변경된 시각의 밀리초 값 |
+| `revision` | number | O | Firestore에 정상 저장될 때마다 1씩 증가하는 상태 버전 |
+| `lastDeviceId` | string | O | 마지막으로 클라우드 상태를 저장한 브라우저·PWA 식별자 |
 
 ### `state` 필드
 
@@ -404,6 +406,11 @@ jym-log-prototype-state:migration-owner
 
 기존 로그인 전 기록은 최초로 로그인한 사용자 계정에 한 번만 귀속한다.
 
+### 기기 식별자
+
+```text
+jym-log-prototype-state:device-id
+
 ---
 
 ## 8. 보안 원칙
@@ -461,7 +468,7 @@ workoutSessions/{sessionId}
 - 활성 루틴이 현재 `main` 하나로 고정돼 있다.
 - `currentWorkout`은 로컬·클라우드 수정 시각 비교가 없다.
 - 오프라인 업로드 대기 상태가 메모리에만 존재한다.
-- PC와 모바일의 동시 수정 충돌 정책이 없다.
+- PC와 모바일 동시 수정은 revision 불일치로 감지하고 양쪽 상태를 보관하지만, 사용자가 어느 상태를 유지할지 선택하는 화면은 아직 없다.
 - 벤치프레스 분석이 일부 운동 이름과 첫 번째 운동 위치에 의존한다.
 - 계정 삭제 시 하위 컬렉션 자동 삭제 기능이 없다.
 - iOS 실기기 동기화 검증이 완료되지 않았다.

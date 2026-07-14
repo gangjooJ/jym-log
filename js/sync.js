@@ -1,8 +1,8 @@
 import {
   doc,
   getDoc,
-  serverTimestamp,
-  setDoc
+  runTransaction,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 import {
@@ -19,8 +19,13 @@ const SYNC_SCHEMA_VERSION = 1;
 
 let activeUserId = null;
 let stateSavedHandler = null;
-let pendingState = null;
+let pendingPayload = null;
 let writeInProgress = false;
+let currentCloudRevision = 0;
+let syncConflictActive = false;
+
+const deviceId =
+  storage.getDeviceId();
 
 function emitSyncStatus(
   status,
@@ -41,9 +46,24 @@ function emitSyncStatus(
   );
 }
 
-function cloneState(state) {
+function emitSyncConflict(
+  conflict
+) {
+  window.dispatchEvent(
+    new CustomEvent(
+      "jym-log:sync-conflict",
+      {
+        detail: {
+          conflict
+        }
+      }
+    )
+  );
+}
+
+function cloneValue(value) {
   return JSON.parse(
-    JSON.stringify(state)
+    JSON.stringify(value)
   );
 }
 
@@ -53,6 +73,45 @@ function getStateUpdatedAt(
   return (
     Number(state?.updatedAt) ||
     0
+  );
+}
+
+function chooseNewerState(
+  firstState,
+  secondState
+) {
+  if (!firstState) {
+    return secondState
+      ? cloneValue(secondState)
+      : null;
+  }
+
+  if (!secondState) {
+    return cloneValue(firstState);
+  }
+
+  return (
+    getStateUpdatedAt(
+      secondState
+    ) >
+    getStateUpdatedAt(
+      firstState
+    )
+  )
+    ? cloneValue(secondState)
+    : cloneValue(firstState);
+}
+
+function getCloudRevision(
+  cloudData
+) {
+  return Math.max(
+    0,
+    Math.floor(
+      Number(
+        cloudData?.revision
+      ) || 0
+    )
   );
 }
 
@@ -88,32 +147,6 @@ function getCloudUpdatedAt(
   return 0;
 }
 
-function chooseNewerState(
-  firstState,
-  secondState
-) {
-  if (!firstState) {
-    return secondState
-      ? cloneState(secondState)
-      : null;
-  }
-
-  if (!secondState) {
-    return cloneState(firstState);
-  }
-
-  return (
-    getStateUpdatedAt(
-      secondState
-    ) >
-    getStateUpdatedAt(
-      firstState
-    )
-  )
-    ? cloneState(secondState)
-    : cloneState(firstState);
-}
-
 function getWorkoutDocument(
   userId
 ) {
@@ -127,15 +160,21 @@ function getWorkoutDocument(
 }
 
 /**
- * Firestore 저장 시각과 별도로,
- * 기기에서 실제로 수정된 시각도 저장합니다.
+ * 현재 클라우드 revision과
+ * 이 기기가 알고 있는 revision이 같을 때만 저장합니다.
  */
 async function saveCloudState(
   userId,
-  state
+  state,
+  expectedRevision
 ) {
+  const workoutDocument =
+    getWorkoutDocument(
+      userId
+    );
+
   const copiedState =
-    cloneState(state);
+    cloneValue(state);
 
   let clientUpdatedAt =
     getStateUpdatedAt(
@@ -150,43 +189,275 @@ async function saveCloudState(
       clientUpdatedAt;
   }
 
-  await setDoc(
-    getWorkoutDocument(userId),
-    {
-      userId,
+  return runTransaction(
+    db,
+    async (transaction) => {
+      const snapshot =
+        await transaction.get(
+          workoutDocument
+        );
 
-      schemaVersion:
-        SYNC_SCHEMA_VERSION,
+      const cloudData =
+        snapshot.exists()
+          ? snapshot.data()
+          : null;
 
-      state:
-        copiedState,
+      const cloudRevision =
+        getCloudRevision(
+          cloudData
+        );
 
-      clientUpdatedAt,
+      if (
+        cloudRevision !==
+        expectedRevision
+      ) {
+        return {
+          status:
+            "conflict",
 
-      /*
-       * Firestore 서버가 실제로
-       * 요청을 받은 시각입니다.
-       */
-      updatedAt:
-        serverTimestamp()
-    },
-    {
-      merge: true
+          cloudRevision,
+
+          cloudState:
+            cloudData?.state
+              ? cloneValue(
+                  cloudData.state
+                )
+              : null,
+
+          cloudDeviceId:
+            String(
+              cloudData
+                ?.lastDeviceId ||
+              ""
+            ),
+
+          cloudUpdatedAt:
+            getCloudUpdatedAt(
+              cloudData
+            )
+        };
+      }
+
+      const nextRevision =
+        cloudRevision + 1;
+
+      transaction.set(
+        workoutDocument,
+        {
+          userId,
+
+          schemaVersion:
+            SYNC_SCHEMA_VERSION,
+
+          state:
+            copiedState,
+
+          revision:
+            nextRevision,
+
+          lastDeviceId:
+            deviceId,
+
+          clientUpdatedAt,
+
+          updatedAt:
+            serverTimestamp()
+        },
+        {
+          merge: true
+        }
+      );
+
+      return {
+        status:
+          "saved",
+
+        revision:
+          nextRevision,
+
+        savedUpdatedAt:
+          clientUpdatedAt
+      };
     }
   );
+}
 
-  return clientUpdatedAt;
+function buildConflictRecord(
+  localPayload,
+  cloudResult
+) {
+  const previousConflict =
+    storage.loadSyncConflict(
+      activeUserId
+    );
+
+  const latestLocalState =
+    chooseNewerState(
+      previousConflict?.localState,
+      localPayload?.state
+    );
+
+  return {
+    detectedAt:
+      Date.now(),
+
+    localState:
+      latestLocalState,
+
+    localUpdatedAt:
+      getStateUpdatedAt(
+        latestLocalState
+      ),
+
+    localBaseRevision:
+      Number(
+        localPayload
+          ?.baseRevision
+      ) || 0,
+
+    localDeviceId:
+      deviceId,
+
+    cloudState:
+      cloudResult
+        ?.cloudState ||
+      previousConflict
+        ?.cloudState ||
+      null,
+
+    cloudUpdatedAt:
+      Number(
+        cloudResult
+          ?.cloudUpdatedAt
+      ) ||
+      Number(
+        previousConflict
+          ?.cloudUpdatedAt
+      ) ||
+      0,
+
+    cloudRevision:
+      Number(
+        cloudResult
+          ?.cloudRevision
+      ) ||
+      Number(
+        previousConflict
+          ?.cloudRevision
+      ) ||
+      0,
+
+    cloudDeviceId:
+      String(
+        cloudResult
+          ?.cloudDeviceId ||
+        previousConflict
+          ?.cloudDeviceId ||
+        ""
+      )
+  };
+}
+
+function activateSyncConflict(
+  userId,
+  localPayload,
+  cloudResult
+) {
+  const conflict =
+    storage.saveSyncConflict(
+      userId,
+      buildConflictRecord(
+        localPayload,
+        cloudResult
+      )
+    );
+
+  syncConflictActive = true;
+  pendingPayload = null;
+
+  /*
+   * 일반 대기열과 충돌 백업이 동시에
+   * 존재하지 않도록 대기열을 정리합니다.
+   */
+  storage.clearPendingSync(
+    userId
+  );
+
+  currentCloudRevision =
+    Number(
+      conflict?.cloudRevision
+    ) || 0;
+
+  emitSyncStatus(
+    "conflict",
+    "동기화 충돌"
+  );
+
+  emitSyncConflict(
+    conflict
+  );
+
+  console.warn(
+    "[JYM Log] 다른 기기의 더 최신인 운동 기록을 감지했습니다.",
+    conflict
+  );
+
+  return conflict;
 }
 
 /**
- * 대기 중인 가장 최신 상태를
- * Firestore에 저장합니다.
+ * 충돌 상태에서 추가로 입력한 로컬 기록도
+ * 같은 충돌 백업에 계속 갱신합니다.
  */
+function preserveConflictLocalState(
+  state
+) {
+  if (!activeUserId) {
+    return null;
+  }
+
+  const previousConflict =
+    storage.loadSyncConflict(
+      activeUserId
+    );
+
+  const latestLocalState =
+    chooseNewerState(
+      previousConflict
+        ?.localState,
+      state
+    );
+
+  return storage.saveSyncConflict(
+    activeUserId,
+    {
+      ...(previousConflict || {}),
+
+      detectedAt:
+        previousConflict
+          ?.detectedAt ||
+        Date.now(),
+
+      localState:
+        latestLocalState,
+
+      localUpdatedAt:
+        getStateUpdatedAt(
+          latestLocalState
+        ),
+
+      localDeviceId:
+        deviceId
+    }
+  );
+}
+
 async function flushPendingState() {
   if (
     writeInProgress ||
     !activeUserId ||
-    !pendingState
+    !pendingPayload ||
+    syncConflictActive
   ) {
     return;
   }
@@ -194,10 +465,12 @@ async function flushPendingState() {
   const userId =
     activeUserId;
 
-  const stateToSave =
-    cloneState(pendingState);
+  const payloadToSave =
+    cloneValue(
+      pendingPayload
+    );
 
-  pendingState = null;
+  pendingPayload = null;
   writeInProgress = true;
 
   let saveFailed = false;
@@ -208,20 +481,64 @@ async function flushPendingState() {
   );
 
   try {
-    const savedUpdatedAt =
+    const result =
       await saveCloudState(
         userId,
-        stateToSave
+        payloadToSave.state,
+        Number(
+          payloadToSave
+            .baseRevision
+        ) || 0
       );
 
-    /*
-     * 저장 도중 더 최신 상태가 생겼다면
-     * clearPendingSync가 그 기록을 지우지 않습니다.
-     */
+    if (
+      result.status ===
+      "conflict"
+    ) {
+      const newerLocalState =
+        chooseNewerState(
+          payloadToSave.state,
+          activeUserId === userId
+            ? pendingPayload?.state
+            : null
+        );
+
+      activateSyncConflict(
+        userId,
+        {
+          ...payloadToSave,
+          state:
+            newerLocalState
+        },
+        result
+      );
+
+      return;
+    }
+
+    currentCloudRevision =
+      result.revision;
+
     storage.clearPendingSync(
       userId,
-      savedUpdatedAt
+      result.savedUpdatedAt
     );
+
+    /*
+     * 첫 번째 저장 중에 새로운 변경이 생겼다면
+     * 새 revision을 기준으로 다시 저장합니다.
+     */
+    if (
+      pendingPayload &&
+      activeUserId === userId
+    ) {
+      pendingPayload =
+        storage.savePendingSync(
+          userId,
+          pendingPayload.state,
+          currentCloudRevision
+        );
+    }
 
     if (
       activeUserId === userId
@@ -240,22 +557,28 @@ async function flushPendingState() {
 
     const retryState =
       chooseNewerState(
-        stateToSave,
+        payloadToSave.state,
         activeUserId === userId
-          ? pendingState
+          ? pendingPayload?.state
           : null
       );
 
-    storage.savePendingSync(
-      userId,
-      retryState
-    );
+    const retryPayload =
+      storage.savePendingSync(
+        userId,
+        retryState,
+        Number(
+          payloadToSave
+            .baseRevision
+        ) ||
+        currentCloudRevision
+      );
 
     if (
       activeUserId === userId
     ) {
-      pendingState =
-        retryState;
+      pendingPayload =
+        retryPayload;
 
       console.warn(
         "[JYM Log] 운동 기록 클라우드 저장 실패",
@@ -277,8 +600,9 @@ async function flushPendingState() {
 
     if (
       !saveFailed &&
-      pendingState &&
-      activeUserId === userId
+      pendingPayload &&
+      activeUserId === userId &&
+      !syncConflictActive
     ) {
       void flushPendingState();
     }
@@ -290,10 +614,24 @@ function queueCloudSave(state) {
     return;
   }
 
+  if (syncConflictActive) {
+    preserveConflictLocalState(
+      state
+    );
+
+    emitSyncStatus(
+      "conflict",
+      "동기화 충돌"
+    );
+
+    return;
+  }
+
   const queued =
     storage.savePendingSync(
       activeUserId,
-      state
+      state,
+      currentCloudRevision
     );
 
   if (!queued) {
@@ -305,10 +643,8 @@ function queueCloudSave(state) {
     return;
   }
 
-  pendingState =
-    cloneState(
-      queued.state
-    );
+  pendingPayload =
+    queued;
 
   if (!navigator.onLine) {
     emitSyncStatus(
@@ -357,18 +693,11 @@ function stopWorkoutSync() {
 
   activeUserId = null;
   stateSavedHandler = null;
-  pendingState = null;
-
-  /*
-   * LocalStorage의 미전송 기록은
-   * 로그아웃이나 앱 종료에도 삭제하지 않습니다.
-   */
+  pendingPayload = null;
+  currentCloudRevision = 0;
+  syncConflictActive = false;
 }
 
-/**
- * 로그인 시 로컬과 클라우드 중
- * 더 최근에 수정된 상태를 선택합니다.
- */
 async function initializeWorkoutSync(
   userId
 ) {
@@ -393,8 +722,13 @@ async function initializeWorkoutSync(
       userId
     );
 
+  const storedConflict =
+    storage.loadSyncConflict(
+      userId
+    );
+
   let localState =
-    cloneState(
+    cloneValue(
       workout.state
     );
 
@@ -405,9 +739,15 @@ async function initializeWorkoutSync(
         storedPending.state
       );
 
-    pendingState =
-      cloneState(
-        storedPending.state
+    pendingPayload =
+      storedPending;
+  }
+
+  if (storedConflict?.localState) {
+    localState =
+      chooseNewerState(
+        localState,
+        storedConflict.localState
       );
   }
 
@@ -424,10 +764,6 @@ async function initializeWorkoutSync(
         workoutDocument
       );
   } catch (error) {
-    /*
-     * 클라우드를 확인하지 못했을 때는
-     * 로컬 상태를 그대로 유지합니다.
-     */
     if (
       activeUserId !== userId
     ) {
@@ -442,19 +778,32 @@ async function initializeWorkoutSync(
 
     attachStateSavedHandler();
 
+    if (storedConflict) {
+      syncConflictActive = true;
+
+      emitSyncStatus(
+        "conflict",
+        "동기화 충돌"
+      );
+
+      emitSyncConflict(
+        storedConflict
+      );
+    } else {
+      emitSyncStatus(
+        navigator.onLine
+          ? "error"
+          : "offline",
+
+        navigator.onLine
+          ? "동기화 오류"
+          : "오프라인 저장"
+      );
+    }
+
     console.warn(
       "[JYM Log] 클라우드 상태 확인 실패",
       error
-    );
-
-    emitSyncStatus(
-      navigator.onLine
-        ? "error"
-        : "offline",
-
-      navigator.onLine
-        ? "동기화 오류"
-        : "오프라인 저장"
     );
 
     return workout.state;
@@ -471,11 +820,130 @@ async function initializeWorkoutSync(
       ? workoutSnapshot.data()
       : null;
 
-  if (!cloudData?.state) {
-    /*
-     * 클라우드 문서가 없고 로컬 상태도
-     * 수정 시각이 없다면 최초 시각을 생성합니다.
-     */
+  const cloudState =
+    cloudData?.state
+      ? cloneValue(
+          cloudData.state
+        )
+      : null;
+
+  currentCloudRevision =
+    getCloudRevision(
+      cloudData
+    );
+
+  /*
+   * 이전 실행에서 감지한 충돌이 있다면
+   * 자동으로 어느 기록도 덮어쓰지 않습니다.
+   */
+  if (storedConflict) {
+    const refreshedConflict =
+      storage.saveSyncConflict(
+        userId,
+        {
+          ...storedConflict,
+
+          localState,
+
+          localUpdatedAt:
+            getStateUpdatedAt(
+              localState
+            ),
+
+          cloudState:
+            cloudState ||
+            storedConflict
+              .cloudState ||
+            null,
+
+          cloudRevision:
+            currentCloudRevision,
+
+          cloudUpdatedAt:
+            getCloudUpdatedAt(
+              cloudData
+            ),
+
+          cloudDeviceId:
+            String(
+              cloudData
+                ?.lastDeviceId ||
+              storedConflict
+                .cloudDeviceId ||
+              ""
+            )
+        }
+      );
+
+    syncConflictActive = true;
+
+    workout.replaceState(
+      localState,
+      true,
+      false
+    );
+
+    attachStateSavedHandler();
+
+    emitSyncStatus(
+      "conflict",
+      "동기화 충돌"
+    );
+
+    emitSyncConflict(
+      refreshedConflict
+    );
+
+    return workout.state;
+  }
+
+  /*
+   * 이 기기의 대기 기록이 기준으로 삼은 revision과
+   * 현재 클라우드 revision이 다르면 동시 수정입니다.
+   */
+  if (
+    storedPending &&
+    Number(
+      storedPending
+        .baseRevision
+    ) !==
+      currentCloudRevision
+  ) {
+    workout.replaceState(
+      localState,
+      true,
+      false
+    );
+
+    attachStateSavedHandler();
+
+    activateSyncConflict(
+      userId,
+      storedPending,
+      {
+        cloudState,
+
+        cloudRevision:
+          currentCloudRevision,
+
+        cloudUpdatedAt:
+          getCloudUpdatedAt(
+            cloudData
+          ),
+
+        cloudDeviceId:
+          String(
+            cloudData
+              ?.lastDeviceId ||
+            ""
+          )
+      }
+    );
+
+    return workout.state;
+  }
+
+  if (!cloudState) {
     if (
       getStateUpdatedAt(
         localState
@@ -489,7 +957,7 @@ async function initializeWorkoutSync(
       workout.saveState();
 
       localState =
-        cloneState(
+        cloneValue(
           workout.state
         );
     } else {
@@ -513,11 +981,6 @@ async function initializeWorkoutSync(
     return workout.state;
   }
 
-  const cloudState =
-    cloneState(
-      cloudData.state
-    );
-
   const localUpdatedAt =
     getStateUpdatedAt(
       localState
@@ -532,10 +995,6 @@ async function initializeWorkoutSync(
     localUpdatedAt >
     cloudUpdatedAt
   ) {
-    /*
-     * 오프라인 변경 등으로 로컬이 더 최신이면
-     * 로컬을 화면에 적용하고 업로드합니다.
-     */
     workout.replaceState(
       localState,
       true,
@@ -552,17 +1011,13 @@ async function initializeWorkoutSync(
       "[JYM Log] 더 최신인 로컬 운동 기록 업로드 준비"
     );
   } else {
-    /*
-     * 클라우드가 같거나 더 최신이면
-     * 클라우드 상태를 로컬에 적용합니다.
-     */
     workout.replaceState(
       cloudState,
       true,
       false
     );
 
-    pendingState = null;
+    pendingPayload = null;
 
     storage.clearPendingSync(
       userId,
@@ -591,21 +1046,23 @@ window.addEventListener(
       return;
     }
 
-    if (!pendingState) {
-      const storedPending =
+    if (syncConflictActive) {
+      emitSyncStatus(
+        "conflict",
+        "동기화 충돌"
+      );
+
+      return;
+    }
+
+    if (!pendingPayload) {
+      pendingPayload =
         storage.loadPendingSync(
           activeUserId
         );
-
-      if (storedPending?.state) {
-        pendingState =
-          cloneState(
-            storedPending.state
-          );
-      }
     }
 
-    if (pendingState) {
+    if (pendingPayload) {
       emitSyncStatus(
         "saving",
         "저장 중"
@@ -630,11 +1087,31 @@ window.addEventListener(
     }
 
     emitSyncStatus(
-      "offline",
-      "오프라인 저장"
+      syncConflictActive
+        ? "conflict"
+        : "offline",
+
+      syncConflictActive
+        ? "동기화 충돌"
+        : "오프라인 저장"
     );
   }
 );
+
+window.JYMLog.sync =
+  Object.freeze({
+    get deviceId() {
+      return deviceId;
+    },
+
+    get currentCloudRevision() {
+      return currentCloudRevision;
+    },
+
+    get hasConflict() {
+      return syncConflictActive;
+    }
+  });
 
 export {
   initializeWorkoutSync,

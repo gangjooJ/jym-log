@@ -3171,6 +3171,20 @@ window.addEventListener(
   }
 );
 
+window.addEventListener(
+  "jym-log:sync-conflict",
+  () => {
+    updateSyncStatus(
+      "conflict",
+      "동기화 충돌"
+    );
+
+    toast(
+      "다른 기기의 변경이 감지되었습니다. 이 기기의 기록은 안전하게 보관했습니다."
+    );
+  }
+);
+
 applyAppMetadata();
 
 renderHome();

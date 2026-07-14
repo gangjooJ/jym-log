@@ -466,6 +466,19 @@
   background: var(--danger);
 }
 
+.sync-status[data-state="conflict"] {
+  color: var(--danger);
+  border-color: #fca5a5;
+  background: #fff1f2;
+}
+
+.sync-status[data-state="conflict"]
+  .sync-status-dot {
+  background: var(--danger);
+  animation: sync-pulse 1s
+    ease-in-out infinite;
+}
+
 @keyframes sync-pulse {
   0%,
   100% {
