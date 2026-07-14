@@ -133,8 +133,10 @@ jym-log/
 │  ├─ analysis.js
 │  └─ app.js
 ├─ docs/
+│  ├─ firebase-data-model.md
 │  ├─ manual-test-checklist.md
 │  └─ stabilization-roadmap.md
+├─ firestore.rules
 ├─ manifest.webmanifest
 ├─ sw.js
 ├─ icon-192.png
@@ -163,6 +165,8 @@ jym-log/
 | `js/app.js` | 화면 렌더링, 화면 이동, 사용자 입력 이벤트 |
 | `manifest.webmanifest` | 설치형 PWA 정보 |
 | `sw.js` | 앱 셸 캐시, 오프라인 실행, 캐시 갱신 |
+| `firestore.rules` | 사용자별 Firestore 접근 권한 규칙 |
+| `docs/firebase-data-model.md` | Firebase 데이터 경로와 필드 구조 문서 |
 | `docs/manual-test-checklist.md` | 수동 회귀 테스트 기준 |
 | `docs/stabilization-roadmap.md` | v0.2.0 안정화 계획 |
 

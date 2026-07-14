@@ -1,0 +1,105 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * Firebase Authentication으로
+     * 로그인한 사용자인지 확인합니다.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * 현재 로그인 사용자의 UID와
+     * 요청 경로의 사용자 UID가 같은지 확인합니다.
+     */
+    function isOwner(userId) {
+      return isSignedIn()
+        && request.auth.uid == userId;
+    }
+
+    /**
+     * 사용자 프로필
+     *
+     * 경로:
+     * users/{userId}
+     */
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == userId;
+
+      allow update: if isOwner(userId)
+        && resource.data.uid == userId
+        && request.resource.data.uid == userId;
+
+      allow delete: if isOwner(userId);
+
+      /**
+       * 진행 중인 운동 상태
+       *
+       * 경로:
+       * users/{userId}/appData/currentWorkout
+       */
+      match /appData/currentWorkout {
+        allow read: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.schemaVersion == 1;
+
+        allow update: if isOwner(userId)
+          && resource.data.userId == userId
+          && request.resource.data.userId == userId
+          && request.resource.data.schemaVersion == 1;
+
+        allow delete: if isOwner(userId);
+      }
+
+      /**
+       * 사용자 운동 루틴
+       *
+       * 경로:
+       * users/{userId}/routines/{routineId}
+       */
+      match /routines/{routineId} {
+        allow read: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.schemaVersion == 1;
+
+        allow update: if isOwner(userId)
+          && resource.data.userId == userId
+          && request.resource.data.userId == userId
+          && request.resource.data.schemaVersion == 1;
+
+        allow delete: if isOwner(userId);
+      }
+
+      /**
+       * 완료된 운동 세션
+       *
+       * 경로:
+       * users/{userId}/workoutSessions/{sessionId}
+       */
+      match /workoutSessions/{sessionId} {
+        allow read: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.schemaVersion == 1;
+
+        allow update: if isOwner(userId)
+          && resource.data.userId == userId
+          && request.resource.data.userId == userId
+          && request.resource.data.schemaVersion == 1;
+
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

@@ -101,10 +101,10 @@
 
 ### P3 — 문서와 테스트
 
-- [ ] README 현재 기능 반영
-- [ ] CHANGELOG v0.2.0-dev 기록
-- [ ] Firebase 데이터 구조 문서화
-- [ ] Firestore 보안 규칙 GitHub 보관
+- [x] README 현재 기능 반영
+- [x] CHANGELOG v0.2.0-dev 기록
+- [x] Firebase 데이터 구조 문서화
+- [x] Firestore 보안 규칙 GitHub 보관
 - [ ] Android 전체 회귀 테스트
 - [ ] iOS 호환성 사전 점검
 - [ ] iPhone 실기기 확보 후 회귀 테스트
