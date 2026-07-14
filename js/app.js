@@ -311,6 +311,51 @@ const confirmFinishBtn =
     "confirmFinishBtn"
   );
 
+const syncConflictModal =
+  document.getElementById(
+    "syncConflictModal"
+  );
+
+const closeSyncConflictBtn =
+  document.getElementById(
+    "closeSyncConflictBtn"
+  );
+
+const syncConflictLocalStatus =
+  document.getElementById(
+    "syncConflictLocalStatus"
+  );
+
+const syncConflictLocalDetail =
+  document.getElementById(
+    "syncConflictLocalDetail"
+  );
+
+const syncConflictCloudStatus =
+  document.getElementById(
+    "syncConflictCloudStatus"
+  );
+
+const syncConflictCloudDetail =
+  document.getElementById(
+    "syncConflictCloudDetail"
+  );
+
+const syncConflictMessage =
+  document.getElementById(
+    "syncConflictMessage"
+  );
+
+const useCloudConflictBtn =
+  document.getElementById(
+    "useCloudConflictBtn"
+  );
+
+const useLocalConflictBtn =
+  document.getElementById(
+    "useLocalConflictBtn"
+  );
+
 let editingExerciseIndex = null;
 let exerciseEditorMode = "edit";
 
@@ -318,6 +363,8 @@ let routineOrderSaving = false;
 let routineDragState = null;
 
 let workoutFinishInProgress =
+  false;
+let syncConflictResolutionInProgress =
   false;
 
 function applyAppMetadata() {
@@ -369,6 +416,312 @@ function updateSyncStatus(
     "aria-label",
     `클라우드 동기화 상태: ${message}`
   );
+
+    const canOpenConflict =
+    status === "conflict";
+
+  syncStatus.classList.toggle(
+    "is-actionable",
+    canOpenConflict
+  );
+
+  if (canOpenConflict) {
+    syncStatus.setAttribute(
+      "role",
+      "button"
+    );
+
+    syncStatus.setAttribute(
+      "tabindex",
+      "0"
+    );
+
+    syncStatus.setAttribute(
+      "title",
+      "동기화 충돌 기록 선택 열기"
+    );
+  } else {
+    syncStatus.removeAttribute(
+      "role"
+    );
+
+    syncStatus.removeAttribute(
+      "tabindex"
+    );
+
+    syncStatus.removeAttribute(
+      "title"
+    );
+  }
+}
+
+function formatSyncConflictTime(
+  timestamp
+) {
+  const timestampNumber =
+    Number(timestamp);
+
+  if (
+    !Number.isFinite(
+      timestampNumber
+    ) ||
+    timestampNumber <= 0
+  ) {
+    return "수정 시각 정보 없음";
+  }
+
+  return new Intl.DateTimeFormat(
+    window.JYMLog.config.locale,
+    {
+      timeZone:
+        window.JYMLog.config
+          .timezone,
+
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }
+  ).format(
+    new Date(timestampNumber)
+  );
+}
+
+function getSyncConflictSummary(
+  conflictState,
+  updatedAt
+) {
+  if (!conflictState) {
+    return {
+      status:
+        "저장된 운동 기록 없음",
+
+      detail:
+        "이 위치에는 사용할 수 있는 운동 상태가 없습니다."
+    };
+  }
+
+  const completedSets =
+    Object.values(
+      conflictState.sets || {}
+    ).filter(
+      (set) => set?.done
+    ).length;
+
+  let status =
+    "운동 시작 전 기록";
+
+  if (conflictState.completed) {
+    status =
+      "완료된 운동 기록";
+  } else if (
+    conflictState.started
+  ) {
+    status =
+      "진행 중인 운동 기록";
+  }
+
+  return {
+    status,
+
+    detail: [
+      `${completedSets}세트 완료`,
+      formatSyncConflictTime(
+        updatedAt ||
+        conflictState.updatedAt
+      )
+    ].join(" · ")
+  };
+}
+
+function setSyncConflictMessage(
+  message,
+  isError = false
+) {
+  if (!syncConflictMessage) {
+    return;
+  }
+
+  syncConflictMessage.textContent =
+    message;
+
+  syncConflictMessage.classList.toggle(
+    "error",
+    isError
+  );
+}
+
+function renderSyncConflict(
+  conflict
+) {
+  const localSummary =
+    getSyncConflictSummary(
+      conflict?.localState,
+      conflict?.localUpdatedAt
+    );
+
+  const cloudSummary =
+    getSyncConflictSummary(
+      conflict?.cloudState,
+      conflict?.cloudUpdatedAt
+    );
+
+  syncConflictLocalStatus.textContent =
+    localSummary.status;
+
+  syncConflictLocalDetail.textContent =
+    localSummary.detail;
+
+  syncConflictCloudStatus.textContent =
+    cloudSummary.status;
+
+  syncConflictCloudDetail.textContent =
+    cloudSummary.detail;
+}
+
+function openSyncConflictModal(
+  conflict
+) {
+  const syncApi =
+    window.JYMLog.sync;
+
+  const resolvedConflict =
+    conflict ||
+    syncApi?.getConflict?.();
+
+  if (!resolvedConflict) {
+    toast(
+      "보관된 동기화 충돌 기록이 없습니다."
+    );
+
+    return;
+  }
+
+  renderSyncConflict(
+    resolvedConflict
+  );
+
+  setSyncConflictMessage(
+    "기록을 선택하기 전까지 양쪽 데이터는 모두 보관됩니다."
+  );
+
+  syncConflictModal.classList.remove(
+    "hidden"
+  );
+
+  document.body.style.overflow =
+    "hidden";
+
+  window.setTimeout(
+    () => {
+      closeSyncConflictBtn?.focus();
+    },
+    50
+  );
+}
+
+function closeSyncConflictModal() {
+  if (
+    syncConflictResolutionInProgress
+  ) {
+    return;
+  }
+
+  syncConflictModal.classList.add(
+    "hidden"
+  );
+
+  document.body.style.overflow =
+    "";
+}
+
+function setSyncConflictBusy(
+  isBusy,
+  strategy = null
+) {
+  syncConflictResolutionInProgress =
+    isBusy;
+
+  useCloudConflictBtn.disabled =
+    isBusy;
+
+  useLocalConflictBtn.disabled =
+    isBusy;
+
+  closeSyncConflictBtn.disabled =
+    isBusy;
+
+  useCloudConflictBtn.textContent =
+    isBusy &&
+    strategy === "cloud"
+      ? "불러오는 중..."
+      : "클라우드 기록 사용";
+
+  useLocalConflictBtn.textContent =
+    isBusy &&
+    strategy === "local"
+      ? "저장하는 중..."
+      : "이 기기 기록 사용";
+}
+
+async function resolveSyncConflictChoice(
+  strategy
+) {
+  if (
+    syncConflictResolutionInProgress
+  ) {
+    return;
+  }
+
+  const syncApi =
+    window.JYMLog.sync;
+
+  if (
+    !syncApi?.resolveConflict
+  ) {
+    setSyncConflictMessage(
+      "동기화 충돌 해결 기능을 불러오지 못했습니다.",
+      true
+    );
+
+    return;
+  }
+
+  setSyncConflictBusy(
+    true,
+    strategy
+  );
+
+  setSyncConflictMessage(
+    strategy === "local"
+      ? "이 기기 기록을 클라우드에 저장하고 있습니다."
+      : "최신 클라우드 기록을 불러오고 있습니다."
+  );
+
+  try {
+    await syncApi.resolveConflict(
+      strategy
+    );
+
+    toast(
+      strategy === "local"
+        ? "이 기기 기록을 유지했습니다."
+        : "클라우드 기록을 적용했습니다."
+    );
+  } catch (error) {
+    console.error(
+      "[JYM Log] 동기화 충돌 해결 실패",
+      error
+    );
+
+    setSyncConflictMessage(
+      error.message ||
+      "동기화 충돌을 해결하지 못했습니다.",
+      true
+    );
+  } finally {
+    setSyncConflictBusy(false);
+  }
 }
 
 function setRoutineEditorMessage(
@@ -3059,6 +3412,77 @@ if (deleteExerciseEditorBtn) {
   );
 }
 
+/*
+ * 동기화 충돌 선택창 이벤트
+ */
+if (closeSyncConflictBtn) {
+  closeSyncConflictBtn.addEventListener(
+    "click",
+    closeSyncConflictModal
+  );
+}
+
+if (useCloudConflictBtn) {
+  useCloudConflictBtn.addEventListener(
+    "click",
+    () => {
+      void resolveSyncConflictChoice(
+        "cloud"
+      );
+    }
+  );
+}
+
+if (useLocalConflictBtn) {
+  useLocalConflictBtn.addEventListener(
+    "click",
+    () => {
+      void resolveSyncConflictChoice(
+        "local"
+      );
+    }
+  );
+}
+
+if (syncStatus) {
+  syncStatus.addEventListener(
+    "click",
+    () => {
+      if (
+        syncStatus.dataset.state !==
+        "conflict"
+      ) {
+        return;
+      }
+
+      openSyncConflictModal();
+    }
+  );
+
+  syncStatus.addEventListener(
+    "keydown",
+    (event) => {
+      if (
+        syncStatus.dataset.state !==
+          "conflict" ||
+        (
+          event.key !== "Enter" &&
+          event.key !== " "
+        )
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+
+      openSyncConflictModal();
+    }
+  );
+}
+
+/*
+ * 기존 설정 버튼 이벤트 계속
+ */
 document.getElementById("installInfoBtn").onclick = () => toast("HTTPS 또는 localhost에서 열면 브라우저의 ‘홈 화면에 추가’를 사용할 수 있습니다.");
 document.getElementById("resetBtn").onclick = () => {
     if (confirm("프로토타입 기록을 초기화할까요?")) {
@@ -3173,7 +3597,7 @@ window.addEventListener(
 
 window.addEventListener(
   "jym-log:sync-conflict",
-  () => {
+  (event) => {
     const conflict =
       event.detail?.conflict;
 
@@ -3187,9 +3611,40 @@ window.addEventListener(
       conflict
     );
 
-    toast(
-      "다른 기기의 변경이 감지되었습니다. 이 기기의 기록은 안전하게 보관했습니다."
+    openSyncConflictModal(
+      conflict
     );
+
+    toast(
+      "다른 기기의 변경이 감지되었습니다."
+    );
+  }
+);
+
+window.addEventListener(
+  "jym-log:sync-conflict-resolved",
+  () => {
+    state =
+      workout.state;
+
+    renderHome();
+    renderWorkout();
+
+    if (state.completed) {
+      renderSummary();
+    }
+
+    updateSyncStatus(
+      "synced",
+      "동기화됨"
+    );
+
+    syncConflictModal.classList.add(
+      "hidden"
+    );
+
+    document.body.style.overflow =
+      "";
   }
 );
 

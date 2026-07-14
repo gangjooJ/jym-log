@@ -60,6 +60,26 @@ function emitSyncConflict(
   );
 }
 
+function emitSyncConflictResolved(
+  strategy,
+  state
+) {
+  window.dispatchEvent(
+    new CustomEvent(
+      "jym-log:sync-conflict-resolved",
+      {
+        detail: {
+          strategy,
+          state:
+            cloneValue(state),
+          changedAt:
+            Date.now()
+        }
+      }
+    )
+  );
+}
+
 function cloneValue(value) {
   return JSON.parse(
     JSON.stringify(value)
@@ -524,6 +544,255 @@ function preserveConflictLocalState(
   );
 }
 
+function applyResolvedStateLocally(
+  nextState
+) {
+  detachStateSavedHandler();
+
+  try {
+    /*
+     * 로컬에는 저장하지만
+     * state-saved 이벤트를 동기화 모듈이
+     * 다시 처리하지 않도록 잠시 분리합니다.
+     */
+    workout.replaceState(
+      nextState,
+      true,
+      false
+    );
+  } finally {
+    if (activeUserId) {
+      attachStateSavedHandler();
+    }
+  }
+
+  return workout.state;
+}
+
+async function resolveSyncConflict(
+  strategy
+) {
+  if (!activeUserId) {
+    throw new Error(
+      "로그인 사용자 정보를 찾을 수 없습니다."
+    );
+  }
+
+  if (
+    strategy !== "local" &&
+    strategy !== "cloud"
+  ) {
+    throw new Error(
+      "충돌 해결 방법이 올바르지 않습니다."
+    );
+  }
+
+  const userId =
+    activeUserId;
+
+  const conflict =
+    storage.loadSyncConflict(
+      userId
+    );
+
+  if (!conflict) {
+    syncConflictActive = false;
+
+    emitSyncStatus(
+      "synced",
+      "동기화됨"
+    );
+
+    return workout.state;
+  }
+
+  if (!navigator.onLine) {
+    throw new Error(
+      "동기화 충돌은 인터넷에 연결된 상태에서 해결할 수 있습니다."
+    );
+  }
+
+  if (writeInProgress) {
+    throw new Error(
+      "다른 저장 작업이 진행 중입니다. 잠시 후 다시 시도해 주세요."
+    );
+  }
+
+  writeInProgress = true;
+
+  emitSyncStatus(
+    "saving",
+    strategy === "local"
+      ? "이 기기 기록 저장 중"
+      : "클라우드 기록 확인 중"
+  );
+
+  try {
+    /*
+     * 최신 클라우드 기록을 선택합니다.
+     */
+    if (strategy === "cloud") {
+      const snapshot =
+        await getDoc(
+          getWorkoutDocument(
+            userId
+          )
+        );
+
+      const cloudData =
+        snapshot.exists()
+          ? snapshot.data()
+          : null;
+
+      if (!cloudData?.state) {
+        throw new Error(
+          "클라우드 운동 기록을 찾을 수 없습니다."
+        );
+      }
+
+      const cloudState =
+        cloneValue(
+          cloudData.state
+        );
+
+      currentCloudRevision =
+        getCloudRevision(
+          cloudData
+        );
+
+      pendingPayload = null;
+      syncConflictActive = false;
+
+      storage.clearPendingSync(
+        userId
+      );
+
+      storage.clearSyncConflict(
+        userId
+      );
+
+      applyResolvedStateLocally(
+        cloudState
+      );
+
+      emitSyncStatus(
+        "synced",
+        "동기화됨"
+      );
+
+      emitSyncConflictResolved(
+        "cloud",
+        cloudState
+      );
+
+      console.info(
+        "[JYM Log] 클라우드 기록으로 동기화 충돌을 해결했습니다."
+      );
+
+      return workout.state;
+    }
+
+    /*
+     * 이 기기 기록을 선택합니다.
+     */
+    const localState =
+      conflict.localState
+        ? cloneValue(
+            conflict.localState
+          )
+        : null;
+
+    if (!localState) {
+      throw new Error(
+        "보관된 이 기기 운동 기록을 찾을 수 없습니다."
+      );
+    }
+
+    const result =
+      await saveCloudState(
+        userId,
+        localState,
+        normalizeRevision(
+          conflict.cloudRevision
+        )
+      );
+
+    /*
+     * 충돌 감지 후 다른 기기에서
+     * 클라우드가 다시 변경된 경우입니다.
+     */
+    if (
+      result.status ===
+      "conflict"
+    ) {
+      activateSyncConflict(
+        userId,
+        {
+          state:
+            localState,
+
+          baseRevision:
+            conflict.cloudRevision,
+
+          deviceId
+        },
+        result
+      );
+
+      throw new Error(
+        "클라우드 기록이 다시 변경되었습니다. 두 기록을 다시 확인해 주세요."
+      );
+    }
+
+    currentCloudRevision =
+      normalizeRevision(
+        result.revision
+      );
+
+    pendingPayload = null;
+    syncConflictActive = false;
+
+    storage.clearPendingSync(
+      userId
+    );
+
+    storage.clearSyncConflict(
+      userId
+    );
+
+    applyResolvedStateLocally(
+      localState
+    );
+
+    emitSyncStatus(
+      "synced",
+      "동기화됨"
+    );
+
+    emitSyncConflictResolved(
+      "local",
+      localState
+    );
+
+    console.info(
+      "[JYM Log] 이 기기 기록으로 동기화 충돌을 해결했습니다."
+    );
+
+    return workout.state;
+  } catch (error) {
+    syncConflictActive = true;
+
+    emitSyncStatus(
+      "conflict",
+      "동기화 충돌"
+    );
+
+    throw error;
+  } finally {
+    writeInProgress = false;
+  }
+}
+
 async function flushPendingState() {
   if (
     writeInProgress ||
@@ -730,7 +999,24 @@ function queueCloudSave(state) {
   void flushPendingState();
 }
 
+function detachStateSavedHandler() {
+  if (!stateSavedHandler) {
+    return;
+  }
+
+  window.removeEventListener(
+    "jym-log:state-saved",
+    stateSavedHandler
+  );
+
+  stateSavedHandler = null;
+}
+
 function attachStateSavedHandler() {
+  if (stateSavedHandler) {
+    return;
+  }
+
   stateSavedHandler =
     (event) => {
       const detail =
@@ -756,15 +1042,9 @@ function attachStateSavedHandler() {
 }
 
 function stopWorkoutSync() {
-  if (stateSavedHandler) {
-    window.removeEventListener(
-      "jym-log:state-saved",
-      stateSavedHandler
-    );
-  }
+  detachStateSavedHandler();
 
   activeUserId = null;
-  stateSavedHandler = null;
   pendingPayload = null;
   writeInProgress = false;
   currentCloudRevision = 0;
@@ -1195,6 +1475,19 @@ window.addEventListener(
 
 window.JYMLog.sync =
   Object.freeze({
+    resolveConflict:
+      resolveSyncConflict,
+
+    getConflict() {
+      if (!activeUserId) {
+        return null;
+      }
+
+      return storage.loadSyncConflict(
+        activeUserId
+      );
+    },
+
     get deviceId() {
       return deviceId;
     },
@@ -1210,5 +1503,6 @@ window.JYMLog.sync =
 
 export {
   initializeWorkoutSync,
-  stopWorkoutSync
+  stopWorkoutSync,
+  resolveSyncConflict
 };
