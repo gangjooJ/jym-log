@@ -111,6 +111,7 @@ users/{uid}/appData/currentWorkout
 | `schemaVersion` | number | O | 현재 스키마 버전. 현재 `1` |
 | `state` | map | O | 현재 운동 상태 |
 | `updatedAt` | timestamp | O | Firestore 서버 저장 시각 |
+| `clientUpdatedAt` | number | O | 기기에서 현재 운동 상태가 마지막으로 변경된 시각의 밀리초 값 |
 
 ### `state` 필드
 
@@ -123,6 +124,7 @@ users/{uid}/appData/currentWorkout
 | `sets` | map | 세트별 중량·반복·완료 상태 |
 | `fatigue` | number | 사용자가 선택한 피로도 1~5 |
 | `completed` | boolean | 운동 완료 여부 |
+| `updatedAt` | number | 로컬 운동 상태가 마지막으로 변경된 시각의 밀리초 값 |
 
 ### 세트 키 형식
 
@@ -186,15 +188,12 @@ users/{uid}/appData/currentWorkout
 ### 현재 동기화 정책
 
 ```text
-로컬 상태 변경
-→ LocalStorage에 즉시 저장
-→ Firestore 저장 요청
-→ 다른 기기에서 앱을 열 때 Firestore 상태 불러오기
-```
-
-현재는 로컬·클라우드 수정 시각을 비교하지 않고 클라우드 문서가 존재하면 클라우드 데이터를 우선 적용한다.
-
-따라서 오프라인 상태에서 앱을 종료하는 경우 미전송 로컬 변경이 보호되지 않을 수 있다. 이는 v0.2.0 안정화 단계에서 개선한다.
+운동 상태 변경
+→ state.updatedAt 갱신
+→ 사용자별 LocalStorage 즉시 저장
+→ 미전송 동기화 큐 별도 저장
+→ 온라인이면 Firestore 업로드
+→ 성공하면 미전송 큐 삭제
 
 ---
 

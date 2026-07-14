@@ -80,8 +80,15 @@ window.JYMLog.workout = (() => {
     completedAt: null,
     sets: {},
     fatigue: 3,
-    completed: false
+    completed: false,
+
+    /*
+    * 이 운동 상태가 이 기기에서
+    * 마지막으로 변경된 시각입니다.
+    */
+    updatedAt: 0
   };
+
   function createDefaultState() {
   return {
     ...defaultState,
@@ -106,8 +113,19 @@ window.JYMLog.workout = (() => {
   /**
    * 현재 운동 상태를 브라우저에 저장합니다.
    */
-  function saveState() {
-    return window.JYMLog.storage.save(state);
+  function saveState(
+    options = {}
+  ) {
+    const touchUpdatedAt =
+      options.touchUpdatedAt !== false;
+
+    if (touchUpdatedAt) {
+      state.updatedAt = Date.now();
+    }
+
+    return window.JYMLog.storage.save(
+      state
+    );
   }
 
   function normalizeExercise(
@@ -265,14 +283,21 @@ function replaceExercises(
  */
 function replaceState(
   nextState,
-  persist = true
+  persist = true,
+  touchUpdatedAt = false
 ) {
   const normalizedState = {
     ...createDefaultState(),
     ...(nextState || {}),
+
     sets: {
       ...(nextState?.sets || {})
-    }
+    },
+
+    updatedAt:
+      Number(
+        nextState?.updatedAt
+      ) || 0
   };
 
   Object.keys(state).forEach(
@@ -287,7 +312,9 @@ function replaceState(
   );
 
   if (persist) {
-    saveState();
+    saveState({
+      touchUpdatedAt
+    });
   }
 
   return state;
@@ -298,14 +325,19 @@ function replaceState(
  */
 function activateUser(userId) {
   const userState =
-    window.JYMLog.storage.activateUser(
-      userId,
-      createDefaultState()
-    );
+    window.JYMLog.storage
+      .activateUser(
+        userId,
+        createDefaultState()
+      );
 
+  /*
+   * 단순히 저장된 데이터를 불러오는 것은
+   * 새로운 사용자 수정으로 판단하지 않습니다.
+   */
   replaceState(
     userState,
-    true
+    false
   );
 
   return state;

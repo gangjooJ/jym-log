@@ -1,29 +1,63 @@
-window.JYMLog = window.JYMLog || {};
+window.JYMLog =
+  window.JYMLog || {};
 
 window.JYMLog.storage = (() => {
+  const SYNC_QUEUE_SCHEMA_VERSION =
+    1;
+
   let activeUserId = null;
 
   const legacyKey =
     "pl-prototype-state";
 
+  function cloneValue(value) {
+    return JSON.parse(
+      JSON.stringify(value)
+    );
+  }
+
   function getBaseKey() {
-    return window.JYMLog.config.storageKey;
+    return window.JYMLog.config
+      .storageKey;
   }
 
   function getUserKey(userId) {
-    return `${getBaseKey()}:user:${userId}`;
+    return [
+      getBaseKey(),
+      "user",
+      userId
+    ].join(":");
   }
 
   function getMigrationOwnerKey() {
-    return `${getBaseKey()}:migration-owner`;
+    return [
+      getBaseKey(),
+      "migration-owner"
+    ].join(":");
+  }
+
+  function getPendingSyncKey(
+    userId
+  ) {
+    return [
+      getBaseKey(),
+      "sync-queue",
+      userId
+    ].join(":");
   }
 
   function getActiveKey() {
     if (activeUserId) {
-      return getUserKey(activeUserId);
+      return getUserKey(
+        activeUserId
+      );
     }
 
     return getBaseKey();
+  }
+
+  function resolveUserId(userId) {
+    return userId || activeUserId;
   }
 
   function readValue(
@@ -32,7 +66,9 @@ window.JYMLog.storage = (() => {
   ) {
     try {
       const savedData =
-        localStorage.getItem(storageKey);
+        localStorage.getItem(
+          storageKey
+        );
 
       return savedData
         ? JSON.parse(savedData)
@@ -47,18 +83,44 @@ window.JYMLog.storage = (() => {
     }
   }
 
+  function writeValue(
+    storageKey,
+    value
+  ) {
+    try {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify(value)
+      );
+
+      return true;
+    } catch (error) {
+      console.warn(
+        "운동 기록을 저장하지 못했습니다.",
+        error
+      );
+
+      return false;
+    }
+  }
+
   /**
-   * v0.1.0 또는 로그인 도입 전의 기록을 확인합니다.
+   * 로그인 도입 전 기록을 확인합니다.
    */
   function getPreviousLocalData() {
-    const baseKey = getBaseKey();
+    const baseKey =
+      getBaseKey();
 
     let savedData =
-      localStorage.getItem(baseKey);
+      localStorage.getItem(
+        baseKey
+      );
 
     if (!savedData) {
       savedData =
-        localStorage.getItem(legacyKey);
+        localStorage.getItem(
+          legacyKey
+        );
 
       if (savedData) {
         localStorage.setItem(
@@ -75,9 +137,6 @@ window.JYMLog.storage = (() => {
     return savedData;
   }
 
-  /**
-   * 로그인 전 임시 저장 공간을 불러옵니다.
-   */
   function load(defaultValue) {
     return readValue(
       getActiveKey(),
@@ -85,9 +144,6 @@ window.JYMLog.storage = (() => {
     );
   }
 
-  /**
-   * 로그인 사용자의 전용 저장 공간을 활성화합니다.
-   */
   function activateUser(
     userId,
     defaultValue
@@ -104,7 +160,9 @@ window.JYMLog.storage = (() => {
       getUserKey(userId);
 
     const existingUserData =
-      localStorage.getItem(userKey);
+      localStorage.getItem(
+        userKey
+      );
 
     if (existingUserData) {
       return readValue(
@@ -121,10 +179,6 @@ window.JYMLog.storage = (() => {
         getMigrationOwnerKey()
       );
 
-    /**
-     * 기존 기록은 첫 로그인 계정에만 귀속합니다.
-     * 다른 계정이 같은 기록을 가져가지 못하게 합니다.
-     */
     if (
       previousData &&
       (
@@ -160,41 +214,37 @@ window.JYMLog.storage = (() => {
   }
 
   function save(value) {
-    try {
-      const storageKey =
-        getActiveKey();
+    const storageKey =
+      getActiveKey();
 
-      localStorage.setItem(
+    const saved =
+      writeValue(
         storageKey,
-        JSON.stringify(value)
+        value
       );
 
-      /**
-       * 다음 단계의 Firestore 동기화에서
-       * 이 이벤트를 감지합니다.
-       */
-      window.dispatchEvent(
-        new CustomEvent(
-          "jym-log:state-saved",
-          {
-            detail: {
-              userId: activeUserId,
-              storageKey,
-              state: value
-            }
-          }
-        )
-      );
-
-      return true;
-    } catch (error) {
-      console.warn(
-        "운동 기록을 저장하지 못했습니다.",
-        error
-      );
-
+    if (!saved) {
       return false;
     }
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "jym-log:state-saved",
+        {
+          detail: {
+            userId:
+              activeUserId,
+
+            storageKey,
+
+            state:
+              cloneValue(value)
+          }
+        }
+      )
+    );
+
+    return true;
   }
 
   function clear() {
@@ -203,12 +253,136 @@ window.JYMLog.storage = (() => {
     );
   }
 
+  /**
+   * 앱 종료 후에도 남아 있어야 하는
+   * 미전송 운동 상태를 저장합니다.
+   */
+  function savePendingSync(
+    userId,
+    state
+  ) {
+    const resolvedUserId =
+      resolveUserId(userId);
+
+    if (!resolvedUserId) {
+      return null;
+    }
+
+    const copiedState =
+      cloneValue(state);
+
+    const localUpdatedAt =
+      Number(
+        copiedState?.updatedAt
+      ) || Date.now();
+
+    copiedState.updatedAt =
+      localUpdatedAt;
+
+    const payload = {
+      schemaVersion:
+        SYNC_QUEUE_SCHEMA_VERSION,
+
+      userId:
+        resolvedUserId,
+
+      localUpdatedAt,
+
+      state:
+        copiedState
+    };
+
+    const saved =
+      writeValue(
+        getPendingSyncKey(
+          resolvedUserId
+        ),
+        payload
+      );
+
+    return saved
+      ? payload
+      : null;
+  }
+
+  function loadPendingSync(
+    userId
+  ) {
+    const resolvedUserId =
+      resolveUserId(userId);
+
+    if (!resolvedUserId) {
+      return null;
+    }
+
+    const payload =
+      readValue(
+        getPendingSyncKey(
+          resolvedUserId
+        ),
+        null
+      );
+
+    if (
+      !payload ||
+      payload.userId !==
+        resolvedUserId ||
+      !payload.state
+    ) {
+      return null;
+    }
+
+    return payload;
+  }
+
+  /**
+   * 저장 완료 시각보다 더 최신인
+   * 대기 기록이 있으면 삭제하지 않습니다.
+   */
+  function clearPendingSync(
+    userId,
+    savedUpdatedAt = Infinity
+  ) {
+    const resolvedUserId =
+      resolveUserId(userId);
+
+    if (!resolvedUserId) {
+      return false;
+    }
+
+    const currentPending =
+      loadPendingSync(
+        resolvedUserId
+      );
+
+    if (
+      currentPending &&
+      Number(
+        currentPending.localUpdatedAt
+      ) >
+        Number(savedUpdatedAt)
+    ) {
+      return false;
+    }
+
+    localStorage.removeItem(
+      getPendingSyncKey(
+        resolvedUserId
+      )
+    );
+
+    return true;
+  }
+
   return {
     load,
     save,
     clear,
     activateUser,
     deactivateUser,
+    savePendingSync,
+    loadPendingSync,
+    clearPendingSync,
 
     get activeUserId() {
       return activeUserId;

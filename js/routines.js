@@ -399,7 +399,8 @@ async function ensureActiveRoutine(
   }
 
   workout.replaceExercises(
-    activeRoutine.exercises
+    activeRoutine.exercises,
+    false
   );
 
   emitRoutineReady();
