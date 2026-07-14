@@ -986,3 +986,60 @@
 .nickname-message.error {
   color: var(--danger);
 }
+
+.routine-info-editor {
+  margin-bottom: 14px;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.routine-editor-field {
+  display: grid;
+  gap: 7px;
+}
+
+.routine-editor-field label {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.routine-editor-field input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 800;
+  outline: none;
+}
+
+.routine-editor-field input:focus {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 3px
+    rgba(79, 70, 229, 0.12);
+}
+
+.routine-editor-field input:disabled {
+  opacity: 0.6;
+}
+
+.routine-editor-message {
+  min-height: 18px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.routine-editor-message.success {
+  color: var(--good);
+}
+
+.routine-editor-message.error {
+  color: var(--danger);
+}

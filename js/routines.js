@@ -26,13 +26,70 @@ function cloneData(value) {
   );
 }
 
+function normalizeText(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function validateRoutineName(value) {
+  const name =
+    normalizeText(value);
+
+  const length =
+    Array.from(name).length;
+
+  if (length < 2) {
+    throw new Error(
+      "루틴 이름은 2자 이상 입력해 주세요."
+    );
+  }
+
+  if (length > 30) {
+    throw new Error(
+      "루틴 이름은 30자 이하로 입력해 주세요."
+    );
+  }
+
+  return name;
+}
+
+function normalizeDescription(value) {
+  const description =
+    normalizeText(value);
+
+  const length =
+    Array.from(description).length;
+
+  if (length > 60) {
+    throw new Error(
+      "루틴 설명은 60자 이하로 입력해 주세요."
+    );
+  }
+
+  return description ||
+    "사용자 설정 루틴";
+}
+
+function emitRoutineReady() {
+  window.dispatchEvent(
+    new CustomEvent(
+      "jym-log:routine-ready",
+      {
+        detail: {
+          routine:
+            activeRoutine
+        }
+      }
+    )
+  );
+}
+
 /**
- * 현재 하드코딩된 운동 목록으로
- * 최초 기본 루틴을 만듭니다.
+ * 현재 기본 운동 목록으로
+ * 첫 번째 사용자 루틴을 만듭니다.
  */
-function createDefaultRoutine(
-  userId
-) {
+function createDefaultRoutine(userId) {
   const exercises =
     workout.exercises.map(
       (exercise, index) => ({
@@ -122,22 +179,18 @@ function normalizeRoutine(
       ROUTINE_SCHEMA_VERSION,
 
     name:
-      String(
-        data?.name ||
-        fallbackRoutine.name
-      ),
+      normalizeText(data?.name) ||
+      fallbackRoutine.name,
 
     code:
-      String(
-        data?.code ||
-        fallbackRoutine.code
-      ),
+      normalizeText(data?.code) ||
+      fallbackRoutine.code,
 
     description:
-      String(
-        data?.description ||
-        fallbackRoutine.description
-      ),
+      normalizeText(
+        data?.description
+      ) ||
+      fallbackRoutine.description,
 
     isActive:
       data?.isActive !== false,
@@ -147,10 +200,8 @@ function normalizeRoutine(
 }
 
 /**
- * 사용자의 기본 루틴을 확인합니다.
- *
- * 문서가 없으면 현재 프로토타입 루틴을
- * Firestore에 최초 생성합니다.
+ * 로그인 사용자의 기본 루틴을 확인합니다.
+ * 문서가 없으면 기본 루틴을 생성합니다.
  */
 async function ensureActiveRoutine(
   userId
@@ -215,16 +266,73 @@ async function ensureActiveRoutine(
     activeRoutine.exercises
   );
 
-  window.dispatchEvent(
-    new CustomEvent(
-      "jym-log:routine-ready",
-      {
-        detail: {
-          routine:
-            activeRoutine
-        }
-      }
-    )
+  emitRoutineReady();
+
+  return activeRoutine;
+}
+
+/**
+ * 활성 루틴의 이름과 설명을 수정합니다.
+ */
+async function updateActiveRoutineMetadata(
+  nameValue,
+  descriptionValue
+) {
+  if (!activeRoutine?.userId) {
+    throw new Error(
+      "수정할 사용자 루틴을 찾을 수 없습니다."
+    );
+  }
+
+  const name =
+    validateRoutineName(
+      nameValue
+    );
+
+  const description =
+    normalizeDescription(
+      descriptionValue
+    );
+
+  const routineDocument =
+    doc(
+      db,
+      "users",
+      activeRoutine.userId,
+      "routines",
+      activeRoutine.id
+    );
+
+  await setDoc(
+    routineDocument,
+    {
+      userId:
+        activeRoutine.userId,
+
+      schemaVersion:
+        ROUTINE_SCHEMA_VERSION,
+
+      name,
+      description,
+
+      updatedAt:
+        serverTimestamp()
+    },
+    {
+      merge: true
+    }
+  );
+
+  activeRoutine = {
+    ...activeRoutine,
+    name,
+    description
+  };
+
+  emitRoutineReady();
+
+  console.info(
+    "[JYM Log] 루틴 정보 저장 완료"
   );
 
   return activeRoutine;
@@ -233,6 +341,7 @@ async function ensureActiveRoutine(
 window.JYMLog.routines =
   Object.freeze({
     ensureActiveRoutine,
+    updateActiveRoutineMetadata,
 
     get activeRoutine() {
       return activeRoutine;
@@ -240,5 +349,6 @@ window.JYMLog.routines =
   });
 
 export {
-  ensureActiveRoutine
+  ensureActiveRoutine,
+  updateActiveRoutineMetadata
 };

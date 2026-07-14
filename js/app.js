@@ -176,6 +176,36 @@ const routineExerciseCount =
     "routineExerciseCount"
   );
 
+const routineInfoForm =
+  document.getElementById(
+    "routineInfoForm"
+  );
+
+const routineNameInput =
+  document.getElementById(
+    "routineNameInput"
+  );
+
+const routineDescriptionInput =
+  document.getElementById(
+    "routineDescriptionInput"
+  );
+
+const saveRoutineInfoBtn =
+  document.getElementById(
+    "saveRoutineInfoBtn"
+  );
+
+const routineEditorMessage =
+  document.getElementById(
+    "routineEditorMessage"
+  );
+
+const summaryRoutineName =
+  document.getElementById(
+    "summaryRoutineName"
+  );
+
 function applyAppMetadata() {
   const config = window.JYMLog.config;
 
@@ -224,6 +254,28 @@ function updateSyncStatus(
   syncStatus.setAttribute(
     "aria-label",
     `클라우드 동기화 상태: ${message}`
+  );
+}
+
+function setRoutineEditorMessage(
+  message,
+  status = "default"
+) {
+  if (!routineEditorMessage) {
+    return;
+  }
+
+  routineEditorMessage.textContent =
+    message;
+
+  routineEditorMessage.classList.toggle(
+    "success",
+    status === "success"
+  );
+
+  routineEditorMessage.classList.toggle(
+    "error",
+    status === "error"
   );
 }
 
@@ -1240,6 +1292,95 @@ function renderRoutineMetadata(
     routineExerciseCount.textContent =
       `${exercises.length}개 운동`;
   }
+
+  if (summaryRoutineName) {
+    summaryRoutineName.textContent =
+      routine.name;
+  }
+
+  if (routineNameInput) {
+    routineNameInput.value =
+      routine.name;
+  }
+
+  if (routineDescriptionInput) {
+    routineDescriptionInput.value =
+      routine.description;
+  }
+}
+
+async function saveRoutineInfo(
+  event
+) {
+  event.preventDefault();
+
+  const routineApi =
+    window.JYMLog.routines;
+
+  if (
+    !routineApi ||
+    !routineNameInput ||
+    !routineDescriptionInput ||
+    !saveRoutineInfoBtn
+  ) {
+    setRoutineEditorMessage(
+      "루틴 편집 기능을 불러오지 못했습니다.",
+      "error"
+    );
+
+    return;
+  }
+
+  saveRoutineInfoBtn.disabled = true;
+  routineNameInput.disabled = true;
+  routineDescriptionInput.disabled = true;
+
+  saveRoutineInfoBtn.textContent =
+    "저장 중...";
+
+  setRoutineEditorMessage(
+    "루틴 정보를 저장하고 있습니다."
+  );
+
+  try {
+    const routine =
+      await routineApi
+        .updateActiveRoutineMetadata(
+          routineNameInput.value,
+          routineDescriptionInput.value
+        );
+
+    renderRoutineMetadata(
+      routine
+    );
+
+    setRoutineEditorMessage(
+      "루틴 정보가 저장되었습니다.",
+      "success"
+    );
+
+    toast(
+      "루틴 정보가 저장되었습니다."
+    );
+  } catch (error) {
+    console.error(
+      "[JYM Log] 루틴 정보 저장 실패",
+      error
+    );
+
+    setRoutineEditorMessage(
+      error.message ||
+      "루틴 정보를 저장하지 못했습니다.",
+      "error"
+    );
+  } finally {
+    saveRoutineInfoBtn.disabled = false;
+    routineNameInput.disabled = false;
+    routineDescriptionInput.disabled = false;
+
+    saveRoutineInfoBtn.textContent =
+      "루틴 정보 저장";
+  }
 }
 
 function renderHome() {
@@ -1612,6 +1753,13 @@ if (sessionDetailBackBtn) {
     () => {
       navigate("history");
     }
+  );
+}
+
+if (routineInfoForm) {
+  routineInfoForm.addEventListener(
+    "submit",
+    saveRoutineInfo
   );
 }
 

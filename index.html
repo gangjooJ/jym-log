@@ -181,7 +181,11 @@
         <div class="summary-icon">✓</div>
         <div class="eyebrow">운동 완료</div>
         <h1>오늘도 기록을<br>한 단계 올렸습니다.</h1>
-        <p style="color:var(--muted);font-size:13px;margin-top:10px">가슴 · 팔 · <span id="summaryDuration">00분</span></p>
+        <p style="color:var(--muted);font-size:13px;margin-top:10px">
+          <span id="summaryRoutineName">
+            가슴 · 팔 A
+          </span>
+          · <span id="summaryDuration">00분</span></p>
       </div>
 
       <div class="section-title"><h2>운동 요약</h2><small>자동 계산</small></div>
@@ -447,6 +451,56 @@
           5개 운동
         </small>
       </div>
+      <form
+        class="card routine-info-editor"
+        id="routineInfoForm"
+      >
+        <div class="routine-editor-field">
+          <label for="routineNameInput">
+            루틴 이름
+          </label>
+
+          <input
+            id="routineNameInput"
+            type="text"
+            maxlength="30"
+            autocomplete="off"
+            placeholder="예: 가슴 · 팔 A"
+          >
+        </div>
+
+        <div class="routine-editor-field">
+          <label for="routineDescriptionInput">
+            루틴 설명
+          </label>
+
+          <input
+            id="routineDescriptionInput"
+            type="text"
+            maxlength="60"
+            autocomplete="off"
+            placeholder="예: 벤치프레스 중심"
+          >
+        </div>
+
+        <button
+          class="primary-btn full"
+          id="saveRoutineInfoBtn"
+          type="submit"
+        >
+          루틴 정보 저장
+        </button>
+
+        <p
+          class="routine-editor-message"
+          id="routineEditorMessage"
+          role="status"
+          aria-live="polite"
+        >
+          루틴 이름과 설명을 변경할 수 있습니다.
+        </p>
+      </form>
+
       <div id="routineList"></div>
       <button class="secondary-btn full" style="margin-top:12px" id="addExerciseDemo">+ 운동 추가</button>
     </section>
