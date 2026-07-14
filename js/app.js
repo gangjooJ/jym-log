@@ -3174,9 +3174,17 @@ window.addEventListener(
 window.addEventListener(
   "jym-log:sync-conflict",
   () => {
+    const conflict =
+      event.detail?.conflict;
+
     updateSyncStatus(
       "conflict",
       "동기화 충돌"
+    );
+
+    console.warn(
+      "[JYM Log] 동기화 충돌 안내",
+      conflict
     );
 
     toast(

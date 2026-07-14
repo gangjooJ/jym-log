@@ -38,8 +38,7 @@ function emitSyncStatus(
         detail: {
           status,
           message,
-          changedAt:
-            Date.now()
+          changedAt: Date.now()
         }
       }
     )
@@ -76,6 +75,17 @@ function getStateUpdatedAt(
   );
 }
 
+function normalizeRevision(
+  revision
+) {
+  return Math.max(
+    0,
+    Math.floor(
+      Number(revision) || 0
+    )
+  );
+}
+
 function chooseNewerState(
   firstState,
   secondState
@@ -105,13 +115,8 @@ function chooseNewerState(
 function getCloudRevision(
   cloudData
 ) {
-  return Math.max(
-    0,
-    Math.floor(
-      Number(
-        cloudData?.revision
-      ) || 0
-    )
+  return normalizeRevision(
+    cloudData?.revision
   );
 }
 
@@ -160,8 +165,68 @@ function getWorkoutDocument(
 }
 
 /**
+ * 앱이 저장 성공 직전에 종료되면
+ * 이미 클라우드에 반영된 대기열이
+ * LocalStorage에 남을 수 있습니다.
+ */
+function isPendingAlreadySaved(
+  pending,
+  cloudData
+) {
+  if (
+    !pending ||
+    !cloudData
+  ) {
+    return false;
+  }
+
+  const pendingDeviceId =
+    String(
+      pending.deviceId || ""
+    );
+
+  const cloudDeviceId =
+    String(
+      cloudData.lastDeviceId || ""
+    );
+
+  if (
+    !pendingDeviceId ||
+    pendingDeviceId !==
+      cloudDeviceId
+  ) {
+    return false;
+  }
+
+  const pendingUpdatedAt =
+    Number(
+      pending.localUpdatedAt
+    ) ||
+    getStateUpdatedAt(
+      pending.state
+    );
+
+  const cloudUpdatedAt =
+    getCloudUpdatedAt(
+      cloudData
+    );
+
+  return (
+    getCloudRevision(
+      cloudData
+    ) >
+      normalizeRevision(
+        pending.baseRevision
+      ) &&
+    cloudUpdatedAt >=
+      pendingUpdatedAt
+  );
+}
+
+/**
  * 현재 클라우드 revision과
- * 이 기기가 알고 있는 revision이 같을 때만 저장합니다.
+ * 이 기기가 알고 있는 revision이
+ * 일치할 때만 저장합니다.
  */
 async function saveCloudState(
   userId,
@@ -209,11 +274,12 @@ async function saveCloudState(
 
       if (
         cloudRevision !==
-        expectedRevision
+        normalizeRevision(
+          expectedRevision
+        )
       ) {
         return {
-          status:
-            "conflict",
+          status: "conflict",
 
           cloudRevision,
 
@@ -269,8 +335,7 @@ async function saveCloudState(
       );
 
       return {
-        status:
-          "saved",
+        status: "saved",
 
         revision:
           nextRevision,
@@ -283,12 +348,13 @@ async function saveCloudState(
 }
 
 function buildConflictRecord(
+  userId,
   localPayload,
   cloudResult
 ) {
   const previousConflict =
     storage.loadSyncConflict(
-      activeUserId
+      userId
     );
 
   const latestLocalState =
@@ -299,6 +365,8 @@ function buildConflictRecord(
 
   return {
     detectedAt:
+      previousConflict
+        ?.detectedAt ||
       Date.now(),
 
     localState:
@@ -310,13 +378,16 @@ function buildConflictRecord(
       ),
 
     localBaseRevision:
-      Number(
+      normalizeRevision(
         localPayload
           ?.baseRevision
-      ) || 0,
+      ),
 
     localDeviceId:
-      deviceId,
+      String(
+        localPayload?.deviceId ||
+        deviceId
+      ),
 
     cloudState:
       cloudResult
@@ -337,15 +408,12 @@ function buildConflictRecord(
       0,
 
     cloudRevision:
-      Number(
+      normalizeRevision(
         cloudResult
-          ?.cloudRevision
-      ) ||
-      Number(
+          ?.cloudRevision ??
         previousConflict
           ?.cloudRevision
-      ) ||
-      0,
+      ),
 
     cloudDeviceId:
       String(
@@ -363,30 +431,35 @@ function activateSyncConflict(
   localPayload,
   cloudResult
 ) {
-  const conflict =
+  const conflictRecord =
+    buildConflictRecord(
+      userId,
+      localPayload,
+      cloudResult
+    );
+
+  const storedConflict =
     storage.saveSyncConflict(
       userId,
-      buildConflictRecord(
-        localPayload,
-        cloudResult
-      )
-    );
+      conflictRecord
+    ) || conflictRecord;
 
   syncConflictActive = true;
   pendingPayload = null;
 
   /*
-   * 일반 대기열과 충돌 백업이 동시에
-   * 존재하지 않도록 대기열을 정리합니다.
+   * 일반 대기열 대신 충돌 백업이
+   * 로컬 기록을 보호합니다.
    */
   storage.clearPendingSync(
     userId
   );
 
   currentCloudRevision =
-    Number(
-      conflict?.cloudRevision
-    ) || 0;
+    normalizeRevision(
+      storedConflict
+        .cloudRevision
+    );
 
   emitSyncStatus(
     "conflict",
@@ -394,20 +467,20 @@ function activateSyncConflict(
   );
 
   emitSyncConflict(
-    conflict
+    storedConflict
   );
 
   console.warn(
-    "[JYM Log] 다른 기기의 더 최신인 운동 기록을 감지했습니다.",
-    conflict
+    "[JYM Log] 다른 기기의 운동 기록과 충돌했습니다.",
+    storedConflict
   );
 
-  return conflict;
+  return storedConflict;
 }
 
 /**
- * 충돌 상태에서 추가로 입력한 로컬 기록도
- * 같은 충돌 백업에 계속 갱신합니다.
+ * 충돌 발생 후 이 기기에서 추가한
+ * 변경도 충돌 백업에 계속 저장합니다.
  */
 function preserveConflictLocalState(
   state
@@ -423,8 +496,7 @@ function preserveConflictLocalState(
 
   const latestLocalState =
     chooseNewerState(
-      previousConflict
-        ?.localState,
+      previousConflict?.localState,
       state
     );
 
@@ -485,17 +557,15 @@ async function flushPendingState() {
       await saveCloudState(
         userId,
         payloadToSave.state,
-        Number(
-          payloadToSave
-            .baseRevision
-        ) || 0
+        payloadToSave
+          .baseRevision
       );
 
     if (
       result.status ===
       "conflict"
     ) {
-      const newerLocalState =
+      const latestLocalState =
         chooseNewerState(
           payloadToSave.state,
           activeUserId === userId
@@ -508,7 +578,7 @@ async function flushPendingState() {
         {
           ...payloadToSave,
           state:
-            newerLocalState
+            latestLocalState
         },
         result
       );
@@ -517,7 +587,9 @@ async function flushPendingState() {
     }
 
     currentCloudRevision =
-      result.revision;
+      normalizeRevision(
+        result.revision
+      );
 
     storage.clearPendingSync(
       userId,
@@ -525,7 +597,7 @@ async function flushPendingState() {
     );
 
     /*
-     * 첫 번째 저장 중에 새로운 변경이 생겼다면
+     * 첫 저장 중에 새 변경이 생겼다면
      * 새 revision을 기준으로 다시 저장합니다.
      */
     if (
@@ -567,7 +639,7 @@ async function flushPendingState() {
       storage.savePendingSync(
         userId,
         retryState,
-        Number(
+        normalizeRevision(
           payloadToSave
             .baseRevision
         ) ||
@@ -694,6 +766,7 @@ function stopWorkoutSync() {
   activeUserId = null;
   stateSavedHandler = null;
   pendingPayload = null;
+  writeInProgress = false;
   currentCloudRevision = 0;
   syncConflictActive = false;
 }
@@ -833,8 +906,8 @@ async function initializeWorkoutSync(
     );
 
   /*
-   * 이전 실행에서 감지한 충돌이 있다면
-   * 자동으로 어느 기록도 덮어쓰지 않습니다.
+   * 과거 실행에서 감지한 충돌은
+   * 자동으로 어느 쪽도 덮어쓰지 않습니다.
    */
   if (storedConflict) {
     const refreshedConflict =
@@ -898,13 +971,35 @@ async function initializeWorkoutSync(
   }
 
   /*
-   * 이 기기의 대기 기록이 기준으로 삼은 revision과
-   * 현재 클라우드 revision이 다르면 동시 수정입니다.
+   * 저장 성공 직후 앱이 종료돼서
+   * 오래된 대기열만 남은 경우입니다.
    */
   if (
-    storedPending &&
-    Number(
-      storedPending
+    isPendingAlreadySaved(
+      storedPending,
+      cloudData
+    )
+  ) {
+    storage.clearPendingSync(
+      userId
+    );
+
+    pendingPayload = null;
+  }
+
+  const activePending =
+    storage.loadPendingSync(
+      userId
+    );
+
+  /*
+   * 대기 기록의 기준 revision과 현재
+   * 클라우드 revision이 다르면 충돌입니다.
+   */
+  if (
+    activePending &&
+    normalizeRevision(
+      activePending
         .baseRevision
     ) !==
       currentCloudRevision
@@ -919,7 +1014,7 @@ async function initializeWorkoutSync(
 
     activateSyncConflict(
       userId,
-      storedPending,
+      activePending,
       {
         cloudState,
 

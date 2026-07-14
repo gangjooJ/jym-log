@@ -410,6 +410,31 @@ jym-log-prototype-state:migration-owner
 
 ```text
 jym-log-prototype-state:device-id
+```
+
+각 브라우저 또는 설치형 PWA를 구분하기 위한 영구 식별자다.
+
+동일한 계정으로 PC와 모바일에서 로그인해도 각 기기는 서로 다른 `deviceId`를 가진다.
+
+### 동기화 충돌 백업
+
+```text
+jym-log-prototype-state:sync-conflict:{uid}
+```
+
+PC와 모바일이 같은 클라우드 revision을 기준으로 각각 운동 상태를 수정한 경우 로컬과 클라우드 상태를 별도로 보관한다.
+
+충돌 백업에는 다음 정보가 포함된다.
+
+- 로컬 운동 상태
+- 클라우드 운동 상태
+- 로컬 수정 시각
+- 클라우드 수정 시각
+- 로컬 기준 revision
+- 현재 클라우드 revision
+- 로컬 기기 ID
+- 클라우드 기기 ID
+- 충돌 감지 시각
 
 ---
 

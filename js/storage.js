@@ -125,53 +125,53 @@ window.JYMLog.storage = (() => {
   }
 
   function createDeviceId() {
-  if (
-    window.crypto &&
-    typeof window.crypto
-      .randomUUID === "function"
-  ) {
-    return `device-${window.crypto.randomUUID()}`;
+    if (
+      window.crypto &&
+      typeof window.crypto
+        .randomUUID === "function"
+    ) {
+      return `device-${window.crypto.randomUUID()}`;
+    }
+
+    return [
+      "device",
+      Date.now(),
+      Math.random()
+        .toString(36)
+        .slice(2, 10)
+    ].join("-");
   }
 
-  return [
-    "device",
-    Date.now(),
-    Math.random()
-      .toString(36)
-      .slice(2, 10)
-  ].join("-");
-}
+  function getDeviceId() {
+    const storageKey =
+      getDeviceIdKey();
 
-function getDeviceId() {
-  const storageKey =
-    getDeviceIdKey();
+    const existingDeviceId =
+      localStorage.getItem(
+        storageKey
+      );
 
-  const existingDeviceId =
-    localStorage.getItem(
-      storageKey
-    );
+    if (existingDeviceId) {
+      return existingDeviceId;
+    }
 
-  if (existingDeviceId) {
-    return existingDeviceId;
+    const deviceId =
+      createDeviceId();
+
+    try {
+      localStorage.setItem(
+        storageKey,
+        deviceId
+      );
+    } catch (error) {
+      console.warn(
+        "기기 식별자를 저장하지 못했습니다.",
+        error
+      );
+    }
+
+    return deviceId;
   }
-
-  const deviceId =
-    createDeviceId();
-
-  try {
-    localStorage.setItem(
-      storageKey,
-      deviceId
-    );
-  } catch (error) {
-    console.warn(
-      "기기 식별자를 저장하지 못했습니다.",
-      error
-    );
-  }
-
-  return deviceId;
-}
 
   /**
    * 로그인 도입 전 기록을 확인합니다.
@@ -360,9 +360,9 @@ function getDeviceId() {
         getDeviceId(),
 
       /*
-      * 이 로컬 기록이 어떤 클라우드
-      * revision을 기준으로 수정됐는지 기록합니다.
-      */
+        * 이 로컬 기록이 어떤 클라우드
+        * revision을 기준으로 수정됐는지 기록합니다.
+        */
       baseRevision:
         Math.max(
           0,
@@ -474,93 +474,93 @@ function getDeviceId() {
   }
 
   /**
- * 동기화 충돌이 발생했을 때
- * 로컬과 클라우드 상태를 별도로 보관합니다.
- */
-function saveSyncConflict(
-  userId,
-  conflict
-) {
-  const resolvedUserId =
-    resolveUserId(userId);
-
-  if (!resolvedUserId) {
-    return null;
-  }
-
-  const payload = {
-    schemaVersion:
-      SYNC_CONFLICT_SCHEMA_VERSION,
-
-    userId:
-      resolvedUserId,
-
-    ...cloneValue(
-      conflict || {}
-    )
-  };
-
-  const saved =
-    writeValue(
-      getSyncConflictKey(
-        resolvedUserId
-      ),
-      payload
-    );
-
-  return saved
-    ? payload
-    : null;
-}
-
-function loadSyncConflict(
-  userId
-) {
-  const resolvedUserId =
-    resolveUserId(userId);
-
-  if (!resolvedUserId) {
-    return null;
-  }
-
-  const payload =
-    readValue(
-      getSyncConflictKey(
-        resolvedUserId
-      ),
-      null
-    );
-
-  if (
-    !payload ||
-    payload.userId !==
-      resolvedUserId ||
-    !payload.localState
+   * PC와 모바일의 운동 상태가 충돌했을 때
+   * 로컬 상태와 클라우드 상태를 별도로 보관합니다.
+   */
+  function saveSyncConflict(
+    userId,
+    conflict
   ) {
-    return null;
+    const resolvedUserId =
+      resolveUserId(userId);
+
+    if (!resolvedUserId) {
+      return null;
+    }
+
+    const payload = {
+      ...cloneValue(
+        conflict || {}
+      ),
+
+      schemaVersion:
+        SYNC_CONFLICT_SCHEMA_VERSION,
+
+      userId:
+        resolvedUserId
+    };
+
+    const saved =
+      writeValue(
+        getSyncConflictKey(
+          resolvedUserId
+        ),
+        payload
+      );
+
+    return saved
+      ? payload
+      : null;
   }
 
-  return payload;
-}
+  function loadSyncConflict(
+    userId
+  ) {
+    const resolvedUserId =
+      resolveUserId(userId);
 
-function clearSyncConflict(
-  userId
-) {
-  const resolvedUserId =
-    resolveUserId(userId);
+    if (!resolvedUserId) {
+      return null;
+    }
 
-  if (!resolvedUserId) {
-    return false;
+    const payload =
+      readValue(
+        getSyncConflictKey(
+          resolvedUserId
+        ),
+        null
+      );
+
+    if (
+      !payload ||
+      payload.userId !==
+        resolvedUserId ||
+      !payload.localState
+    ) {
+      return null;
+    }
+
+    return payload;
   }
 
-  localStorage.removeItem(
-    getSyncConflictKey(
-      resolvedUserId
-    )
-  );
+  function clearSyncConflict(
+    userId
+  ) {
+    const resolvedUserId =
+      resolveUserId(userId);
 
-  return true;
-}
+    if (!resolvedUserId) {
+      return false;
+    }
+
+    localStorage.removeItem(
+      getSyncConflictKey(
+        resolvedUserId
+      )
+    );
+
+    return true;
+  }
 
   return {
     load,
