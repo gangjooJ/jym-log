@@ -2258,12 +2258,6 @@ function openExerciseEditor(
   editingExerciseIndex =
     exerciseIndex;
 
-  exerciseEditorTitle.textContent =
-    exercise.name;
-
-  editingExerciseIndex =
-    exerciseIndex;
-
   exerciseEditorMode =
     "edit";
 
@@ -2680,20 +2674,6 @@ document.addEventListener("click", e => {
       return;
     }
 
-    if (addExerciseBtn) {
-      addExerciseBtn.addEventListener(
-        "click",
-        openExerciseCreator
-      );
-    }
-
-    if (deleteExerciseEditorBtn) {
-      deleteExerciseEditorBtn.addEventListener(
-        "click",
-        deleteExerciseFromRoutine
-      );
-    }
-
     const action =
       e.target.dataset.action;
     if (action) {
@@ -2945,6 +2925,20 @@ if (exerciseEditorModal) {
         closeExerciseEditor();
       }
     }
+  );
+}
+
+if (addExerciseBtn) {
+  addExerciseBtn.addEventListener(
+    "click",
+    openExerciseCreator
+  );
+}
+
+if (deleteExerciseEditorBtn) {
+  deleteExerciseEditorBtn.addEventListener(
+    "click",
+    deleteExerciseFromRoutine
   );
 }
 
