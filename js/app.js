@@ -281,7 +281,18 @@ const closeExerciseEditorBtn =
     "closeExerciseEditorBtn"
   );
 
+const deleteExerciseEditorBtn =
+  document.getElementById(
+    "deleteExerciseEditorBtn"
+  );
+
+const addExerciseBtn =
+  document.getElementById(
+    "addExerciseBtn"
+  );
+
 let editingExerciseIndex = null;
+let exerciseEditorMode = "edit";
 
 function applyAppMetadata() {
   const config = window.JYMLog.config;
@@ -1781,6 +1792,15 @@ function openExerciseEditor(
   exerciseEditorTitle.textContent =
     exercise.name;
 
+  editingExerciseIndex =
+    exerciseIndex;
+
+  exerciseEditorMode =
+    "edit";
+
+  exerciseEditorTitle.textContent =
+    exercise.name;
+
   exerciseNameInput.value =
     exercise.name;
 
@@ -1805,8 +1825,88 @@ function openExerciseEditor(
   exerciseIncrementInput.value =
     exercise.increment;
 
+  saveExerciseEditorBtn.textContent =
+    "운동 설정 저장";
+
+  deleteExerciseEditorBtn.classList.remove(
+    "hidden"
+  );
+
   setExerciseEditorMessage(
     "변경한 설정은 다음 운동부터 적용됩니다."
+  );
+
+  syncExerciseTypeFields();
+
+  exerciseEditorModal.classList.remove(
+    "hidden"
+  );
+
+  document.body.style.overflow =
+    "hidden";
+
+  window.setTimeout(
+    () => {
+      exerciseNameInput.focus();
+    },
+    50
+  );
+}
+
+function openExerciseCreator() {
+  if (
+    state.started &&
+    !state.completed
+  ) {
+    toast(
+      "운동 진행 중에는 운동을 추가할 수 없습니다."
+    );
+
+    return;
+  }
+
+  exerciseEditorMode =
+    "create";
+
+  editingExerciseIndex =
+    null;
+
+  exerciseEditorTitle.textContent =
+    "새 운동 추가";
+
+  exerciseNameInput.value =
+    "";
+
+  exerciseTypeInput.value =
+    "반복 범위형";
+
+  exerciseWeightInput.value =
+    0;
+
+  exerciseSetsInput.value =
+    3;
+
+  exerciseMinRepsInput.value =
+    8;
+
+  exerciseMaxRepsInput.value =
+    12;
+
+  exerciseRestInput.value =
+    90;
+
+  exerciseIncrementInput.value =
+    2.5;
+
+  saveExerciseEditorBtn.textContent =
+    "운동 추가";
+
+  deleteExerciseEditorBtn.classList.add(
+    "hidden"
+  );
+
+  setExerciseEditorMessage(
+    "새 운동의 기본 설정을 입력해 주세요."
   );
 
   syncExerciseTypeFields();
@@ -1834,6 +1934,14 @@ function closeExerciseEditor() {
   document.body.style.overflow = "";
 
   editingExerciseIndex = null;
+  exerciseEditorMode = "edit";
+
+  deleteExerciseEditorBtn.classList.add(
+    "hidden"
+  );
+
+  saveExerciseEditorBtn.textContent =
+    "운동 설정 저장";
 }
 
 async function saveExerciseEditor(
@@ -1842,6 +1950,7 @@ async function saveExerciseEditor(
   event.preventDefault();
 
   if (
+    exerciseEditorMode === "edit" &&
     editingExerciseIndex === null
   ) {
     return;
@@ -1859,77 +1968,197 @@ async function saveExerciseEditor(
     return;
   }
 
+  const exerciseInput = {
+    name:
+      exerciseNameInput.value,
+
+    type:
+      exerciseTypeInput.value,
+
+    weight:
+      exerciseWeightInput.value,
+
+    sets:
+      Number(
+        exerciseSetsInput.value
+      ),
+
+    min:
+      Number(
+        exerciseMinRepsInput.value
+      ),
+
+    max:
+      Number(
+        exerciseMaxRepsInput.value
+      ),
+
+    rest:
+      Number(
+        exerciseRestInput.value
+      ),
+
+    increment:
+      exerciseIncrementInput.value
+  };
+
   saveExerciseEditorBtn.disabled =
     true;
 
+  deleteExerciseEditorBtn.disabled =
+    true;
+
   saveExerciseEditorBtn.textContent =
-    "저장 중...";
+    exerciseEditorMode === "create"
+      ? "추가 중..."
+      : "저장 중...";
 
   setExerciseEditorMessage(
-    "운동 설정을 저장하고 있습니다."
+    exerciseEditorMode === "create"
+      ? "새 운동을 추가하고 있습니다."
+      : "운동 설정을 저장하고 있습니다."
   );
 
   try {
-    await routineApi
-      .updateActiveRoutineExercise(
-        editingExerciseIndex,
-        {
-          name:
-            exerciseNameInput.value,
+    if (
+      exerciseEditorMode === "create"
+    ) {
+      await routineApi
+        .addActiveRoutineExercise(
+          exerciseInput
+        );
 
-          type:
-            exerciseTypeInput.value,
-
-          weight:
-            exerciseWeightInput.value,
-
-          sets:
-            Number(
-              exerciseSetsInput.value
-            ),
-
-          min:
-            Number(
-              exerciseMinRepsInput.value
-            ),
-
-          max:
-            Number(
-              exerciseMaxRepsInput.value
-            ),
-
-          rest:
-            Number(
-              exerciseRestInput.value
-            ),
-
-          increment:
-            exerciseIncrementInput.value
-        }
+      toast(
+        "새 운동이 추가되었습니다."
       );
+    } else {
+      await routineApi
+        .updateActiveRoutineExercise(
+          editingExerciseIndex,
+          exerciseInput
+        );
 
-    toast(
-      "운동 설정이 저장되었습니다."
-    );
+      toast(
+        "운동 설정이 저장되었습니다."
+      );
+    }
 
     closeExerciseEditor();
   } catch (error) {
     console.error(
-      "[JYM Log] 운동 설정 저장 실패",
+      "[JYM Log] 운동 설정 처리 실패",
       error
     );
 
     setExerciseEditorMessage(
       error.message ||
-      "운동 설정을 저장하지 못했습니다.",
+      "운동 설정을 처리하지 못했습니다.",
       true
     );
   } finally {
     saveExerciseEditorBtn.disabled =
       false;
 
-    saveExerciseEditorBtn.textContent =
-      "운동 설정 저장";
+    deleteExerciseEditorBtn.disabled =
+      false;
+
+    if (
+      !exerciseEditorModal.classList
+        .contains("hidden")
+    ) {
+      saveExerciseEditorBtn.textContent =
+        exerciseEditorMode === "create"
+          ? "운동 추가"
+          : "운동 설정 저장";
+    }
+  }
+}
+
+async function deleteExerciseFromRoutine() {
+  if (
+    exerciseEditorMode !== "edit" ||
+    editingExerciseIndex === null
+  ) {
+    return;
+  }
+
+  const exercise =
+    exercises[editingExerciseIndex];
+
+  if (!exercise) {
+    setExerciseEditorMessage(
+      "삭제할 운동을 찾을 수 없습니다.",
+      true
+    );
+
+    return;
+  }
+
+  const confirmed =
+    window.confirm(
+      `"${exercise.name}" 운동을 루틴에서 삭제할까요?\n\n기존에 완료된 과거 운동 기록은 삭제되지 않습니다.`
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const routineApi =
+    window.JYMLog.routines;
+
+  if (!routineApi) {
+    setExerciseEditorMessage(
+      "루틴 기능을 불러오지 못했습니다.",
+      true
+    );
+
+    return;
+  }
+
+  deleteExerciseEditorBtn.disabled =
+    true;
+
+  saveExerciseEditorBtn.disabled =
+    true;
+
+  deleteExerciseEditorBtn.textContent =
+    "삭제 중...";
+
+  setExerciseEditorMessage(
+    "운동을 삭제하고 있습니다."
+  );
+
+  try {
+    await routineApi
+      .deleteActiveRoutineExercise(
+        editingExerciseIndex
+      );
+
+    toast(
+      `"${exercise.name}" 운동이 삭제되었습니다.`
+    );
+
+    closeExerciseEditor();
+  } catch (error) {
+    console.error(
+      "[JYM Log] 운동 삭제 실패",
+      error
+    );
+
+    setExerciseEditorMessage(
+      error.message ||
+      "운동을 삭제하지 못했습니다.",
+      true
+    );
+  } finally {
+    deleteExerciseEditorBtn.disabled =
+      false;
+
+    saveExerciseEditorBtn.disabled =
+      false;
+
+    deleteExerciseEditorBtn.textContent =
+      "이 운동 삭제";
   }
 }
 
@@ -1962,6 +2191,20 @@ document.addEventListener("click", e => {
       );
 
       return;
+    }
+
+    if (addExerciseBtn) {
+      addExerciseBtn.addEventListener(
+        "click",
+        openExerciseCreator
+      );
+    }
+
+    if (deleteExerciseEditorBtn) {
+      deleteExerciseEditorBtn.addEventListener(
+        "click",
+        deleteExerciseFromRoutine
+      );
     }
 
     const action =
@@ -2198,7 +2441,6 @@ if (exerciseEditorModal) {
   );
 }
 
-document.getElementById("addExerciseDemo").onclick = () => toast("다음 스프린트에서 운동 추가 편집 화면을 연결합니다.");
 document.getElementById("installInfoBtn").onclick = () => toast("HTTPS 또는 localhost에서 열면 브라우저의 ‘홈 화면에 추가’를 사용할 수 있습니다.");
 document.getElementById("resetBtn").onclick = () => {
     if (confirm("프로토타입 기록을 초기화할까요?")) {

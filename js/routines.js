@@ -474,10 +474,7 @@ async function updateActiveRoutineMetadata(
   return activeRoutine;
 }
 
-async function updateActiveRoutineExercise(
-  exerciseIndex,
-  exerciseInput
-) {
+function assertRoutineCanChange() {
   if (!activeRoutine?.userId) {
     throw new Error(
       "수정할 사용자 루틴을 찾을 수 없습니다."
@@ -492,6 +489,106 @@ async function updateActiveRoutineExercise(
       "운동 진행 중에는 루틴을 수정할 수 없습니다."
     );
   }
+}
+
+function createExerciseId() {
+  if (
+    window.crypto &&
+    typeof window.crypto.randomUUID ===
+      "function"
+  ) {
+    return `exercise-${window.crypto.randomUUID()}`;
+  }
+
+  return [
+    "exercise",
+    Date.now(),
+    Math.random()
+      .toString(36)
+      .slice(2, 8)
+  ].join("-");
+}
+
+/**
+ * 운동 목록을 Firestore에 저장하고
+ * 현재 앱 화면에도 적용합니다.
+ */
+async function saveActiveRoutineExercises(
+  nextExercises,
+  logMessage
+) {
+  const orderedExercises =
+    nextExercises.map(
+      (exercise, index) => ({
+        ...exercise,
+        order: index
+      })
+    );
+
+  const routineDocument =
+    doc(
+      db,
+      "users",
+      activeRoutine.userId,
+      "routines",
+      activeRoutine.id
+    );
+
+  await setDoc(
+    routineDocument,
+    {
+      userId:
+        activeRoutine.userId,
+
+      schemaVersion:
+        ROUTINE_SCHEMA_VERSION,
+
+      exercises:
+        orderedExercises,
+
+      updatedAt:
+        serverTimestamp()
+    },
+    {
+      merge: true
+    }
+  );
+
+  activeRoutine = {
+    ...activeRoutine,
+    exercises:
+      orderedExercises
+  };
+
+  workout.replaceExercises(
+    orderedExercises,
+    false
+  );
+
+  /*
+   * 운동 구조가 바뀌면 이전 초안의
+   * 세트 번호가 어긋날 수 있으므로 초기화합니다.
+   */
+  workout.resetWorkout();
+  workout.saveState();
+
+  emitRoutineReady();
+
+  console.info(
+    `[JYM Log] ${logMessage}`
+  );
+
+  return orderedExercises;
+}
+
+/**
+ * 기존 운동 설정 수정
+ */
+async function updateActiveRoutineExercise(
+  exerciseIndex,
+  exerciseInput
+) {
+  assertRoutineCanChange();
 
   const currentExercise =
     activeRoutine.exercises[
@@ -516,66 +613,134 @@ async function updateActiveRoutineExercise(
       (exercise, index) =>
         index === exerciseIndex
           ? updatedExercise
-          : {
-              ...exercise,
-              order: index
-            }
+          : exercise
     );
 
-  const routineDocument =
-    doc(
-      db,
-      "users",
-      activeRoutine.userId,
-      "routines",
-      activeRoutine.id
-    );
-
-  await setDoc(
-    routineDocument,
-    {
-      userId:
-        activeRoutine.userId,
-
-      schemaVersion:
-        ROUTINE_SCHEMA_VERSION,
-
-      exercises:
-        nextExercises,
-
-      updatedAt:
-        serverTimestamp()
-    },
-    {
-      merge: true
-    }
-  );
-
-  activeRoutine = {
-    ...activeRoutine,
-    exercises:
-      nextExercises
-  };
-
-  workout.replaceExercises(
+  await saveActiveRoutineExercises(
     nextExercises,
-    false
-  );
-
-  /*
-   * 바뀐 세트 수와 반복 범위가
-   * 기존 운동 초안에 섞이지 않도록 초기화합니다.
-   */
-  workout.resetWorkout();
-  workout.saveState();
-
-  emitRoutineReady();
-
-  console.info(
-    "[JYM Log] 운동 설정 저장 완료"
+    "운동 설정 저장 완료"
   );
 
   return updatedExercise;
+}
+
+/**
+ * 새 운동 추가
+ */
+async function addActiveRoutineExercise(
+  exerciseInput
+) {
+  assertRoutineCanChange();
+
+  if (
+    activeRoutine.exercises.length >=
+    30
+  ) {
+    throw new Error(
+      "하나의 루틴에는 운동을 최대 30개까지 추가할 수 있습니다."
+    );
+  }
+
+  const exerciseIndex =
+    activeRoutine.exercises.length;
+
+  const exerciseDraft = {
+    id:
+      createExerciseId(),
+
+    order:
+      exerciseIndex,
+
+    name:
+      "새 운동",
+
+    icon:
+      "",
+
+    type:
+      "반복 범위형",
+
+    weight:
+      0,
+
+    sets:
+      3,
+
+    min:
+      8,
+
+    max:
+      12,
+
+    rest:
+      90,
+
+    increment:
+      2.5,
+
+    previous:
+      "이전 기록 없음"
+  };
+
+  const newExercise =
+    validateExerciseInput(
+      exerciseDraft,
+      exerciseInput,
+      exerciseIndex
+    );
+
+  const nextExercises = [
+    ...activeRoutine.exercises,
+    newExercise
+  ];
+
+  await saveActiveRoutineExercises(
+    nextExercises,
+    "새 운동 추가 완료"
+  );
+
+  return newExercise;
+}
+
+/**
+ * 기존 운동 삭제
+ */
+async function deleteActiveRoutineExercise(
+  exerciseIndex
+) {
+  assertRoutineCanChange();
+
+  if (
+    activeRoutine.exercises.length <= 1
+  ) {
+    throw new Error(
+      "루틴에는 최소 1개의 운동이 필요합니다."
+    );
+  }
+
+  const deletedExercise =
+    activeRoutine.exercises[
+      exerciseIndex
+    ];
+
+  if (!deletedExercise) {
+    throw new Error(
+      "삭제할 운동을 찾을 수 없습니다."
+    );
+  }
+
+  const nextExercises =
+    activeRoutine.exercises.filter(
+      (_, index) =>
+        index !== exerciseIndex
+    );
+
+  await saveActiveRoutineExercises(
+    nextExercises,
+    "운동 삭제 완료"
+  );
+
+  return deletedExercise;
 }
 
 window.JYMLog.routines =
@@ -583,6 +748,8 @@ window.JYMLog.routines =
     ensureActiveRoutine,
     updateActiveRoutineMetadata,
     updateActiveRoutineExercise,
+    addActiveRoutineExercise,
+    deleteActiveRoutineExercise,
 
     get activeRoutine() {
       return activeRoutine;
@@ -592,5 +759,7 @@ window.JYMLog.routines =
 export {
   ensureActiveRoutine,
   updateActiveRoutineMetadata,
-  updateActiveRoutineExercise
+  updateActiveRoutineExercise,
+  addActiveRoutineExercise,
+  deleteActiveRoutineExercise
 };

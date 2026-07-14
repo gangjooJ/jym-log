@@ -502,7 +502,14 @@
       </form>
 
       <div id="routineList"></div>
-      <button class="secondary-btn full" style="margin-top:12px" id="addExerciseDemo">+ 운동 추가</button>
+      <button 
+        class="secondary-btn full" 
+        style="margin-top:12px"   
+        id="addExerciseBtn"
+        type="button"
+      >
+        + 운동 추가
+      </button>
     </section>
 
     <section class="screen" id="screen-settings">
@@ -796,6 +803,14 @@
       >
         변경한 설정은 다음 운동부터 적용됩니다.
       </p>
+
+      <button
+        class="exercise-delete-btn hidden"
+        id="deleteExerciseEditorBtn"
+        type="button"
+      >
+        이 운동 삭제
+      </button>
 
       <div class="exercise-editor-actions">
         <button
