@@ -367,6 +367,101 @@ async function saveCloudState(
   );
 }
 
+/**
+ * 사용자가 명시적으로 이 기기 기록을 선택했을 때
+ * 현재 클라우드 revision을 다시 읽고 로컬 상태로 저장합니다.
+ */
+async function overwriteCloudState(
+  userId,
+  state
+) {
+  const workoutDocument =
+    getWorkoutDocument(
+      userId
+    );
+
+  const copiedState =
+    cloneValue(state);
+
+  let clientUpdatedAt =
+    getStateUpdatedAt(
+      copiedState
+    );
+
+  if (clientUpdatedAt <= 0) {
+    clientUpdatedAt =
+      Date.now();
+
+    copiedState.updatedAt =
+      clientUpdatedAt;
+  }
+
+  return runTransaction(
+    db,
+    async (transaction) => {
+      /*
+       * 저장 직전 최신 revision을
+       * 트랜잭션 안에서 다시 읽습니다.
+       */
+      const snapshot =
+        await transaction.get(
+          workoutDocument
+        );
+
+      const cloudData =
+        snapshot.exists()
+          ? snapshot.data()
+          : null;
+
+      const cloudRevision =
+        getCloudRevision(
+          cloudData
+        );
+
+      const nextRevision =
+        cloudRevision + 1;
+
+      transaction.set(
+        workoutDocument,
+        {
+          userId,
+
+          schemaVersion:
+            SYNC_SCHEMA_VERSION,
+
+          state:
+            copiedState,
+
+          revision:
+            nextRevision,
+
+          lastDeviceId:
+            deviceId,
+
+          clientUpdatedAt,
+
+          updatedAt:
+            serverTimestamp()
+        },
+        {
+          merge: true
+        }
+      );
+
+      return {
+        status:
+          "saved",
+
+        revision:
+          nextRevision,
+
+        savedUpdatedAt:
+          clientUpdatedAt
+      };
+    }
+  );
+}
+
 function buildConflictRecord(
   userId,
   localPayload,
@@ -708,41 +803,15 @@ async function resolveSyncConflict(
       );
     }
 
-    const result =
-      await saveCloudState(
-        userId,
-        localState,
-        normalizeRevision(
-          conflict.cloudRevision
-        )
-      );
-
     /*
-     * 충돌 감지 후 다른 기기에서
-     * 클라우드가 다시 변경된 경우입니다.
-     */
-    if (
-      result.status ===
-      "conflict"
-    ) {
-      activateSyncConflict(
+      * 사용자가 이 기기 기록을 명시적으로 선택했으므로
+      * 최신 클라우드 revision을 다시 읽고 저장합니다.
+      */
+    const result =
+      await overwriteCloudState(
         userId,
-        {
-          state:
-            localState,
-
-          baseRevision:
-            conflict.cloudRevision,
-
-          deviceId
-        },
-        result
+        localState
       );
-
-      throw new Error(
-        "클라우드 기록이 다시 변경되었습니다. 두 기록을 다시 확인해 주세요."
-      );
-    }
 
     currentCloudRevision =
       normalizeRevision(
