@@ -296,11 +296,29 @@ const addExerciseBtn =
     "addExerciseBtn"
   );
 
+const finishWorkoutBtn =
+  document.getElementById(
+    "finishWorkoutBtn"
+  );
+
+const fatigueModal =
+  document.getElementById(
+    "fatigueModal"
+  );
+
+const confirmFinishBtn =
+  document.getElementById(
+    "confirmFinishBtn"
+  );
+
 let editingExerciseIndex = null;
 let exerciseEditorMode = "edit";
 
 let routineOrderSaving = false;
 let routineDragState = null;
+
+let workoutFinishInProgress =
+  false;
 
 function applyAppMetadata() {
   const config = window.JYMLog.config;
@@ -1620,13 +1638,18 @@ function startElapsed() {
             workout.formatTime(elapsedSeconds);
     });
 }
+
 function startWorkout() {
-    workout.beginWorkout();
-    state = workout.state;
-    renderWorkout();
-    startElapsed();
-    navigate("workout");
+  workout.beginWorkout();
+  state = workout.state;
+
+  setWorkoutFinishBusy(false);
+
+  renderWorkout();
+  startElapsed();
+  navigate("workout");
 }
+
 function allDoneCount() {
     return workout.getCompletedSetCount();
 }
@@ -1661,6 +1684,95 @@ function renderSummary() {
         document.getElementById("recommendText").textContent = "80kg · 5 × 5 유지";
         document.getElementById("recommendReason1").textContent = "아직 모든 목표 세트를 달성하지 않아 동일 중량 재도전을 추천합니다.";
     }
+}
+
+function setWorkoutFinishBusy(
+  isBusy
+) {
+  workoutFinishInProgress =
+    isBusy;
+
+  if (confirmFinishBtn) {
+    confirmFinishBtn.disabled =
+      isBusy;
+
+    confirmFinishBtn.textContent =
+      isBusy
+        ? "기록 저장 중..."
+        : "기록 저장하고 완료";
+
+    confirmFinishBtn.setAttribute(
+      "aria-busy",
+      String(isBusy)
+    );
+  }
+
+  if (finishWorkoutBtn) {
+    finishWorkoutBtn.disabled =
+      isBusy;
+  }
+}
+
+async function confirmWorkoutFinish() {
+  if (workoutFinishInProgress) {
+    return;
+  }
+
+  setWorkoutFinishBusy(true);
+
+  if (fatigueModal) {
+    fatigueModal.classList.remove(
+      "show"
+    );
+  }
+
+  try {
+    /*
+     * 완료 처리는 최초 한 번만 실행합니다.
+     */
+    if (!state.completed) {
+      workout.finishWorkout();
+      workout.stopRestTimer();
+      workout.stopElapsedTimer();
+
+      state = workout.state;
+    }
+
+    renderSummary();
+    navigate("summary");
+
+    const sessionsApi =
+      window.JYMLog.sessions;
+
+    if (
+      !sessionsApi
+        ?.saveCompletedWorkoutSession
+    ) {
+      throw new Error(
+        "완료 운동 저장 기능을 불러오지 못했습니다."
+      );
+    }
+
+    await sessionsApi
+      .saveCompletedWorkoutSession(
+        state
+      );
+
+    toast(
+      "완료한 운동 기록이 저장되었습니다."
+    );
+  } catch (error) {
+    console.error(
+      "[JYM Log] 완료 운동 세션 저장 실패",
+      error
+    );
+
+    toast(
+      "현재 운동은 저장됐지만 완료 기록 저장을 확인해 주세요."
+    );
+  } finally {
+    setWorkoutFinishBusy(false);
+  }
 }
 
 function renderRoutine() {
@@ -2805,44 +2917,49 @@ document.getElementById("nextExerciseBtn").onclick = () => {
   renderWorkout();
   window.scrollTo(0, 0);
 };
-document.getElementById("finishWorkoutBtn").onclick = () => document.getElementById("fatigueModal").classList.add("show");
-document.getElementById(
-    "confirmFinishBtn"
-    ).onclick = async () => {
-    document
-        .getElementById("fatigueModal")
-        .classList.remove("show");
 
-    workout.finishWorkout();
-    workout.stopRestTimer();
-    workout.stopElapsedTimer();
+if (finishWorkoutBtn) {
+  finishWorkoutBtn.addEventListener(
+    "click",
+    () => {
+      if (
+        workoutFinishInProgress ||
+        state.completed
+      ) {
+        return;
+      }
 
-    state = workout.state;
-
-    renderSummary();
-    navigate("summary");
-
-    try {
-        await window.JYMLog.sessions
-        .saveCompletedWorkoutSession(
-            state
-        );
-
-        toast(
-        "완료한 운동 기록이 저장되었습니다."
-        );
-    } catch (error) {
-        console.error(
-        "[JYM Log] 완료 운동 세션 저장 실패",
-        error
-        );
-
-        toast(
-        "현재 운동은 저장됐지만 완료 기록 저장을 확인해 주세요."
-        );
+      fatigueModal?.classList.add(
+        "show"
+      );
     }
-    };
-document.getElementById("fatigueModal").onclick = e => { if (e.target.id === "fatigueModal") e.target.classList.remove("show") };
+  );
+}
+
+if (confirmFinishBtn) {
+  confirmFinishBtn.addEventListener(
+    "click",
+    confirmWorkoutFinish
+  );
+}
+
+if (fatigueModal) {
+  fatigueModal.addEventListener(
+    "click",
+    (event) => {
+      if (
+        event.target ===
+          fatigueModal &&
+        !workoutFinishInProgress
+      ) {
+        fatigueModal.classList.remove(
+          "show"
+        );
+      }
+    }
+  );
+}
+
 document.getElementById("add30Btn").onclick = () => {
     workout.addRestTime(30, (remainingSeconds) => {
         document.getElementById("timerTime").textContent =
