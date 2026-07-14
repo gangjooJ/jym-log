@@ -1222,3 +1222,174 @@
   cursor: wait;
   opacity: 0.55;
 }
+
+.routine-card {
+  position: relative;
+  display: grid;
+  grid-template-columns:
+    auto
+    minmax(0, 1fr)
+    auto;
+  align-items: center;
+  gap: 10px;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
+}
+
+.routine-drag-handle {
+  min-width: 70px;
+  min-height: 54px;
+  padding: 5px 7px;
+  border: 0;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #f8fafc;
+  color: var(--muted);
+  cursor: grab;
+
+  /*
+   * 이 손잡이에서 시작한 터치는
+   * 페이지 스크롤이 아닌 드래그로 처리합니다.
+   */
+  touch-action: none;
+}
+
+.routine-drag-handle:active {
+  cursor: grabbing;
+}
+
+.routine-grip {
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: -4px;
+}
+
+.routine-drag-handle .exercise-icon {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+}
+
+.routine-card-copy {
+  min-width: 0;
+}
+
+.routine-card-copy h3 {
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.routine-card-copy p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.routine-card-actions {
+  display: grid;
+  grid-template-columns:
+    repeat(2, 44px);
+  gap: 5px;
+}
+
+.routine-order-buttons {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns:
+    repeat(2, 44px);
+  gap: 5px;
+}
+
+.routine-order-btn {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.routine-order-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.routine-order-btn:disabled {
+  cursor: default;
+  opacity: 0.25;
+}
+
+.routine-card-actions .routine-edit-btn {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 40px;
+}
+
+#routineList.routine-list-dragging {
+  position: relative;
+}
+
+#routineList.routine-list-dragging
+  .routine-card:not(.is-dragging) {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.routine-card.is-dragging {
+  z-index: 20;
+  opacity: 0.82;
+  transform: scale(1.025);
+  pointer-events: none;
+  box-shadow:
+    0 22px 45px
+    rgba(15, 23, 42, 0.22);
+}
+
+body.routine-drag-active {
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+@media (max-width: 380px) {
+  .routine-card {
+    gap: 7px;
+  }
+
+  .routine-drag-handle {
+    min-width: 61px;
+    padding-inline: 4px;
+  }
+
+  .routine-grip {
+    font-size: 15px;
+  }
+
+  .routine-drag-handle .exercise-icon {
+    flex-basis: 38px;
+    width: 38px;
+    height: 38px;
+  }
+
+  .routine-card-actions,
+  .routine-order-buttons {
+    grid-template-columns:
+      repeat(2, 40px);
+  }
+
+  .routine-order-btn {
+    width: 40px;
+    height: 42px;
+  }
+}

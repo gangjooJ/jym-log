@@ -743,6 +743,98 @@ async function deleteActiveRoutineExercise(
   return deletedExercise;
 }
 
+/**
+ * 운동 한 개를 원하는 위치로 이동합니다.
+ */
+async function reorderActiveRoutineExercises(
+  sourceIndex,
+  targetIndex
+) {
+  assertRoutineCanChange();
+
+  const exerciseCount =
+    activeRoutine.exercises.length;
+
+  if (
+    !Number.isInteger(sourceIndex) ||
+    !Number.isInteger(targetIndex) ||
+    sourceIndex < 0 ||
+    targetIndex < 0 ||
+    sourceIndex >= exerciseCount ||
+    targetIndex >= exerciseCount
+  ) {
+    throw new Error(
+      "변경할 운동 순서를 확인할 수 없습니다."
+    );
+  }
+
+  if (sourceIndex === targetIndex) {
+    return activeRoutine.exercises;
+  }
+
+  const nextExercises = [
+    ...activeRoutine.exercises
+  ];
+
+  const [movedExercise] =
+    nextExercises.splice(
+      sourceIndex,
+      1
+    );
+
+  nextExercises.splice(
+    targetIndex,
+    0,
+    movedExercise
+  );
+
+  await saveActiveRoutineExercises(
+    nextExercises,
+    "운동 순서 저장 완료"
+  );
+
+  return nextExercises;
+}
+
+/**
+ * 화살표 버튼으로 운동을 한 칸 이동합니다.
+ */
+async function moveActiveRoutineExercise(
+  exerciseIndex,
+  direction
+) {
+  assertRoutineCanChange();
+
+  const movement =
+    direction === "up"
+      ? -1
+      : direction === "down"
+        ? 1
+        : 0;
+
+  if (movement === 0) {
+    throw new Error(
+      "운동 이동 방향이 올바르지 않습니다."
+    );
+  }
+
+  const targetIndex =
+    exerciseIndex + movement;
+
+  if (
+    targetIndex < 0 ||
+    targetIndex >=
+      activeRoutine.exercises.length
+  ) {
+    return activeRoutine.exercises;
+  }
+
+  return reorderActiveRoutineExercises(
+    exerciseIndex,
+    targetIndex
+  );
+}
+
 window.JYMLog.routines =
   Object.freeze({
     ensureActiveRoutine,
@@ -750,6 +842,8 @@ window.JYMLog.routines =
     updateActiveRoutineExercise,
     addActiveRoutineExercise,
     deleteActiveRoutineExercise,
+    reorderActiveRoutineExercises,
+    moveActiveRoutineExercise,
 
     get activeRoutine() {
       return activeRoutine;
@@ -761,5 +855,7 @@ export {
   updateActiveRoutineMetadata,
   updateActiveRoutineExercise,
   addActiveRoutineExercise,
-  deleteActiveRoutineExercise
+  deleteActiveRoutineExercise,
+  reorderActiveRoutineExercises,
+  moveActiveRoutineExercise
 };

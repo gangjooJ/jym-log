@@ -176,6 +176,11 @@ const routineExerciseCount =
     "routineExerciseCount"
   );
 
+const routineListElement =
+  document.getElementById(
+    "routineList"
+  );
+
 const routineInfoForm =
   document.getElementById(
     "routineInfoForm"
@@ -293,6 +298,9 @@ const addExerciseBtn =
 
 let editingExerciseIndex = null;
 let exerciseEditorMode = "edit";
+
+let routineOrderSaving = false;
+let routineDragState = null;
 
 function applyAppMetadata() {
   const config = window.JYMLog.config;
@@ -1654,72 +1662,533 @@ function renderSummary() {
         document.getElementById("recommendReason1").textContent = "아직 모든 목표 세트를 달성하지 않아 동일 중량 재도전을 추천합니다.";
     }
 }
-function renderRoutine() {
-  const routineList =
-    document.getElementById(
-      "routineList"
-    );
 
-  routineList.innerHTML =
+function renderRoutine() {
+  if (!routineListElement) {
+    return;
+  }
+
+  routineListElement.innerHTML =
     exercises
       .map(
-        (exercise, index) => `
-          <div class="card routine-card">
-            <div class="routine-top">
-              <div
-                style="
-                  display: flex;
-                  gap: 12px;
-                  align-items: center;
-                  min-width: 0;
-                "
+        (exercise, index) => {
+          const isFirst =
+            index === 0;
+
+          const isLast =
+            index ===
+            exercises.length - 1;
+
+          return `
+            <div
+              class="card routine-card"
+              data-routine-index="${index}"
+            >
+              <button
+                class="routine-drag-handle"
+                type="button"
+                tabindex="-1"
+                data-drag-exercise-index="${index}"
+                aria-label="${escapeHtml(
+                  exercise.name
+                )} 운동을 끌어서 순서 변경"
+                title="끌어서 순서 변경"
               >
-                <div class="exercise-icon">
+                <span
+                  class="routine-grip"
+                  aria-hidden="true"
+                >
+                  ⠿
+                </span>
+
+                <span
+                  class="exercise-icon"
+                  aria-hidden="true"
+                >
                   ${escapeHtml(
                     exercise.icon
                   )}
-                </div>
+                </span>
+              </button>
 
-                <div style="min-width: 0">
-                  <h3>
-                    ${escapeHtml(
-                      exercise.name
-                    )}
-                  </h3>
+              <div class="routine-card-copy">
+                <h3>
+                  ${escapeHtml(
+                    exercise.name
+                  )}
+                </h3>
 
-                  <p
-                    style="
-                      font-size: 12px;
-                      color: var(--muted);
-                      margin-top: 5px;
-                      line-height: 1.5;
-                    "
-                  >
-                    ${exercise.weight}kg ·
-                    ${exercise.sets}세트 ·
-                    ${
-                      exercise.min ===
-                      exercise.max
-                        ? exercise.min
-                        : `${exercise.min}–${exercise.max}`
-                    }회
-                    · 휴식 ${exercise.rest}초
-                  </p>
-                </div>
+                <p>
+                  ${exercise.weight}kg ·
+                  ${exercise.sets}세트 ·
+                  ${
+                    exercise.min ===
+                    exercise.max
+                      ? exercise.min
+                      : `${exercise.min}–${exercise.max}`
+                  }회
+                  · 휴식 ${exercise.rest}초
+                </p>
               </div>
 
-              <button
-                class="routine-edit-btn"
-                type="button"
-                data-edit-exercise-index="${index}"
-              >
-                편집
-              </button>
+              <div class="routine-card-actions">
+                <div
+                  class="routine-order-buttons"
+                  aria-label="${escapeHtml(
+                    exercise.name
+                  )} 순서 변경"
+                >
+                  <button
+                    class="routine-order-btn"
+                    type="button"
+                    data-move-exercise="up"
+                    data-exercise-index="${index}"
+                    aria-label="위로 이동"
+                    ${isFirst ? "disabled" : ""}
+                  >
+                    ↑
+                  </button>
+
+                  <button
+                    class="routine-order-btn"
+                    type="button"
+                    data-move-exercise="down"
+                    data-exercise-index="${index}"
+                    aria-label="아래로 이동"
+                    ${isLast ? "disabled" : ""}
+                  >
+                    ↓
+                  </button>
+                </div>
+
+                <button
+                  class="routine-edit-btn"
+                  type="button"
+                  data-edit-exercise-index="${index}"
+                >
+                  편집
+                </button>
+              </div>
             </div>
-          </div>
-        `
+          `;
+        }
       )
       .join("");
+}
+
+function setRoutineOrderBusy(
+  isBusy
+) {
+  routineOrderSaving =
+    isBusy;
+
+  if (!routineListElement) {
+    return;
+  }
+
+  routineListElement.setAttribute(
+    "aria-busy",
+    String(isBusy)
+  );
+
+  if (!isBusy) {
+    return;
+  }
+
+  routineListElement
+    .querySelectorAll("button")
+    .forEach((button) => {
+      button.disabled = true;
+    });
+}
+
+async function moveExerciseByButton(
+  exerciseIndex,
+  direction
+) {
+  if (routineOrderSaving) {
+    return;
+  }
+
+  const targetIndex =
+    direction === "up"
+      ? exerciseIndex - 1
+      : exerciseIndex + 1;
+
+  if (
+    targetIndex < 0 ||
+    targetIndex >= exercises.length
+  ) {
+    return;
+  }
+
+  const routineApi =
+    window.JYMLog.routines;
+
+  if (!routineApi) {
+    toast(
+      "루틴 기능을 불러오지 못했습니다."
+    );
+
+    return;
+  }
+
+  setRoutineOrderBusy(true);
+
+  try {
+    await routineApi
+      .moveActiveRoutineExercise(
+        exerciseIndex,
+        direction
+      );
+
+    toast(
+      "운동 순서가 변경되었습니다."
+    );
+  } catch (error) {
+    console.error(
+      "[JYM Log] 운동 순서 변경 실패",
+      error
+    );
+
+    toast(
+      error.message ||
+      "운동 순서를 변경하지 못했습니다."
+    );
+  } finally {
+    routineOrderSaving = false;
+
+    if (routineListElement) {
+      routineListElement.setAttribute(
+        "aria-busy",
+        "false"
+      );
+    }
+
+    /*
+     * 첫 번째·마지막 버튼의
+     * 비활성 상태까지 다시 계산합니다.
+     */
+    renderRoutine();
+  }
+}
+
+function cleanupRoutineDrag(
+  restoreOriginalOrder = false
+) {
+  if (!routineDragState) {
+    return;
+  }
+
+  const draggedCard =
+    routineDragState.card;
+
+  draggedCard.classList.remove(
+    "is-dragging"
+  );
+
+  routineListElement?.classList.remove(
+    "routine-list-dragging"
+  );
+
+  document.body.classList.remove(
+    "routine-drag-active"
+  );
+
+  window.removeEventListener(
+    "pointermove",
+    handleRoutineDragMove
+  );
+
+  window.removeEventListener(
+    "pointerup",
+    finishRoutineDrag
+  );
+
+  window.removeEventListener(
+    "pointercancel",
+    cancelRoutineDrag
+  );
+
+  routineDragState = null;
+
+  if (restoreOriginalOrder) {
+    renderRoutine();
+  }
+}
+
+function startRoutineDrag(
+  event,
+  dragHandle
+) {
+  if (
+    routineOrderSaving ||
+    routineDragState
+  ) {
+    return;
+  }
+
+  /*
+   * 마우스 오른쪽 버튼 등으로는
+   * 드래그를 시작하지 않습니다.
+   */
+  if (
+    event.pointerType === "mouse" &&
+    event.button !== 0
+  ) {
+    return;
+  }
+
+  if (
+    state.started &&
+    !state.completed
+  ) {
+    toast(
+      "운동 진행 중에는 순서를 변경할 수 없습니다."
+    );
+
+    return;
+  }
+
+  const draggedCard =
+    dragHandle.closest(
+      "[data-routine-index]"
+    );
+
+  if (!draggedCard) {
+    return;
+  }
+
+  event.preventDefault();
+
+  routineDragState = {
+    pointerId:
+      event.pointerId,
+
+    card:
+      draggedCard,
+
+    fromIndex:
+      Number(
+        draggedCard.dataset
+          .routineIndex
+      )
+  };
+
+  draggedCard.classList.add(
+    "is-dragging"
+  );
+
+  routineListElement.classList.add(
+    "routine-list-dragging"
+  );
+
+  document.body.classList.add(
+    "routine-drag-active"
+  );
+
+  window.addEventListener(
+    "pointermove",
+    handleRoutineDragMove,
+    {
+      passive: false
+    }
+  );
+
+  window.addEventListener(
+    "pointerup",
+    finishRoutineDrag
+  );
+
+  window.addEventListener(
+    "pointercancel",
+    cancelRoutineDrag
+  );
+}
+
+function handleRoutineDragMove(
+  event
+) {
+  if (
+    !routineDragState ||
+    event.pointerId !==
+      routineDragState.pointerId
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+
+  /*
+   * 화면 가장자리에 가까워지면
+   * 긴 루틴에서도 자동 스크롤합니다.
+   */
+  const scrollEdge = 90;
+  const scrollSpeed = 13;
+
+  if (event.clientY < scrollEdge) {
+    window.scrollBy(
+      0,
+      -scrollSpeed
+    );
+  } else if (
+    event.clientY >
+    window.innerHeight -
+      scrollEdge
+  ) {
+    window.scrollBy(
+      0,
+      scrollSpeed
+    );
+  }
+
+  const elementBelow =
+    document.elementFromPoint(
+      event.clientX,
+      event.clientY
+    );
+
+  const targetCard =
+    elementBelow?.closest(
+      "[data-routine-index]"
+    );
+
+  const draggedCard =
+    routineDragState.card;
+
+  if (
+    !targetCard ||
+    targetCard === draggedCard ||
+    !routineListElement.contains(
+      targetCard
+    )
+  ) {
+    return;
+  }
+
+  const targetRectangle =
+    targetCard.getBoundingClientRect();
+
+  const insertAfter =
+    event.clientY >
+    targetRectangle.top +
+      targetRectangle.height / 2;
+
+  const referenceElement =
+    insertAfter
+      ? targetCard.nextElementSibling
+      : targetCard;
+
+  if (
+    referenceElement ===
+    draggedCard
+  ) {
+    return;
+  }
+
+  routineListElement.insertBefore(
+    draggedCard,
+    referenceElement
+  );
+}
+
+async function finishRoutineDrag(
+  event
+) {
+  if (
+    !routineDragState ||
+    event.pointerId !==
+      routineDragState.pointerId
+  ) {
+    return;
+  }
+
+  const {
+    card,
+    fromIndex
+  } = routineDragState;
+
+  const orderedCards = [
+    ...routineListElement
+      .querySelectorAll(
+        "[data-routine-index]"
+      )
+  ];
+
+  const targetIndex =
+    orderedCards.indexOf(card);
+
+  cleanupRoutineDrag(false);
+
+  if (
+    targetIndex < 0 ||
+    targetIndex === fromIndex
+  ) {
+    renderRoutine();
+    return;
+  }
+
+  const routineApi =
+    window.JYMLog.routines;
+
+  if (!routineApi) {
+    renderRoutine();
+
+    toast(
+      "루틴 기능을 불러오지 못했습니다."
+    );
+
+    return;
+  }
+
+  setRoutineOrderBusy(true);
+
+  try {
+    await routineApi
+      .reorderActiveRoutineExercises(
+        fromIndex,
+        targetIndex
+      );
+
+    toast(
+      "운동 순서가 저장되었습니다."
+    );
+  } catch (error) {
+    console.error(
+      "[JYM Log] 드래그 순서 저장 실패",
+      error
+    );
+
+    toast(
+      error.message ||
+      "운동 순서를 저장하지 못했습니다."
+    );
+  } finally {
+    routineOrderSaving = false;
+
+    if (routineListElement) {
+      routineListElement.setAttribute(
+        "aria-busy",
+        "false"
+      );
+    }
+
+    renderRoutine();
+  }
+}
+
+function cancelRoutineDrag(
+  event
+) {
+  if (
+    !routineDragState ||
+    event.pointerId !==
+      routineDragState.pointerId
+  ) {
+    return;
+  }
+
+  cleanupRoutineDrag(true);
 }
 
 function setExerciseEditorMessage(
@@ -2177,6 +2646,24 @@ document.addEventListener("click", e => {
       return;
     }
 
+    const exerciseMoveButton =
+      e.target.closest(
+        "[data-move-exercise]"
+      );
+
+    if (exerciseMoveButton) {
+      void moveExerciseByButton(
+        Number(
+          exerciseMoveButton.dataset
+            .exerciseIndex
+        ),
+        exerciseMoveButton.dataset
+          .moveExercise
+      );
+
+      return;
+    }
+
     const exerciseEditButton =
       e.target.closest(
         "[data-edit-exercise-index]"
@@ -2274,6 +2761,26 @@ document.addEventListener("click", e => {
         state = workout.state;
     }
 });
+
+document.addEventListener(
+  "pointerdown",
+  (event) => {
+    const dragHandle =
+      event.target.closest(
+        "[data-drag-exercise-index]"
+      );
+
+    if (!dragHandle) {
+      return;
+    }
+
+    startRoutineDrag(
+      event,
+      dragHandle
+    );
+  }
+);
+
 document.addEventListener("change", (e) => {
   if (!e.target.dataset.field) {
     return;
