@@ -105,6 +105,9 @@
 - [x] CHANGELOG v0.2.0-dev 기록
 - [x] Firebase 데이터 구조 문서화
 - [x] Firestore 보안 규칙 GitHub 보관
+- [x] Firestore 보안 규칙 테스트 매트릭스 작성
+- [ ] Rules Playground 핵심 보안 테스트 실행
+- [ ] Firestore Emulator 자동 테스트 구성
 - [ ] Android 전체 회귀 테스트
 - [ ] iOS 호환성 사전 점검
 - [ ] iPhone 실기기 확보 후 회귀 테스트

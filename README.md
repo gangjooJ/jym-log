@@ -134,6 +134,7 @@ jym-log/
 │  └─ app.js
 ├─ docs/
 │  ├─ firebase-data-model.md
+│  ├─ firestore-rules-test-matrix.md
 │  ├─ manual-test-checklist.md
 │  └─ stabilization-roadmap.md
 ├─ firestore.rules
@@ -169,6 +170,7 @@ jym-log/
 | `docs/firebase-data-model.md` | Firebase 데이터 경로와 필드 구조 문서 |
 | `docs/manual-test-checklist.md` | 수동 회귀 테스트 기준 |
 | `docs/stabilization-roadmap.md` | v0.2.0 안정화 계획 |
+| `docs/firestore-rules-test-matrix.md` | Firestore 허용·차단 보안 테스트 기준 |
 
 ## 데이터 구조 개요
 
