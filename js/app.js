@@ -929,6 +929,13 @@ function closeSyncConflictModal(
     return;
   }
 
+  /*
+   * null로 초기화하기 전에
+   * 복귀할 요소를 별도 변수에 보관합니다.
+   */
+  const previousFocus =
+    syncConflictPreviousFocus;
+
   syncConflictModal.classList.add(
     "hidden"
   );
@@ -936,20 +943,22 @@ function closeSyncConflictModal(
   document.body.style.overflow =
     "";
 
+  syncConflictPreviousFocus =
+    null;
+
   if (
     restoreFocus &&
-    syncConflictPreviousFocus?.isConnected
+    previousFocus?.isConnected &&
+    typeof previousFocus.focus ===
+      "function"
   ) {
     window.setTimeout(
       () => {
-        syncConflictPreviousFocus.focus();
+        previousFocus.focus();
       },
       0
     );
   }
-
-  syncConflictPreviousFocus =
-    null;
 }
 
 function setSyncConflictBusy(
