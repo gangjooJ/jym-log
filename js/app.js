@@ -377,6 +377,9 @@ let workoutFinishInProgress =
 let syncConflictResolutionInProgress =
   false;
 
+let syncConflictPreviousFocus =
+  null;
+
 function applyAppMetadata() {
   const config = window.JYMLog.config;
 
@@ -760,6 +763,19 @@ function setSyncConflictMessage(
 function renderSyncConflict(
   conflict
 ) {
+  if (
+    !syncConflictLocalStatus ||
+    !syncConflictLocalDetail ||
+    !syncConflictCloudStatus ||
+    !syncConflictCloudDetail
+  ) {
+    console.warn(
+      "[JYM Log] 충돌 비교 UI 요소를 찾을 수 없습니다."
+    );
+
+    return;
+  }
+
   const localState =
     conflict?.localState;
 
@@ -836,6 +852,21 @@ function renderSyncConflict(
 function openSyncConflictModal(
   conflict
 ) {
+  if (
+    !syncConflictModal ||
+    !closeSyncConflictBtn
+  ) {
+    console.warn(
+      "[JYM Log] 동기화 충돌 선택창 요소를 찾을 수 없습니다."
+    );
+
+    toast(
+      "동기화 충돌 화면을 불러오지 못했습니다."
+    );
+
+    return;
+  }
+
   const syncApi =
     window.JYMLog.sync;
 
@@ -844,12 +875,23 @@ function openSyncConflictModal(
     syncApi?.getConflict?.();
 
   if (!resolvedConflict) {
+    updateSyncStatus(
+      "synced",
+      "동기화됨"
+    );
+
     toast(
       "보관된 동기화 충돌 기록이 없습니다."
     );
 
     return;
   }
+
+  syncConflictPreviousFocus =
+    document.activeElement instanceof
+      HTMLElement
+      ? document.activeElement
+      : null;
 
   renderSyncConflict(
     resolvedConflict
@@ -868,16 +910,22 @@ function openSyncConflictModal(
 
   window.setTimeout(
     () => {
-      closeSyncConflictBtn?.focus();
+      closeSyncConflictBtn.focus();
     },
     50
   );
 }
 
-function closeSyncConflictModal() {
+function closeSyncConflictModal(
+  restoreFocus = true
+) {
   if (
     syncConflictResolutionInProgress
   ) {
+    return;
+  }
+
+  if (!syncConflictModal) {
     return;
   }
 
@@ -887,6 +935,21 @@ function closeSyncConflictModal() {
 
   document.body.style.overflow =
     "";
+
+  if (
+    restoreFocus &&
+    syncConflictPreviousFocus?.isConnected
+  ) {
+    window.setTimeout(
+      () => {
+        syncConflictPreviousFocus.focus();
+      },
+      0
+    );
+  }
+
+  syncConflictPreviousFocus =
+    null;
 }
 
 function setSyncConflictBusy(
@@ -896,26 +959,39 @@ function setSyncConflictBusy(
   syncConflictResolutionInProgress =
     isBusy;
 
-  useCloudConflictBtn.disabled =
-    isBusy;
+  if (syncConflictModal) {
+    syncConflictModal.setAttribute(
+      "aria-busy",
+      String(isBusy)
+    );
+  }
 
-  useLocalConflictBtn.disabled =
-    isBusy;
+  if (useCloudConflictBtn) {
+    useCloudConflictBtn.disabled =
+      isBusy;
 
-  closeSyncConflictBtn.disabled =
-    isBusy;
+    useCloudConflictBtn.textContent =
+      isBusy &&
+      strategy === "cloud"
+        ? "불러오는 중..."
+        : "클라우드 기록 사용";
+  }
 
-  useCloudConflictBtn.textContent =
-    isBusy &&
-    strategy === "cloud"
-      ? "불러오는 중..."
-      : "클라우드 기록 사용";
+  if (useLocalConflictBtn) {
+    useLocalConflictBtn.disabled =
+      isBusy;
 
-  useLocalConflictBtn.textContent =
-    isBusy &&
-    strategy === "local"
-      ? "저장하는 중..."
-      : "이 기기 기록 사용";
+    useLocalConflictBtn.textContent =
+      isBusy &&
+      strategy === "local"
+        ? "저장하는 중..."
+        : "이 기기 기록 사용";
+  }
+
+  if (closeSyncConflictBtn) {
+    closeSyncConflictBtn.disabled =
+      isBusy;
+  }
 }
 
 async function resolveSyncConflictChoice(
@@ -936,6 +1012,23 @@ async function resolveSyncConflictChoice(
     setSyncConflictMessage(
       "동기화 충돌 해결 기능을 불러오지 못했습니다.",
       true
+    );
+
+    return;
+  }
+
+  const storedConflict =
+    syncApi.getConflict?.();
+
+  if (!storedConflict) {
+    setSyncConflictMessage(
+      "보관된 충돌 기록이 없습니다. 화면을 새로고침해 주세요.",
+      true
+    );
+
+    updateSyncStatus(
+      "synced",
+      "동기화됨"
     );
 
     return;
@@ -3734,6 +3827,25 @@ if (syncStatus) {
   );
 }
 
+document.addEventListener(
+  "keydown",
+  (event) => {
+    if (
+      event.key !== "Escape" ||
+      !syncConflictModal ||
+      syncConflictModal.classList
+        .contains("hidden") ||
+      syncConflictResolutionInProgress
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    closeSyncConflictModal();
+  }
+);
+
 /*
  * 기존 설정 버튼 이벤트 계속
  */
@@ -3893,12 +4005,9 @@ window.addEventListener(
       "동기화됨"
     );
 
-    syncConflictModal.classList.add(
-      "hidden"
-    );
+    setSyncConflictBusy(false);
 
-    document.body.style.overflow =
-      "";
+    closeSyncConflictModal(false);
   }
 );
 

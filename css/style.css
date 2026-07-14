@@ -1613,6 +1613,18 @@ body.routine-drag-active {
   outline-offset: 3px;
 }
 
+.sync-conflict-modal[aria-busy="true"]
+  .sync-conflict-sheet {
+  cursor: wait;
+}
+
+.sync-conflict-modal[aria-busy="true"]
+  .sync-conflict-comparison,
+.sync-conflict-modal[aria-busy="true"]
+  .sync-conflict-warning {
+  opacity: 0.72;
+}
+
 @media (min-width: 720px) {
   .sync-conflict-modal {
     align-items: center;
