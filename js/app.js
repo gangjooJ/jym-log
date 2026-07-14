@@ -331,6 +331,11 @@ const syncConflictLocalDetail =
     "syncConflictLocalDetail"
   );
 
+  const syncConflictLocalDifference =
+  document.getElementById(
+    "syncConflictLocalDifference"
+  );
+
 const syncConflictCloudStatus =
   document.getElementById(
     "syncConflictCloudStatus"
@@ -339,6 +344,11 @@ const syncConflictCloudStatus =
 const syncConflictCloudDetail =
   document.getElementById(
     "syncConflictCloudDetail"
+  );
+
+const syncConflictCloudDifference =
+  document.getElementById(
+    "syncConflictCloudDifference"
   );
 
 const syncConflictMessage =
@@ -534,6 +544,202 @@ function getSyncConflictSummary(
   };
 }
 
+function parseSyncConflictSetKey(
+  key
+) {
+  const matched =
+    String(key).match(
+      /^(\d+)-(\d+)$/
+    );
+
+  if (!matched) {
+    return null;
+  }
+
+  return {
+    key:
+      String(key),
+
+    exerciseIndex:
+      Number(matched[1]),
+
+    setIndex:
+      Number(matched[2])
+  };
+}
+
+function normalizeSyncConflictSet(
+  set
+) {
+  if (!set) {
+    return null;
+  }
+
+  return {
+    weight:
+      Number(set.weight) || 0,
+
+    reps:
+      Number(set.reps) || 0,
+
+    done:
+      Boolean(set.done)
+  };
+}
+
+function areSyncConflictSetsEqual(
+  firstSet,
+  secondSet
+) {
+  if (
+    firstSet === null &&
+    secondSet === null
+  ) {
+    return true;
+  }
+
+  if (
+    firstSet === null ||
+    secondSet === null
+  ) {
+    return false;
+  }
+
+  return (
+    firstSet.weight ===
+      secondSet.weight &&
+    firstSet.reps ===
+      secondSet.reps &&
+    firstSet.done ===
+      secondSet.done
+  );
+}
+
+function formatSyncConflictSet(
+  set
+) {
+  if (!set) {
+    return "기록 없음";
+  }
+
+  return [
+    `${set.weight}kg × ${set.reps}회`,
+    set.done
+      ? "완료"
+      : "미완료"
+  ].join(" · ");
+}
+
+function getSyncConflictDifference(
+  localState,
+  cloudState
+) {
+  const localSets =
+    localState?.sets || {};
+
+  const cloudSets =
+    cloudState?.sets || {};
+
+  const parsedKeys = [
+    ...new Set([
+      ...Object.keys(localSets),
+      ...Object.keys(cloudSets)
+    ])
+  ]
+    .map(
+      parseSyncConflictSetKey
+    )
+    .filter(Boolean)
+    .sort(
+      (first, second) =>
+        (
+          first.exerciseIndex -
+          second.exerciseIndex
+        ) ||
+        (
+          first.setIndex -
+          second.setIndex
+        )
+    );
+
+  const differences =
+    parsedKeys
+      .map(
+        (parsedKey) => {
+          const localSet =
+            normalizeSyncConflictSet(
+              localSets[
+                parsedKey.key
+              ]
+            );
+
+          const cloudSet =
+            normalizeSyncConflictSet(
+              cloudSets[
+                parsedKey.key
+              ]
+            );
+
+          if (
+            areSyncConflictSetsEqual(
+              localSet,
+              cloudSet
+            )
+          ) {
+            return null;
+          }
+
+          const exercise =
+            exercises[
+              parsedKey.exerciseIndex
+            ];
+
+          return {
+            label:
+              `${
+                exercise?.name ||
+                `운동 ${
+                  parsedKey.exerciseIndex +
+                  1
+                }`
+              } ${
+                parsedKey.setIndex + 1
+              }세트`,
+
+            localText:
+              formatSyncConflictSet(
+                localSet
+              ),
+
+            cloudText:
+              formatSyncConflictSet(
+                cloudSet
+              )
+          };
+        }
+      )
+      .filter(Boolean);
+
+  if (
+    differences.length === 0
+  ) {
+    return null;
+  }
+
+  const firstDifference =
+    differences[0];
+
+  return {
+    ...firstDifference,
+
+    additionalCount:
+      Math.max(
+        0,
+        differences.length - 1
+      )
+  };
+}
+
 function setSyncConflictMessage(
   message,
   isError = false
@@ -554,16 +760,28 @@ function setSyncConflictMessage(
 function renderSyncConflict(
   conflict
 ) {
+  const localState =
+    conflict?.localState;
+
+  const cloudState =
+    conflict?.cloudState;
+
   const localSummary =
     getSyncConflictSummary(
-      conflict?.localState,
+      localState,
       conflict?.localUpdatedAt
     );
 
   const cloudSummary =
     getSyncConflictSummary(
-      conflict?.cloudState,
+      cloudState,
       conflict?.cloudUpdatedAt
+    );
+
+  const difference =
+    getSyncConflictDifference(
+      localState,
+      cloudState
     );
 
   syncConflictLocalStatus.textContent =
@@ -577,6 +795,42 @@ function renderSyncConflict(
 
   syncConflictCloudDetail.textContent =
     cloudSummary.detail;
+
+  if (
+    !syncConflictLocalDifference ||
+    !syncConflictCloudDifference
+  ) {
+    return;
+  }
+
+  if (!difference) {
+    syncConflictLocalDifference
+      .textContent =
+        "세트 입력값의 차이는 없습니다.";
+
+    syncConflictCloudDifference
+      .textContent =
+        "세트 입력값의 차이는 없습니다.";
+
+    return;
+  }
+
+  const additionalText =
+    difference.additionalCount > 0
+      ? ` 외 ${difference.additionalCount}곳`
+      : "";
+
+  syncConflictLocalDifference
+    .textContent =
+      `${difference.label}: ` +
+      `${difference.localText}` +
+      additionalText;
+
+  syncConflictCloudDifference
+    .textContent =
+      `${difference.label}: ` +
+      `${difference.cloudText}` +
+      additionalText;
 }
 
 function openSyncConflictModal(

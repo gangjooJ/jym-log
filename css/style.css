@@ -1514,6 +1514,20 @@ body.routine-drag-active {
   line-height: 1.55;
 }
 
+.sync-conflict-card
+  .sync-conflict-difference {
+  margin-top: 11px;
+  padding-top: 11px;
+  border-top:
+    1px dashed
+    var(--line);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
 .sync-conflict-badge {
   display: inline-flex;
   min-height: 26px;
