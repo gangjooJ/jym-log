@@ -5,50 +5,8 @@ let state = workout.state;
 const historyUI =
   window.JYMLog.historyUI;
 
-  const analysisWeekRange =
-  document.getElementById(
-    "analysisWeekRange"
-  );
-
-const analysisSessionCount =
-  document.getElementById(
-    "analysisSessionCount"
-  );
-
-const analysisWeeklySets =
-  document.getElementById(
-    "analysisWeeklySets"
-  );
-
-const analysisWeeklyVolume =
-  document.getElementById(
-    "analysisWeeklyVolume"
-  );
-
-const analysisBenchCard =
-  document.getElementById(
-    "analysisBenchCard"
-  );
-
-const analysisBenchWeight =
-  document.getElementById(
-    "analysisBenchWeight"
-  );
-
-const analysisBenchChange =
-  document.getElementById(
-    "analysisBenchChange"
-  );
-
-const analysisBars =
-  document.getElementById(
-    "analysisBars"
-  );
-
-const analysisState =
-  document.getElementById(
-    "analysisState"
-  );
+const analysisUI =
+  window.JYMLog.analysisUI;
 
 const homeRoutineName =
   document.getElementById(
@@ -288,253 +246,6 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function formatAnalysisDateRange(
-  startMillis,
-  endMillis
-) {
-  const formatter =
-    new Intl.DateTimeFormat(
-      window.JYMLog.config.locale,
-      {
-        timeZone:
-          window.JYMLog.config.timezone,
-        month: "numeric",
-        day: "numeric"
-      }
-    );
-
-  return `${
-    formatter.format(
-      new Date(startMillis)
-    )
-  } – ${
-    formatter.format(
-      new Date(endMillis)
-    )
-  }`;
-}
-
-function formatAnalysisBarDate(
-  timestampMillis
-) {
-  return new Intl.DateTimeFormat(
-    window.JYMLog.config.locale,
-    {
-      timeZone:
-        window.JYMLog.config.timezone,
-      month: "numeric",
-      day: "numeric"
-    }
-  ).format(
-    new Date(timestampMillis)
-  );
-}
-
-function renderAnalysisBars(
-  trend
-) {
-  if (!analysisBars) {
-    return;
-  }
-
-  if (trend.length === 0) {
-    analysisBars.innerHTML = "";
-    return;
-  }
-
-  const weights =
-    trend.map(
-      (item) => item.weight
-    );
-
-  const minimumWeight =
-    Math.min(...weights);
-
-  const maximumWeight =
-    Math.max(...weights);
-
-  const weightRange =
-    Math.max(
-      2.5,
-      maximumWeight -
-      minimumWeight
-    );
-
-  analysisBars.innerHTML =
-    trend
-      .map(
-        (item) => {
-          const height =
-            42 +
-            (
-              (
-                item.weight -
-                minimumWeight
-              ) /
-              weightRange
-            ) *
-            78;
-
-          return `
-            <div class="analysis-bar-item">
-              <span class="analysis-bar-value">
-                ${item.weight}kg
-              </span>
-
-              <div
-                class="analysis-bar-column"
-                style="height: ${Math.round(height)}px"
-                title="${item.weight}kg"
-              ></div>
-
-              <span class="analysis-bar-label">
-                ${formatAnalysisBarDate(
-                  item.completedAtMillis
-                )}
-              </span>
-            </div>
-          `;
-        }
-      )
-      .join("");
-}
-
-function renderWorkoutAnalysis(
-  analysis
-) {
-  analysisWeekRange.textContent =
-    formatAnalysisDateRange(
-      analysis.weekStartMillis,
-      analysis.weekEndMillis
-    );
-
-  analysisSessionCount.textContent =
-    `${analysis.weeklySessionCount}회`;
-
-  analysisWeeklySets.textContent =
-    `${analysis.weeklyCompletedSets}세트`;
-
-  analysisWeeklyVolume.textContent =
-    `${analysis.weeklyVolume.toLocaleString()}kg`;
-
-  if (
-    analysis.currentBenchWeight <= 0
-  ) {
-    analysisBenchWeight.textContent =
-      "기록 없음";
-
-    analysisBenchChange.textContent =
-      "—";
-
-    analysisBenchChange.dataset.trend =
-      "neutral";
-
-    analysisState.textContent =
-      "완료된 벤치프레스 기록이 쌓이면 중량 변화를 표시합니다.";
-
-    renderAnalysisBars([]);
-
-    return;
-  }
-
-  analysisBenchWeight.textContent =
-    `${analysis.currentBenchWeight}kg`;
-
-  const change =
-    analysis.benchWeightChange;
-
-  if (change > 0) {
-    analysisBenchChange.textContent =
-      `+${change}kg`;
-
-    analysisBenchChange.dataset.trend =
-      "up";
-  } else if (change < 0) {
-    analysisBenchChange.textContent =
-      `${change}kg`;
-
-    analysisBenchChange.dataset.trend =
-      "down";
-  } else {
-    analysisBenchChange.textContent =
-      "유지";
-
-    analysisBenchChange.dataset.trend =
-      "neutral";
-  }
-
-  renderAnalysisBars(
-    analysis.benchTrend
-  );
-
-  analysisState.textContent =
-    analysis.benchTrend.length === 1
-      ? "기록이 더 쌓이면 최근 운동과 변화량을 비교합니다."
-      : `최근 ${analysis.benchTrend.length}회의 완료 세션을 비교했습니다.`;
-}
-
-async function loadAnalysis() {
-  if (
-    !analysisBenchCard ||
-    !analysisState
-  ) {
-    return;
-  }
-
-  analysisBenchCard.setAttribute(
-    "aria-busy",
-    "true"
-  );
-
-  analysisState.classList.remove(
-    "error"
-  );
-
-  analysisState.textContent =
-    "운동 기록을 분석하고 있습니다.";
-
-  try {
-    const analysisApi =
-      window.JYMLog.analysis;
-
-    if (!analysisApi) {
-      throw new Error(
-        "운동 분석 모듈을 찾을 수 없습니다."
-      );
-    }
-
-    const analysis =
-      await analysisApi
-        .loadWorkoutAnalysis(100);
-
-    renderWorkoutAnalysis(
-      analysis
-    );
-
-    analysisBenchCard.setAttribute(
-      "aria-busy",
-      "false"
-    );
-  } catch (error) {
-    console.error(
-      "[JYM Log] 운동 분석 불러오기 실패",
-      error
-    );
-
-    analysisBenchCard.setAttribute(
-      "aria-busy",
-      "false"
-    );
-
-    analysisState.classList.add(
-      "error"
-    );
-
-    analysisState.textContent =
-      "분석 데이터를 불러오지 못했습니다. 네트워크 연결을 확인해 주세요.";
-  }
-}
-
 function navigate(name) {
     document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
     document.getElementById(`screen-${name}`).classList.add("active");
@@ -571,7 +282,7 @@ function navigate(name) {
         }
 
         if (name === "analysis") {
-          void loadAnalysis();
+          void analysisUI?.load();
         }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2290,6 +2001,7 @@ window.addEventListener(
     renderRoutine();
 
     historyUI?.reset();
+    analysisUI?.reset();
 
     if (
       state.started &&
@@ -2322,6 +2034,14 @@ window.addEventListener(
     );
   }
 );
+
+if (analysisUI) {
+  analysisUI.initialize();
+} else {
+  console.warn(
+    "[JYM Log] 운동 분석 UI 모듈을 찾을 수 없습니다."
+  );
+}
 
 if (historyUI) {
   historyUI.initialize({
