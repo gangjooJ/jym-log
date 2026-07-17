@@ -1,4 +1,4 @@
-const CACHE_NAME = "jym-log-v0.2.0-dev-40";
+const CACHE_NAME = "jym-log-v0.2.0-dev-41";
 
 const APP_SHELL = [
   "./",

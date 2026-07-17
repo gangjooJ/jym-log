@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -72,6 +73,37 @@ function validateRoutineName(value) {
   }
 
   return name;
+}
+
+function getRoutineNameKey(
+  value
+) {
+  return normalizeText(value)
+    .toLocaleLowerCase("ko-KR");
+}
+
+function assertUniqueRoutineName(
+  name,
+  ignoredRoutineId = null
+) {
+  const targetNameKey =
+    getRoutineNameKey(name);
+
+  const duplicateRoutine =
+    availableRoutines.find(
+      (routine) =>
+        routine.id !==
+          ignoredRoutineId &&
+        getRoutineNameKey(
+          routine.name
+        ) === targetNameKey
+    );
+
+  if (duplicateRoutine) {
+    throw new Error(
+      `"${name}" 이름의 루틴이 이미 있습니다. 다른 이름을 입력해 주세요.`
+    );
+  }
 }
 
 function normalizeDescription(value) {
@@ -1047,6 +1079,10 @@ async function createRoutine(
       nameValue
     );
 
+    assertUniqueRoutineName(
+      name
+    );
+
   const description =
     normalizeDescription(
       descriptionValue
@@ -1126,6 +1162,10 @@ async function duplicateActiveRoutine(
   const name =
     validateRoutineName(
       nameValue
+    );
+
+    assertUniqueRoutineName(
+      name
     );
 
   const routineId =
@@ -1214,6 +1254,85 @@ async function duplicateActiveRoutine(
   return routine;
 }
 
+async function deleteActiveRoutine() {
+  assertRoutineCanChange();
+
+  if (
+    availableRoutines.length <= 1
+  ) {
+    throw new Error(
+      "마지막 남은 루틴은 삭제할 수 없습니다."
+    );
+  }
+
+  if (
+    activeRoutine.id ===
+    DEFAULT_ROUTINE_ID
+  ) {
+    throw new Error(
+      "기본 루틴은 삭제할 수 없습니다. 다른 루틴을 선택한 뒤 삭제해 주세요."
+    );
+  }
+
+  const deletedRoutine =
+    activeRoutine;
+
+  const nextRoutine =
+    availableRoutines.find(
+      (routine) =>
+        routine.id ===
+        DEFAULT_ROUTINE_ID
+    ) ||
+    availableRoutines.find(
+      (routine) =>
+        routine.id !==
+        deletedRoutine.id
+    );
+
+  if (!nextRoutine) {
+    throw new Error(
+      "삭제 후 사용할 루틴을 찾을 수 없습니다."
+    );
+  }
+
+  await deleteDoc(
+    getRoutineDocument(
+      deletedRoutine.userId,
+      deletedRoutine.id
+    )
+  );
+
+  availableRoutines =
+    sortRoutineList(
+      availableRoutines.filter(
+        (routine) =>
+          routine.id !==
+          deletedRoutine.id
+      )
+    );
+
+  activeRoutine =
+    nextRoutine;
+
+  await savePreferredRoutineId(
+    activeRoutine.userId,
+    activeRoutine.id
+  );
+
+  applyActiveRoutineToWorkout(
+    true
+  );
+
+  console.info(
+    `[JYM Log] 루틴 삭제 완료: ${deletedRoutine.name}`
+  );
+
+  return {
+    deletedRoutine,
+    activeRoutine
+  };
+}
+
 async function updateActiveRoutineMetadata(
   nameValue,
   descriptionValue
@@ -1226,6 +1345,11 @@ async function updateActiveRoutineMetadata(
 
   const name =
     validateRoutineName(nameValue);
+
+    assertUniqueRoutineName(
+      name,
+      activeRoutine.id
+    );
 
   const description =
     normalizeDescription(
@@ -1795,6 +1919,7 @@ window.JYMLog.routines =
     switchActiveRoutine,
     createRoutine,
     duplicateActiveRoutine,
+    deleteActiveRoutine,
 
     updateActiveRoutineMetadata,
     updateActiveRoutineExercise,
@@ -1828,6 +1953,7 @@ export {
   switchActiveRoutine,
   createRoutine,
   duplicateActiveRoutine,
+  deleteActiveRoutine,
 
   updateActiveRoutineMetadata,
   updateActiveRoutineExercise,

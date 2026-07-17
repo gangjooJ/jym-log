@@ -55,6 +55,11 @@ const duplicateRoutineBtn =
     "duplicateRoutineBtn"
   );
 
+const deleteRoutineBtn =
+  document.getElementById(
+    "deleteRoutineBtn"
+  );
+
 const routineLibraryMessage =
   document.getElementById(
     "routineLibraryMessage"
@@ -277,6 +282,13 @@ function setRoutineLibraryBusy(
     duplicateRoutineBtn.disabled =
       isBusy;
   }
+
+  if (deleteRoutineBtn) {
+    deleteRoutineBtn.disabled =
+      isBusy ||
+      !window.JYMLog.routines
+        ?.canDeleteActiveRoutine;
+  }
 }
 
 function renderRoutineLibrary(
@@ -287,6 +299,8 @@ function renderRoutineLibrary(
   routines =
     window.JYMLog.routines
       ?.routines
+
+  updateMessage = true
 ) {
   if (!routineSelector) {
     return;
@@ -329,7 +343,17 @@ function renderRoutineLibrary(
       !routine;
   }
 
-  if (routineList.length > 0) {
+  if (deleteRoutineBtn) {
+    deleteRoutineBtn.disabled =
+      routineLibraryBusy ||
+      !window.JYMLog.routines
+        ?.canDeleteActiveRoutine;
+  }
+
+  if (
+    updateMessage &&
+    routineList.length > 0
+  ) {
     setRoutineLibraryMessage(
       `${routineList.length}개 루틴 중 "${routine?.name || "루틴"}"을 사용하고 있습니다.`
     );
@@ -347,13 +371,17 @@ async function changeActiveRoutine() {
   const routineApi =
     window.JYMLog.routines;
 
+  const previousRoutineId =
+    routineApi?.activeRoutineId ||
+    "";
+
   const nextRoutineId =
     routineSelector.value;
 
   if (
     !routineApi ||
     nextRoutineId ===
-      routineApi.activeRoutineId
+      previousRoutineId
   ) {
     return;
   }
@@ -364,6 +392,9 @@ async function changeActiveRoutine() {
     "선택한 루틴으로 전환하고 있습니다."
   );
 
+  let finalMessage = "";
+  let finalStatus = "default";
+
   try {
     const routine =
       await routineApi
@@ -371,13 +402,13 @@ async function changeActiveRoutine() {
           nextRoutineId
         );
 
-    setRoutineLibraryMessage(
-      `"${routine.name}" 루틴으로 전환했습니다.`,
-      "success"
-    );
+    finalMessage =
+      `"${routine.name}" 루틴으로 전환했습니다.`;
+
+    finalStatus = "success";
 
     toast(
-      `"${routine.name}" 루틴을 불러왔습니다.`
+      finalMessage
     );
   } catch (error) {
     console.error(
@@ -386,18 +417,36 @@ async function changeActiveRoutine() {
     );
 
     routineSelector.value =
-      routineApi?.activeRoutineId ||
-      "";
+      previousRoutineId;
 
-    setRoutineLibraryMessage(
+    finalMessage =
       error.message ||
-      "루틴을 전환하지 못했습니다.",
-      "error"
+      "루틴을 전환하지 못했습니다.";
+
+    finalStatus = "error";
+
+    toast(
+      finalMessage
     );
   } finally {
     setRoutineLibraryBusy(false);
 
-    renderRoutineLibrary();
+    /*
+     * 목록과 선택값만 다시 그립니다.
+     * 오류·성공 메시지는 덮어쓰지 않습니다.
+     */
+    renderRoutineLibrary(
+      undefined,
+      undefined,
+      false
+    );
+
+    if (finalMessage) {
+      setRoutineLibraryMessage(
+        finalMessage,
+        finalStatus
+      );
+    }
   }
 }
 
@@ -459,7 +508,11 @@ async function createNewRoutine() {
   } finally {
     setRoutineLibraryBusy(false);
 
-    renderRoutineLibrary();
+    renderRoutineLibrary(
+      undefined,
+      undefined,
+      false
+    );
   }
 }
 
@@ -533,7 +586,111 @@ async function duplicateCurrentRoutine() {
   } finally {
     setRoutineLibraryBusy(false);
 
-    renderRoutineLibrary();
+    renderRoutineLibrary(
+      undefined,
+      undefined,
+      false
+    );
+  }
+}
+
+async function deleteCurrentRoutine() {
+  if (routineLibraryBusy) {
+    return;
+  }
+
+  const routineApi =
+    window.JYMLog.routines;
+
+  const currentRoutine =
+    routineApi?.activeRoutine;
+
+  if (!currentRoutine) {
+    return;
+  }
+
+  if (
+    !routineApi
+      .canDeleteActiveRoutine
+  ) {
+    const message =
+      currentRoutine.id === "main"
+        ? "기본 루틴은 삭제할 수 없습니다."
+        : "마지막 남은 루틴은 삭제할 수 없습니다.";
+
+    setRoutineLibraryMessage(
+      message,
+      "error"
+    );
+
+    toast(message);
+    return;
+  }
+
+  const confirmed =
+    window.confirm(
+      [
+        `"${currentRoutine.name}" 루틴을 삭제할까요?`,
+        "",
+        "루틴에 설정된 운동과 진행 단계가 삭제됩니다.",
+        "완료된 과거 운동 기록은 유지됩니다."
+      ].join("\n")
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  setRoutineLibraryBusy(true);
+
+  setRoutineLibraryMessage(
+    "루틴을 삭제하고 있습니다."
+  );
+
+  let finalMessage = "";
+  let finalStatus = "default";
+
+  try {
+    const result =
+      await routineApi
+        .deleteActiveRoutine();
+
+    finalMessage =
+      `"${result.deletedRoutine.name}" 루틴을 삭제하고 "${result.activeRoutine.name}" 루틴으로 전환했습니다.`;
+
+    finalStatus = "success";
+
+    toast(
+      `"${result.deletedRoutine.name}" 루틴을 삭제했습니다.`
+    );
+  } catch (error) {
+    console.error(
+      "[JYM Log] 루틴 삭제 실패",
+      error
+    );
+
+    finalMessage =
+      error.message ||
+      "루틴을 삭제하지 못했습니다.";
+
+    finalStatus = "error";
+
+    toast(finalMessage);
+  } finally {
+    setRoutineLibraryBusy(false);
+
+    renderRoutineLibrary(
+      undefined,
+      undefined,
+      false
+    );
+
+    if (finalMessage) {
+      setRoutineLibraryMessage(
+        finalMessage,
+        finalStatus
+      );
+    }
   }
 }
 
@@ -2159,6 +2316,15 @@ function initialize(options = {}) {
       "click",
       () => {
         void duplicateCurrentRoutine();
+      }
+    );
+  }
+
+  if (deleteRoutineBtn) {
+    deleteRoutineBtn.addEventListener(
+      "click",
+      () => {
+        void deleteCurrentRoutine();
       }
     );
   }
