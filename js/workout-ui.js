@@ -15,6 +15,7 @@
   let navigate = null;
   let toast = null;
   let finishInProgress = false;
+  let recommendationRequestId = 0;
 
   const startWorkoutBtn =
     document.getElementById(
@@ -126,6 +127,16 @@
       "summaryVolume"
     );
 
+  const progressionRecommendation =
+    document.getElementById(
+      "progressionRecommendation"
+    );
+
+  const recommendTitle =
+    document.getElementById(
+      "recommendTitle"
+    );
+
   const recommendText =
     document.getElementById(
       "recommendText"
@@ -134,6 +145,11 @@
   const recommendReason1 =
     document.getElementById(
       "recommendReason1"
+    );
+
+  const recommendReason2 =
+    document.getElementById(
+      "recommendReason2"
     );
 
   function showToast(message) {
@@ -378,15 +394,156 @@
     }
   }
 
+  function setRecommendationBusy(
+    isBusy
+  ) {
+    progressionRecommendation
+      ?.setAttribute(
+        "aria-busy",
+        String(isBusy)
+      );
+  }
+
+  function renderRecommendationFallback(
+    exercise
+  ) {
+    if (recommendTitle) {
+      recommendTitle.textContent =
+        exercise
+          ? `다음 ${exercise.name} 추천`
+          : "다음 운동 추천";
+    }
+
+    if (recommendText) {
+      recommendText.textContent =
+        exercise
+          ? `${exercise.weight}kg 유지`
+          : "추천을 준비하지 못했습니다.";
+    }
+
+    if (recommendReason1) {
+      recommendReason1.textContent =
+        "추천 엔진을 불러오지 못해 현재 목표를 유지합니다.";
+    }
+
+    if (recommendReason2) {
+      recommendReason2.textContent =
+        exercise
+          ? `설정된 증량 단위는 ${exercise.increment}kg입니다.`
+          : "루틴 설정을 확인해 주세요.";
+    }
+  }
+
+  async function renderProgressionRecommendation() {
+    syncState();
+
+    const requestId =
+      recommendationRequestId + 1;
+
+    recommendationRequestId =
+      requestId;
+
+    const exerciseIndex = 0;
+    const exercise =
+      exercises[exerciseIndex];
+
+    if (!exercise) {
+      renderRecommendationFallback(
+        null
+      );
+      return;
+    }
+
+    if (recommendTitle) {
+      recommendTitle.textContent =
+        `다음 ${exercise.name} 추천`;
+    }
+
+    if (recommendText) {
+      recommendText.textContent =
+        "최근 수행 기록을 분석하고 있습니다.";
+    }
+
+    if (recommendReason1) {
+      recommendReason1.textContent =
+        "이번 세트 달성 여부를 확인합니다.";
+    }
+
+    if (recommendReason2) {
+      recommendReason2.textContent =
+        `설정된 증량 단위 ${exercise.increment}kg을 확인합니다.`;
+    }
+
+    setRecommendationBusy(true);
+
+    const engine =
+      window.JYMLog
+        .progressionEngine;
+
+    if (!engine?.loadRecommendation) {
+      setRecommendationBusy(false);
+      renderRecommendationFallback(
+        exercise
+      );
+      return;
+    }
+
+    try {
+      const recommendation =
+        await engine
+          .loadRecommendation({
+            exercise,
+            exerciseIndex,
+            state
+          });
+
+      if (
+        requestId !==
+        recommendationRequestId
+      ) {
+        return;
+      }
+
+      recommendText.textContent =
+        recommendation.text;
+
+      recommendReason1.textContent =
+        recommendation.reason;
+
+      recommendReason2.textContent =
+        recommendation
+          .incrementReason;
+    } catch (error) {
+      console.error(
+        "[JYM Log] 운동 증량 추천 표시 실패",
+        error
+      );
+
+      if (
+        requestId ===
+        recommendationRequestId
+      ) {
+        renderRecommendationFallback(
+          exercise
+        );
+      }
+    } finally {
+      if (
+        requestId ===
+        recommendationRequestId
+      ) {
+        setRecommendationBusy(false);
+      }
+    }
+  }
+
   function renderSummary() {
     syncState();
 
     if (
       !summaryDuration ||
       !summarySets ||
-      !summaryVolume ||
-      !recommendText ||
-      !recommendReason1
+      !summaryVolume
     ) {
       return;
     }
@@ -421,22 +578,7 @@
         .getTotalVolume()
         .toLocaleString()}kg`;
 
-    const benchSuccess =
-      workout.isBenchPressSuccess();
-
-    if (benchSuccess) {
-      recommendText.textContent =
-        "80kg · 5 × 5 한 번 더";
-
-      recommendReason1.textContent =
-        "80kg 5×5를 첫 번째로 완수했습니다. 2회 연속 성공 시 증량합니다.";
-    } else {
-      recommendText.textContent =
-        "80kg · 5 × 5 유지";
-
-      recommendReason1.textContent =
-        "아직 모든 목표 세트를 달성하지 않아 동일 중량 재도전을 추천합니다.";
-    }
+    void renderProgressionRecommendation();
   }
 
   function setFinishBusy(

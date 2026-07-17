@@ -194,13 +194,41 @@
         <div class="metric"><div class="metric-label">총 볼륨</div><strong id="summaryVolume">0kg</strong><small>중량 × 반복</small></div>
       </div>
 
-      <div class="recommendation">
-        <div class="eyebrow">다음 벤치프레스 추천</div>
-        <strong id="recommendText">80kg · 5 × 5 유지</strong>
+      <div
+        class="recommendation"
+        id="progressionRecommendation"
+        aria-live="polite"
+        aria-busy="false"
+      >
+        <div
+          class="eyebrow"
+          id="recommendTitle"
+        >
+          다음 운동 추천
+        </div>
+
+        <strong id="recommendText">
+          수행 결과를 분석하고 있습니다.
+        </strong>
+
         <div class="reason">
-          <div>✓ <span id="recommendReason1">이번 수행 결과를 반영했습니다.</span></div>
-          <div>✓ 설정된 증량 단위는 2.5kg입니다.</div>
-          <div>✓ 최종 결정은 다음 운동 전에 수정할 수 있습니다.</div>
+          <div>
+            ✓
+            <span id="recommendReason1">
+              이번 수행 결과를 반영합니다.
+            </span>
+          </div>
+
+          <div>
+            ✓
+            <span id="recommendReason2">
+              설정된 증량 단위를 확인합니다.
+            </span>
+          </div>
+
+          <div>
+            ✓ 최종 결정은 다음 운동 전에 수정할 수 있습니다.
+          </div>
         </div>
       </div>
       <button class="primary-btn full" style="margin-top:14px" data-nav="home">오늘 화면으로</button>
@@ -970,6 +998,7 @@
 ></script>
 <script src="./js/storage.js"></script>
 <script src="./js/workout.js"></script>
+<script src="./js/progression-engine.js"></script>
 <script src="./js/workout-ui.js"></script>
 <script src="./js/routine-ui.js"></script>
 <script src="./js/history-ui.js"></script>
