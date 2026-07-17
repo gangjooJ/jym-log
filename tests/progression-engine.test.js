@@ -231,6 +231,160 @@ assert.equal(
   true
 );
 
+
+const rowExercise = {
+  id: "barbell-row",
+  name: "바벨 로우",
+  type: "고정 반복형",
+  weight: 60,
+  sets: 3,
+  min: 8,
+  max: 8,
+  increment: 5
+};
+
+const curlExercise = {
+  id: "barbell-curl",
+  name: "바벨 컬",
+  type: "반복 범위형",
+  weight: 20,
+  sets: 3,
+  min: 8,
+  max: 12,
+  increment: 2.5
+};
+
+function makeMultiExerciseState() {
+  const state = {
+    startedAt: 5000,
+    completed: true,
+    sets: {}
+  };
+
+  [5, 5, 5, 5, 5]
+    .forEach((reps, index) => {
+      state.sets[`0-${index}`] = {
+        weight: 80,
+        reps,
+        done: true
+      };
+    });
+
+  [8, 8, 8]
+    .forEach((reps, index) => {
+      state.sets[`1-${index}`] = {
+        weight: 60,
+        reps,
+        done: true
+      };
+    });
+
+  [12, 11, 10]
+    .forEach((reps, index) => {
+      state.sets[`2-${index}`] = {
+        weight: 20,
+        reps,
+        done: true
+      };
+    });
+
+  return state;
+}
+
+const previousMultiSession = {
+  startedAtMillis: 4000,
+  completedAtMillis: 4500,
+  exercises: [
+    makeSession(
+      [5, 5, 5, 5, 5],
+      4000
+    ).exercises[0],
+    {
+      exerciseId: "barbell-row",
+      exerciseIndex: 1,
+      name: "바벨 로우",
+      type: "고정 반복형",
+      target: {
+        weight: 60,
+        sets: 3,
+        minReps: 8,
+        maxReps: 8
+      },
+      sets: [8, 8, 7].map(
+        (reps, index) => ({
+          setNumber: index + 1,
+          weight: 60,
+          reps,
+          done: true
+        })
+      )
+    },
+    {
+      exerciseId: "barbell-curl",
+      exerciseIndex: 2,
+      name: "바벨 컬",
+      type: "반복 범위형",
+      target: {
+        weight: 20,
+        sets: 3,
+        minReps: 8,
+        maxReps: 12
+      },
+      sets: [12, 12, 12].map(
+        (reps, index) => ({
+          setNumber: index + 1,
+          weight: 20,
+          reps,
+          done: true
+        })
+      )
+    }
+  ]
+};
+
+const allRecommendations =
+  engine.buildRecommendations({
+    exercises: [
+      exercise,
+      rowExercise,
+      curlExercise
+    ],
+    state:
+      makeMultiExerciseState(),
+    sessions: [
+      previousMultiSession
+    ]
+  });
+
+assert.deepEqual(
+  Array.from(
+    allRecommendations,
+    (recommendation) =>
+      recommendation.action
+  ),
+  [
+    "increase",
+    "repeat",
+    "maintain"
+  ]
+);
+
+assert.equal(
+  allRecommendations[0]
+    .nextWeight,
+  82.5
+);
+assert.equal(
+  allRecommendations[1]
+    .successStreak,
+  1
+);
+assert.match(
+  allRecommendations[2]
+    .reason,
+  /목표 반복 수/
+);
+
 console.log(
   "progression-engine tests passed"
 );

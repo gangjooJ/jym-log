@@ -13,6 +13,7 @@
   <link rel="icon" href="./icon-192.png" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
   <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/progression.css" />
 </head>
 
 <body>
@@ -232,27 +233,17 @@
         </div>
 
         <div
-          class="hidden"
-          id="recommendApplyArea"
-          style="margin-top:14px"
-        >
-          <button
-            class="secondary-btn full"
-            id="applyRecommendationBtn"
-            type="button"
-            disabled
-            aria-busy="false"
-          >
-            추천 중량 적용
-          </button>
+          class="progression-list"
+          id="recommendationList"
+          aria-label="운동별 다음 목표 추천"
+        ></div>
 
-          <p
-            id="recommendApplyMessage"
-            role="status"
-            aria-live="polite"
-            style="margin:9px 2px 0;font-size:12px;color:var(--muted);line-height:1.5"
-          ></p>
-        </div>
+        <p
+          class="progression-list-message"
+          id="recommendationListMessage"
+          role="status"
+          aria-live="polite"
+        ></p>
       </div>
       <button class="primary-btn full" style="margin-top:14px" data-nav="home">오늘 화면으로</button>
     </section>

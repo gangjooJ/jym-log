@@ -16,9 +16,11 @@
   let toast = null;
   let finishInProgress = false;
   let recommendationRequestId = 0;
-  let latestRecommendation = null;
+  let latestRecommendations = [];
   let recommendationApplyInProgress =
     false;
+  let activeRecommendationIndex =
+    null;
 
   const startWorkoutBtn =
     document.getElementById(
@@ -155,19 +157,14 @@
       "recommendReason2"
     );
 
-  const recommendApplyArea =
+  const recommendationList =
     document.getElementById(
-      "recommendApplyArea"
+      "recommendationList"
     );
 
-  const applyRecommendationBtn =
+  const recommendationListMessage =
     document.getElementById(
-      "applyRecommendationBtn"
-    );
-
-  const recommendApplyMessage =
-    document.getElementById(
-      "recommendApplyMessage"
+      "recommendationListMessage"
     );
 
   function showToast(message) {
@@ -453,48 +450,46 @@
       .toLowerCase();
   }
 
-  function setRecommendationApplyMessage(
+  function escapeRecommendationHtml(
+    value
+  ) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function setRecommendationListMessage(
     message,
     isError = false
   ) {
-    if (!recommendApplyMessage) {
+    if (!recommendationListMessage) {
       return;
     }
 
-    recommendApplyMessage.textContent =
+    recommendationListMessage.textContent =
       message;
 
-    recommendApplyMessage.style.color =
+    recommendationListMessage.classList.toggle(
+      "error",
       isError
-        ? "var(--danger)"
-        : "var(--muted)";
+    );
   }
 
-  function resetRecommendationAction() {
-    latestRecommendation = null;
+  function resetRecommendationList() {
+    latestRecommendations = [];
     recommendationApplyInProgress =
       false;
+    activeRecommendationIndex =
+      null;
 
-    recommendApplyArea?.classList.add(
-      "hidden"
-    );
-
-    if (applyRecommendationBtn) {
-      applyRecommendationBtn.disabled =
-        true;
-
-      applyRecommendationBtn.textContent =
-        "추천 중량 적용";
-
-      applyRecommendationBtn.setAttribute(
-        "aria-busy",
-        "false"
-      );
+    if (recommendationList) {
+      recommendationList.innerHTML = "";
     }
 
-    setRecommendationApplyMessage(
-      ""
-    );
+    setRecommendationListMessage("");
   }
 
   function isSameRecommendedExercise(
@@ -534,135 +529,454 @@
     );
   }
 
-  function renderRecommendationAction(
-    recommendation,
-    exercise,
-    exerciseIndex
+  function findExerciseForRecommendation(
+    recommendation
   ) {
-    resetRecommendationAction();
-
-    if (
-      recommendation?.action !==
-        "increase" ||
-      !exercise ||
-      !recommendApplyArea ||
-      !applyRecommendationBtn
-    ) {
-      return;
+    if (!recommendation) {
+      return null;
     }
 
-    latestRecommendation = {
-      ...recommendation,
-      exerciseIndex,
-      exerciseId:
-        recommendation.exerciseId ||
-        String(exercise.id || ""),
-      exerciseName:
-        recommendation.exerciseName ||
-        exercise.name
-    };
+    const preferredIndex =
+      Number(
+        recommendation.exerciseIndex
+      );
 
-    recommendApplyArea.classList.remove(
-      "hidden"
-    );
+    if (
+      Number.isInteger(
+        preferredIndex
+      ) &&
+      preferredIndex >= 0 &&
+      isSameRecommendedExercise(
+        exercises[preferredIndex],
+        recommendation
+      )
+    ) {
+      return {
+        exercise:
+          exercises[preferredIndex],
+        exerciseIndex:
+          preferredIndex
+      };
+    }
+
+    const matchedIndex =
+      exercises.findIndex(
+        (exercise) =>
+          isSameRecommendedExercise(
+            exercise,
+            recommendation
+          )
+      );
+
+    if (matchedIndex < 0) {
+      return null;
+    }
+
+    return {
+      exercise:
+        exercises[matchedIndex],
+      exerciseIndex:
+        matchedIndex
+    };
+  }
+
+  function getRecommendationApplyState(
+    recommendation
+  ) {
+    if (
+      recommendation?.action !==
+      "increase"
+    ) {
+      return {
+        showButton: false,
+        canApply: false,
+        state: "not-needed"
+      };
+    }
+
+    const matched =
+      findExerciseForRecommendation(
+        recommendation
+      );
 
     const nextWeightText =
       formatWeight(
         recommendation.nextWeight
       );
 
+    if (!matched) {
+      return {
+        showButton: true,
+        canApply: false,
+        state: "missing",
+        buttonText:
+          "추천 대상 확인 필요",
+        message:
+          "추천 대상 운동을 현재 루틴에서 찾을 수 없습니다.",
+        isError: true
+      };
+    }
+
     if (
       !recommendation
         .currentSessionSaved
     ) {
-      applyRecommendationBtn.disabled =
-        true;
-
-      applyRecommendationBtn.textContent =
-        "완료 기록 저장 후 적용";
-
-      setRecommendationApplyMessage(
-        "완료 기록이 저장되면 추천 중량을 적용할 수 있습니다."
-      );
-
-      return;
+      return {
+        ...matched,
+        showButton: true,
+        canApply: false,
+        state: "waiting",
+        buttonText:
+          "완료 기록 저장 후 적용",
+        message:
+          "완료 기록이 저장되면 추천 중량을 적용할 수 있습니다.",
+        isError: false
+      };
     }
 
     if (
       areWeightsEqual(
-        exercise.weight,
+        matched.exercise.weight,
         recommendation.nextWeight
       )
     ) {
-      applyRecommendationBtn.disabled =
-        true;
-
-      applyRecommendationBtn.textContent =
-        "추천 중량 적용 완료";
-
-      setRecommendationApplyMessage(
-        `${nextWeightText}kg가 이미 다음 목표로 적용되어 있습니다.`
-      );
-
-      return;
+      return {
+        ...matched,
+        showButton: true,
+        canApply: false,
+        state: "applied",
+        buttonText:
+          "추천 중량 적용 완료",
+        message:
+          `${nextWeightText}kg가 이미 다음 목표로 적용되어 있습니다.`,
+        isError: false
+      };
     }
 
     if (
       !areWeightsEqual(
-        exercise.weight,
+        matched.exercise.weight,
         recommendation.currentWeight
       )
     ) {
-      applyRecommendationBtn.disabled =
-        true;
+      return {
+        ...matched,
+        showButton: true,
+        canApply: false,
+        state: "stale",
+        buttonText:
+          "루틴 목표 확인 필요",
+        message:
+          "추천 계산 후 루틴 목표가 변경되어 자동 적용을 중단했습니다.",
+        isError: true
+      };
+    }
 
-      applyRecommendationBtn.textContent =
-        "루틴 목표 확인 필요";
+    return {
+      ...matched,
+      showButton: true,
+      canApply: true,
+      state: "ready",
+      buttonText:
+        `${nextWeightText}kg를 다음 목표로 적용`,
+      message:
+        "다음 운동의 목표 중량만 변경되며 완료된 과거 기록은 유지됩니다.",
+      isError: false
+    };
+  }
 
-      setRecommendationApplyMessage(
-        "추천을 계산한 뒤 루틴 목표가 변경되어 자동 적용을 중단했습니다.",
-        true
+  function getRecommendationBadge(
+    action
+  ) {
+    if (action === "increase") {
+      return {
+        label: "증량",
+        className: "increase"
+      };
+    }
+
+    if (action === "repeat") {
+      return {
+        label: "한 번 더",
+        className: "repeat"
+      };
+    }
+
+    return {
+      label: "유지",
+      className: "maintain"
+    };
+  }
+
+  function renderRecommendationItem(
+    recommendation,
+    recommendationIndex
+  ) {
+    const badge =
+      getRecommendationBadge(
+        recommendation.action
       );
 
+    const applyState =
+      getRecommendationApplyState(
+        recommendation
+      );
+
+    const applyMarkup =
+      applyState.showButton
+        ? `
+          <button
+            class="secondary-btn full progression-apply-btn"
+            type="button"
+            data-apply-recommendation-index="${recommendationIndex}"
+            aria-busy="false"
+            ${
+              applyState.canApply
+                ? ""
+                : "disabled"
+            }
+          >
+            ${escapeRecommendationHtml(
+              applyState.buttonText
+            )}
+          </button>
+
+          <p
+            class="progression-item-message ${
+              applyState.isError
+                ? "error"
+                : ""
+            }"
+            data-recommendation-message-index="${recommendationIndex}"
+            role="status"
+            aria-live="polite"
+          >
+            ${escapeRecommendationHtml(
+              applyState.message
+            )}
+          </p>
+        `
+        : "";
+
+    return `
+      <article
+        class="card progression-item"
+        data-recommendation-action="${escapeRecommendationHtml(
+          recommendation.action
+        )}"
+      >
+        <div class="progression-item-head">
+          <div class="progression-item-title">
+            <span class="progression-order">
+              ${String(
+                recommendationIndex + 1
+              ).padStart(2, "0")}
+            </span>
+
+            <strong>
+              ${escapeRecommendationHtml(
+                recommendation.exerciseName
+              )}
+            </strong>
+          </div>
+
+          <span
+            class="progression-badge ${badge.className}"
+          >
+            ${badge.label}
+          </span>
+        </div>
+
+        <div class="progression-target">
+          ${escapeRecommendationHtml(
+            recommendation.text
+          )}
+        </div>
+
+        <p class="progression-reason">
+          ${escapeRecommendationHtml(
+            recommendation.reason
+          )}
+        </p>
+
+        <p class="progression-increment">
+          ${escapeRecommendationHtml(
+            recommendation.incrementReason
+          )}
+        </p>
+
+        ${applyMarkup}
+      </article>
+    `;
+  }
+
+  function renderRecommendationList(
+    recommendations
+  ) {
+    const list =
+      Array.isArray(recommendations)
+        ? recommendations
+        : [];
+
+    latestRecommendations =
+      list.map(
+        (recommendation) => ({
+          ...recommendation
+        })
+      );
+
+    const increaseCount =
+      list.filter(
+        (recommendation) =>
+          recommendation.action ===
+          "increase"
+      ).length;
+
+    const repeatCount =
+      list.filter(
+        (recommendation) =>
+          recommendation.action ===
+          "repeat"
+      ).length;
+
+    const maintainCount =
+      list.length -
+      increaseCount -
+      repeatCount;
+
+    if (recommendTitle) {
+      recommendTitle.textContent =
+        "루틴 전체 추천";
+    }
+
+    if (recommendText) {
+      recommendText.textContent =
+        `증량 ${increaseCount}개 · ` +
+        `한 번 더 ${repeatCount}개 · ` +
+        `유지 ${maintainCount}개`;
+    }
+
+    if (recommendReason1) {
+      recommendReason1.textContent =
+        "이번 운동의 모든 세트와 동일 목표의 최근 기록을 운동별로 비교했습니다.";
+    }
+
+    if (recommendReason2) {
+      recommendReason2.textContent =
+        increaseCount > 0
+          ? `증량 추천 ${increaseCount}개는 각 운동 카드에서 개별 적용할 수 있습니다.`
+          : "이번 세션에는 자동 적용할 증량 추천이 없습니다.";
+    }
+
+    if (!recommendationList) {
       return;
     }
 
-    applyRecommendationBtn.disabled =
-      false;
+    if (list.length === 0) {
+      recommendationList.innerHTML = `
+        <div class="card progression-empty">
+          추천할 운동이 없습니다.
+        </div>
+      `;
 
-    applyRecommendationBtn.textContent =
-      `${nextWeightText}kg를 다음 목표로 적용`;
+      setRecommendationListMessage(
+        "루틴에 운동을 추가한 뒤 다시 확인해 주세요."
+      );
+      return;
+    }
 
-    setRecommendationApplyMessage(
-      "누르면 다음 운동의 목표 중량만 변경되며, 완료된 과거 기록은 유지됩니다."
+    recommendationList.innerHTML =
+      list
+        .map(
+          renderRecommendationItem
+        )
+        .join("");
+
+    setRecommendationListMessage(
+      `총 ${list.length}개 운동의 다음 목표를 분석했습니다.`
+    );
+  }
+
+  function setRecommendationItemMessage(
+    recommendationIndex,
+    message,
+    isError = false
+  ) {
+    const messageElement =
+      recommendationList
+        ?.querySelector(
+          `[data-recommendation-message-index="${recommendationIndex}"]`
+        );
+
+    if (!messageElement) {
+      setRecommendationListMessage(
+        message,
+        isError
+      );
+      return;
+    }
+
+    messageElement.textContent =
+      message;
+
+    messageElement.classList.toggle(
+      "error",
+      isError
     );
   }
 
   function setRecommendationApplyBusy(
-    isBusy
+    isBusy,
+    recommendationIndex = null
   ) {
     recommendationApplyInProgress =
       isBusy;
 
-    if (!applyRecommendationBtn) {
-      return;
-    }
+    activeRecommendationIndex =
+      isBusy
+        ? recommendationIndex
+        : null;
 
-    applyRecommendationBtn.disabled =
-      isBusy;
+    recommendationList
+      ?.querySelectorAll(
+        "[data-apply-recommendation-index]"
+      )
+      .forEach(
+        (button) => {
+          const buttonIndex =
+            Number(
+              button.dataset
+                .applyRecommendationIndex
+            );
 
-    applyRecommendationBtn.setAttribute(
-      "aria-busy",
-      String(isBusy)
-    );
+          button.disabled =
+            isBusy ||
+            button.disabled;
 
-    if (isBusy) {
-      applyRecommendationBtn.textContent =
-        "추천 중량 적용 중...";
-    }
+          button.setAttribute(
+            "aria-busy",
+            String(
+              isBusy &&
+              buttonIndex ===
+                recommendationIndex
+            )
+          );
+
+          if (
+            isBusy &&
+            buttonIndex ===
+              recommendationIndex
+          ) {
+            button.textContent =
+              "추천 중량 적용 중...";
+          }
+        }
+      );
   }
 
-  async function applyProgressionRecommendation() {
+  async function applyProgressionRecommendation(
+    recommendationIndex
+  ) {
     if (
       recommendationApplyInProgress
     ) {
@@ -670,69 +984,25 @@
     }
 
     const recommendation =
-      latestRecommendation;
+      latestRecommendations[
+        recommendationIndex
+      ];
 
-    if (
-      recommendation?.action !==
-        "increase" ||
-      !recommendation
-        .currentSessionSaved
-    ) {
-      setRecommendationApplyMessage(
-        "적용할 수 있는 증량 추천이 없습니다.",
-        true
-      );
-      return;
-    }
-
-    const exerciseIndex =
-      Number(
-        recommendation.exerciseIndex
-      );
-
-    const exercise =
-      exercises[exerciseIndex];
-
-    if (
-      !Number.isInteger(
-        exerciseIndex
-      ) ||
-      !isSameRecommendedExercise(
-        exercise,
+    const applyState =
+      getRecommendationApplyState(
         recommendation
-      )
-    ) {
-      setRecommendationApplyMessage(
-        "추천 대상 운동을 현재 루틴에서 찾을 수 없습니다.",
-        true
       );
-      return;
-    }
 
     if (
-      areWeightsEqual(
-        exercise.weight,
-        recommendation.nextWeight
-      )
+      !recommendation ||
+      !applyState.canApply ||
+      !applyState.exercise
     ) {
-      renderRecommendationAction(
-        recommendation,
-        exercise,
-        exerciseIndex
-      );
-      return;
-    }
-
-    if (
-      !areWeightsEqual(
-        exercise.weight,
-        recommendation.currentWeight
-      )
-    ) {
-      renderRecommendationAction(
-        recommendation,
-        exercise,
-        exerciseIndex
+      setRecommendationItemMessage(
+        recommendationIndex,
+        applyState.message ||
+          "적용할 수 있는 증량 추천이 없습니다.",
+        Boolean(applyState.isError)
       );
       return;
     }
@@ -744,12 +1014,19 @@
       !routineApi
         ?.updateActiveRoutineExercise
     ) {
-      setRecommendationApplyMessage(
+      setRecommendationItemMessage(
+        recommendationIndex,
         "루틴 저장 기능을 불러오지 못했습니다.",
         true
       );
       return;
     }
+
+    const exercise =
+      applyState.exercise;
+
+    const exerciseIndex =
+      applyState.exerciseIndex;
 
     const currentWeightText =
       formatWeight(
@@ -770,9 +1047,13 @@
       return;
     }
 
-    setRecommendationApplyBusy(true);
+    setRecommendationApplyBusy(
+      true,
+      recommendationIndex
+    );
 
-    setRecommendationApplyMessage(
+    setRecommendationItemMessage(
+      recommendationIndex,
       `${nextWeightText}kg 목표를 루틴에 저장하고 있습니다.`
     );
 
@@ -797,79 +1078,90 @@
       window.JYMLog.routineUI
         ?.refresh?.();
 
-      applyRecommendationBtn.disabled =
-        true;
-
-      applyRecommendationBtn.textContent =
-        "추천 중량 적용 완료";
-
-      applyRecommendationBtn.setAttribute(
-        "aria-busy",
-        "false"
-      );
-
-      setRecommendationApplyMessage(
-        `${nextWeightText}kg가 다음 ${exercise.name} 목표로 저장되었습니다.`
-      );
+      await renderProgressionRecommendations();
 
       showToast(
         `${exercise.name} 목표를 ${nextWeightText}kg로 변경했습니다.`
       );
     } catch (error) {
       console.error(
-        "[JYM Log] 추천 중량 적용 실패",
+        "[JYM Log] 운동별 추천 중량 적용 실패",
         error
       );
 
-      setRecommendationApplyBusy(false);
+      recommendationApplyInProgress =
+        false;
+      activeRecommendationIndex =
+        null;
 
-      applyRecommendationBtn.textContent =
-        `${nextWeightText}kg를 다음 목표로 적용`;
+      renderRecommendationList(
+        latestRecommendations
+      );
 
-      setRecommendationApplyMessage(
+      setRecommendationItemMessage(
+        recommendationIndex,
         error.message ||
-        "추천 중량을 루틴에 저장하지 못했습니다.",
+          "추천 중량을 루틴에 저장하지 못했습니다.",
         true
       );
     } finally {
       recommendationApplyInProgress =
         false;
+      activeRecommendationIndex =
+        null;
     }
   }
 
-  function renderRecommendationFallback(
-    exercise
-  ) {
-    resetRecommendationAction();
+  function renderRecommendationFallback() {
+    const fallbackRecommendations =
+      exercises.map(
+        (exercise, exerciseIndex) => ({
+          action: "maintain",
+          success: false,
+          exerciseIndex,
+          exerciseId:
+            String(exercise.id || ""),
+          exerciseName:
+            exercise.name || "운동",
+          currentSessionSaved: false,
+          successStreak: 0,
+          currentWeight:
+            Number(exercise.weight) || 0,
+          nextWeight:
+            Number(exercise.weight) || 0,
+          increment:
+            Number(exercise.increment) || 0,
+          text:
+            `${formatWeight(
+              exercise.weight
+            )}kg · ` +
+            `${Number(exercise.sets) || 0} × ` +
+            `${
+              Number(exercise.min) ===
+              Number(exercise.max)
+                ? Number(exercise.max) || 0
+                : `${Number(exercise.min) || 0}–${Number(exercise.max) || 0}`
+            } 유지`,
+          reason:
+            "추천 엔진을 불러오지 못해 현재 목표를 유지합니다.",
+          incrementReason:
+            `설정된 증량 단위는 ${formatWeight(
+              exercise.increment
+            )}kg입니다.`
+        })
+      );
 
-    if (recommendTitle) {
-      recommendTitle.textContent =
-        exercise
-          ? `다음 ${exercise.name} 추천`
-          : "다음 운동 추천";
-    }
+    renderRecommendationList(
+      fallbackRecommendations
+    );
 
-    if (recommendText) {
-      recommendText.textContent =
-        exercise
-          ? `${exercise.weight}kg 유지`
-          : "추천을 준비하지 못했습니다.";
-    }
-
-    if (recommendReason1) {
-      recommendReason1.textContent =
-        "추천 엔진을 불러오지 못해 현재 목표를 유지합니다.";
-    }
-
-    if (recommendReason2) {
-      recommendReason2.textContent =
-        exercise
-          ? `설정된 증량 단위는 ${exercise.increment}kg입니다.`
-          : "루틴 설정을 확인해 주세요.";
-    }
+    setRecommendationListMessage(
+      "추천 엔진을 불러오지 못해 현재 루틴 목표를 표시했습니다.",
+      true
+    );
   }
 
-  async function renderProgressionRecommendation() {
+  async function renderProgressionRecommendations() {
     syncState();
 
     const requestId =
@@ -878,37 +1170,37 @@
     recommendationRequestId =
       requestId;
 
-    const exerciseIndex = 0;
-    const exercise =
-      exercises[exerciseIndex];
-
-    resetRecommendationAction();
-
-    if (!exercise) {
-      renderRecommendationFallback(
-        null
-      );
-      return;
-    }
+    resetRecommendationList();
 
     if (recommendTitle) {
       recommendTitle.textContent =
-        `다음 ${exercise.name} 추천`;
+        "루틴 전체 추천";
     }
 
     if (recommendText) {
       recommendText.textContent =
-        "최근 수행 기록을 분석하고 있습니다.";
+        "모든 운동의 수행 기록을 분석하고 있습니다.";
     }
 
     if (recommendReason1) {
       recommendReason1.textContent =
-        "이번 세트 달성 여부를 확인합니다.";
+        "이번 세션의 운동별 세트 달성 여부를 확인합니다.";
     }
 
     if (recommendReason2) {
       recommendReason2.textContent =
-        `설정된 증량 단위 ${exercise.increment}kg을 확인합니다.`;
+        "동일 목표의 최근 성공 기록을 비교합니다.";
+    }
+
+    if (recommendationList) {
+      recommendationList.innerHTML = `
+        <div
+          class="card progression-empty"
+          aria-live="polite"
+        >
+          운동별 추천을 계산하고 있습니다.
+        </div>
+      `;
     }
 
     setRecommendationBusy(true);
@@ -917,20 +1209,18 @@
       window.JYMLog
         .progressionEngine;
 
-    if (!engine?.loadRecommendation) {
+    if (!engine?.loadRecommendations) {
       setRecommendationBusy(false);
-      renderRecommendationFallback(
-        exercise
-      );
+      renderRecommendationFallback();
       return;
     }
 
     try {
-      const recommendation =
+      const recommendations =
         await engine
-          .loadRecommendation({
-            exercise,
-            exerciseIndex,
+          .loadRecommendations({
+            exercises:
+              [...exercises],
             state
           });
 
@@ -941,24 +1231,12 @@
         return;
       }
 
-      recommendText.textContent =
-        recommendation.text;
-
-      recommendReason1.textContent =
-        recommendation.reason;
-
-      recommendReason2.textContent =
-        recommendation
-          .incrementReason;
-
-      renderRecommendationAction(
-        recommendation,
-        exercise,
-        exerciseIndex
+      renderRecommendationList(
+        recommendations
       );
     } catch (error) {
       console.error(
-        "[JYM Log] 운동 증량 추천 표시 실패",
+        "[JYM Log] 루틴 전체 증량 추천 표시 실패",
         error
       );
 
@@ -966,9 +1244,7 @@
         requestId ===
         recommendationRequestId
       ) {
-        renderRecommendationFallback(
-          exercise
-        );
+        renderRecommendationFallback();
       }
     } finally {
       if (
@@ -1021,7 +1297,7 @@
         .getTotalVolume()
         .toLocaleString()}kg`;
 
-    void renderProgressionRecommendation();
+    void renderProgressionRecommendations();
   }
 
   function setFinishBusy(
@@ -1101,7 +1377,7 @@
        * 완료 세션이 기록된 뒤 다시 계산해야
        * 추천 적용 버튼을 안전하게 활성화할 수 있습니다.
        */
-      await renderProgressionRecommendation();
+      await renderProgressionRecommendations();
 
       showToast(
         "완료한 운동 기록이 저장되었습니다."
@@ -1480,11 +1756,37 @@
       }
     );
 
-    applyRecommendationBtn
+    recommendationList
       ?.addEventListener(
         "click",
-        () => {
-          void applyProgressionRecommendation();
+        (event) => {
+          const applyButton =
+            event.target.closest(
+              "[data-apply-recommendation-index]"
+            );
+
+          if (!applyButton) {
+            return;
+          }
+
+          const recommendationIndex =
+            Number(
+              applyButton.dataset
+                .applyRecommendationIndex
+            );
+
+          if (
+            !Number.isInteger(
+              recommendationIndex
+            ) ||
+            recommendationIndex < 0
+          ) {
+            return;
+          }
+
+          void applyProgressionRecommendation(
+            recommendationIndex
+          );
         }
       );
 

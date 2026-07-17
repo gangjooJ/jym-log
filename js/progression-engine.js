@@ -747,11 +747,139 @@
     }
   }
 
+
+  function findCurrentSession(
+    sessions,
+    state
+  ) {
+    const currentStartedAt =
+      toFiniteNumber(
+        state?.startedAt
+      );
+
+    if (currentStartedAt <= 0) {
+      return null;
+    }
+
+    return (
+      Array.isArray(sessions)
+        ? sessions
+        : []
+    ).find(
+      (session) =>
+        toFiniteNumber(
+          session?.startedAtMillis
+        ) === currentStartedAt
+    ) || null;
+  }
+
+  function buildRecommendations({
+    exercises = [],
+    state,
+    sessions = [],
+    historyAvailable = true,
+    currentSession = null
+  }) {
+    const routineExercises =
+      Array.isArray(exercises)
+        ? exercises
+        : [];
+
+    return routineExercises.map(
+      (exercise, exerciseIndex) => {
+        const currentExerciseResult =
+          currentSession
+            ? findSessionExercise(
+                currentSession,
+                exercise,
+                exerciseIndex
+              )
+            : null;
+
+        return buildRecommendation({
+          exercise,
+          exerciseIndex,
+          state,
+          sessions,
+          historyAvailable,
+          currentExerciseResult,
+          currentSessionSaved:
+            Boolean(
+              currentExerciseResult
+            )
+        });
+      }
+    );
+  }
+
+  async function loadRecommendations({
+    exercises = [],
+    state,
+    maxSessions = 50
+  }) {
+    const historyApi =
+      window.JYMLog.history;
+
+    if (
+      !historyApi
+        ?.loadRecentWorkoutSessions
+    ) {
+      return buildRecommendations({
+        exercises,
+        state,
+        sessions: [],
+        historyAvailable: false,
+        currentSession: null
+      });
+    }
+
+    try {
+      /*
+       * 루틴 전체 추천에서도 기록 조회는
+       * 한 번만 수행하고 모든 운동이 공유합니다.
+       */
+      const sessions =
+        await historyApi
+          .loadRecentWorkoutSessions(
+            maxSessions
+          );
+
+      const currentSession =
+        findCurrentSession(
+          sessions,
+          state
+        );
+
+      return buildRecommendations({
+        exercises,
+        state,
+        sessions,
+        historyAvailable: true,
+        currentSession
+      });
+    } catch (error) {
+      console.warn(
+        "[JYM Log] 이전 운동 기록을 불러오지 못해 루틴 전체를 보수적으로 추천합니다.",
+        error
+      );
+
+      return buildRecommendations({
+        exercises,
+        state,
+        sessions: [],
+        historyAvailable: false,
+        currentSession: null
+      });
+    }
+  }
+
   window.JYMLog.progressionEngine =
     Object.freeze({
       requiredConsecutiveSuccesses:
         REQUIRED_CONSECUTIVE_SUCCESSES,
       buildRecommendation,
-      loadRecommendation
+      buildRecommendations,
+      loadRecommendation,
+      loadRecommendations
     });
 })();
