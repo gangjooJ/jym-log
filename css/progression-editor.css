@@ -1,0 +1,129 @@
+.progression-editor-help {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.progression-success-field {
+  margin-top: 14px;
+}
+
+.progression-stage-editor {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface-2);
+}
+
+.progression-stage-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progression-stage-head strong {
+  font-size: 14px;
+}
+
+.progression-stage-head p,
+.progression-stage-guide {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.progression-stage-add {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.progression-stage-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.progression-stage-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.progression-stage-number {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.progression-stage-target-input {
+  min-width: 0;
+}
+
+.progression-stage-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.progression-stage-action {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 900;
+}
+
+.progression-stage-action:disabled {
+  opacity: .38;
+  cursor: not-allowed;
+}
+
+.progression-stage-guide {
+  margin-top: 11px;
+}
+
+.progression-stage-guide strong {
+  color: var(--text);
+}
+
+.exercise-editor-field input:disabled,
+.exercise-editor-field select:disabled {
+  opacity: .62;
+  cursor: not-allowed;
+}
+
+@media (max-width: 390px) {
+  .progression-stage-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .progression-stage-add {
+    width: 100%;
+  }
+
+  .progression-stage-row {
+    grid-template-columns: 30px minmax(0, 1fr);
+  }
+
+  .progression-stage-actions {
+    grid-column: 2;
+    justify-content: flex-end;
+  }
+}

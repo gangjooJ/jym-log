@@ -470,6 +470,43 @@
     ) <= 0.001;
   }
 
+  function formatSetTargets(
+    targets
+  ) {
+    return (Array.isArray(targets) ? targets : [])
+      .map(
+        (target) =>
+          Number(target) || 0
+      )
+      .join(" / ");
+  }
+
+  function getRecommendationTransitionText(
+    recommendation
+  ) {
+    const current =
+      `${formatWeight(
+        recommendation.currentWeight
+      )}kg · ${formatSetTargets(
+        recommendation.currentSetTargets
+      )}`;
+    const next =
+      `${formatWeight(
+        recommendation.nextWeight
+      )}kg · ${formatSetTargets(
+        recommendation.nextSetTargets
+      )}`;
+
+    return `${current} → ${next}`;
+  }
+
+  function isProgressionAction(action) {
+    return (
+      action === "increase" ||
+      action === "advance-stage"
+    );
+  }
+
   function normalizeExerciseName(value) {
     return String(value || "")
       .trim()
@@ -619,8 +656,9 @@
     recommendation
   ) {
     if (
-      recommendation?.action !==
-      "increase"
+      !isProgressionAction(
+        recommendation?.action
+      )
     ) {
       return {
         showButton: false,
@@ -632,11 +670,6 @@
     const matched =
       findExerciseForRecommendation(
         recommendation
-      );
-
-    const nextWeightText =
-      formatWeight(
-        recommendation.nextWeight
       );
 
     if (!matched) {
@@ -664,26 +697,54 @@
         buttonText:
           "완료 기록 저장 후 적용",
         message:
-          "완료 기록이 저장되면 추천 중량을 적용할 수 있습니다.",
+          "완료 기록이 저장되면 다음 목표를 적용할 수 있습니다.",
         isError: false
       };
     }
 
-    if (
-      areWeightsEqual(
-        matched.exercise.weight,
-        recommendation.nextWeight
-      )
-    ) {
+    const currentStageIndex =
+      Number(
+        matched.exercise
+          .progressionState
+          ?.currentStageIndex
+      ) || 0;
+    const expectedCurrentStage =
+      Number(
+        recommendation
+          .currentStageIndex
+      ) || 0;
+    const expectedNextStage =
+      Number(
+        recommendation
+          .nextStageIndex
+      ) || 0;
+
+    const alreadyApplied =
+      recommendation.action ===
+        "increase"
+        ? areWeightsEqual(
+            matched.exercise.weight,
+            recommendation.nextWeight
+          ) &&
+          currentStageIndex ===
+            expectedNextStage
+        : areWeightsEqual(
+            matched.exercise.weight,
+            recommendation.currentWeight
+          ) &&
+          currentStageIndex ===
+            expectedNextStage;
+
+    if (alreadyApplied) {
       return {
         ...matched,
         showButton: true,
         canApply: false,
         state: "applied",
         buttonText:
-          "추천 중량 적용 완료",
+          "다음 목표 적용 완료",
         message:
-          `${nextWeightText}kg가 이미 다음 목표로 적용되어 있습니다.`,
+          "추천된 중량과 반복 단계가 이미 현재 루틴에 적용되어 있습니다.",
         isError: false
       };
     }
@@ -692,7 +753,9 @@
       !areWeightsEqual(
         matched.exercise.weight,
         recommendation.currentWeight
-      )
+      ) ||
+      currentStageIndex !==
+        expectedCurrentStage
     ) {
       return {
         ...matched,
@@ -702,7 +765,7 @@
         buttonText:
           "루틴 목표 확인 필요",
         message:
-          "추천 계산 후 루틴 목표가 변경되어 자동 적용을 중단했습니다.",
+          "추천 계산 후 루틴의 중량 또는 반복 단계가 변경되어 자동 적용을 중단했습니다.",
         isError: true
       };
     }
@@ -713,9 +776,14 @@
       canApply: true,
       state: "ready",
       buttonText:
-        `${nextWeightText}kg를 다음 목표로 적용`,
+        recommendation.action ===
+          "advance-stage"
+          ? "다음 반복 단계 적용"
+          : `${formatWeight(
+              recommendation.nextWeight
+            )}kg와 다음 목표 적용`,
       message:
-        "다음 운동의 목표 중량만 변경되며 완료된 과거 기록은 유지됩니다.",
+        "다음 운동의 목표만 변경되며 완료된 과거 기록은 유지됩니다.",
       isError: false
     };
   }
@@ -730,10 +798,24 @@
       };
     }
 
+    if (action === "advance-stage") {
+      return {
+        label: "반복 증가",
+        className: "advance"
+      };
+    }
+
     if (action === "repeat") {
       return {
         label: "한 번 더",
         className: "repeat"
+      };
+    }
+
+    if (action === "manual") {
+      return {
+        label: "수동",
+        className: "manual"
       };
     }
 
@@ -903,6 +985,13 @@
           "increase"
       ).length;
 
+    const advanceCount =
+      list.filter(
+        (recommendation) =>
+          recommendation.action ===
+          "advance-stage"
+      ).length;
+
     const repeatCount =
       list.filter(
         (recommendation) =>
@@ -910,10 +999,19 @@
           "repeat"
       ).length;
 
+    const manualCount =
+      list.filter(
+        (recommendation) =>
+          recommendation.action ===
+          "manual"
+      ).length;
+
     const maintainCount =
       list.length -
       increaseCount -
-      repeatCount;
+      advanceCount -
+      repeatCount -
+      manualCount;
 
     if (recommendTitle) {
       recommendTitle.textContent =
@@ -923,8 +1021,9 @@
     if (recommendText) {
       recommendText.textContent =
         `증량 ${increaseCount}개 · ` +
+        `단계 ${advanceCount}개 · ` +
         `한 번 더 ${repeatCount}개 · ` +
-        `유지 ${maintainCount}개`;
+        `유지·수동 ${maintainCount + manualCount}개`;
     }
 
     if (recommendReason1) {
@@ -934,9 +1033,9 @@
 
     if (recommendReason2) {
       recommendReason2.textContent =
-        increaseCount > 0
-          ? `증량 추천 ${increaseCount}개는 개별 또는 선택 일괄 적용할 수 있습니다.`
-          : "이번 세션에는 자동 적용할 증량 추천이 없습니다.";
+        increaseCount + advanceCount > 0
+          ? `적용 가능한 다음 목표 ${increaseCount + advanceCount}개는 개별 또는 선택 일괄 적용할 수 있습니다.`
+          : "이번 세션에는 자동 적용할 다음 목표가 없습니다.";
     }
 
     if (!recommendationList) {
@@ -970,7 +1069,7 @@
     );
 
     updateRecommendationBatchControls(
-      "적용할 증량 추천을 선택한 뒤 일괄 적용할 수 있습니다."
+      "적용할 다음 목표를 선택한 뒤 일괄 적용할 수 있습니다."
     );
   }
 
@@ -1011,11 +1110,12 @@
     message = null,
     isError = false
   ) {
-    const increaseCount =
+    const applicableCount =
       latestRecommendations.filter(
         (recommendation) =>
-          recommendation.action ===
-          "increase"
+          isProgressionAction(
+            recommendation.action
+          )
       ).length;
 
     const readyIndexes =
@@ -1039,7 +1139,7 @@
     recommendationBatchArea
       ?.classList.toggle(
         "hidden",
-        increaseCount === 0
+        applicableCount === 0
       );
 
     if (recommendationBatchSummary) {
@@ -1112,12 +1212,12 @@
         isError
       );
     } else if (
-      increaseCount > 0 &&
+      applicableCount > 0 &&
       readyIndexes.length === 0 &&
       !recommendationApplyInProgress
     ) {
       setRecommendationBatchMessage(
-        "현재 바로 적용할 수 있는 증량 추천이 없습니다. 완료 기록 저장 또는 루틴 목표를 확인해 주세요."
+        "현재 바로 적용할 수 있는 다음 목표가 없습니다. 완료 기록 저장 또는 루틴 목표를 확인해 주세요."
       );
     }
   }
@@ -1200,7 +1300,7 @@
               recommendationIndex
           ) {
             button.textContent =
-              "추천 중량 적용 중...";
+              "다음 목표 적용 중...";
           }
         }
       );
@@ -1208,22 +1308,6 @@
     updateRecommendationBatchControls();
   }
 
-  function buildRoutineExerciseInput(
-    exercise,
-    nextWeight
-  ) {
-    return {
-      name: exercise.name,
-      type: exercise.type,
-      weight: nextWeight,
-      sets: Number(exercise.sets),
-      min: Number(exercise.min),
-      max: Number(exercise.max),
-      rest: Number(exercise.rest),
-      increment:
-        Number(exercise.increment)
-    };
-  }
 
   async function applyProgressionRecommendation(
     recommendationIndex
@@ -1252,7 +1336,7 @@
       setRecommendationItemMessage(
         recommendationIndex,
         applyState.message ||
-          "적용할 수 있는 증량 추천이 없습니다.",
+          "적용할 수 있는 다음 목표가 없습니다.",
         Boolean(applyState.isError)
       );
       return;
@@ -1263,7 +1347,7 @@
 
     if (
       !routineApi
-        ?.updateActiveRoutineExercise
+        ?.applyActiveRoutineProgressionTransition
     ) {
       setRecommendationItemMessage(
         recommendationIndex,
@@ -1279,19 +1363,14 @@
     const exerciseIndex =
       applyState.exerciseIndex;
 
-    const currentWeightText =
-      formatWeight(
-        recommendation.currentWeight
-      );
-
-    const nextWeightText =
-      formatWeight(
-        recommendation.nextWeight
+    const transitionText =
+      getRecommendationTransitionText(
+        recommendation
       );
 
     const confirmed =
       window.confirm(
-        `"${exercise.name}" 목표 중량을 ${currentWeightText}kg에서 ${nextWeightText}kg으로 변경할까요?\n\n다음 운동부터 적용되며 완료된 과거 기록은 변경되지 않습니다.`
+        `"${exercise.name}"의 다음 목표를 적용할까요?\n\n${transitionText}\n\n다음 운동부터 적용되며 완료된 과거 기록은 변경되지 않습니다.`
       );
 
     if (!confirmed) {
@@ -1305,30 +1384,42 @@
 
     setRecommendationItemMessage(
       recommendationIndex,
-      `${nextWeightText}kg 목표를 루틴에 저장하고 있습니다.`
+      "다음 목표를 루틴에 저장하고 있습니다."
     );
 
     try {
       await routineApi
-        .updateActiveRoutineExercise(
+        .applyActiveRoutineProgressionTransition(
           exerciseIndex,
-          buildRoutineExerciseInput(
-            exercise,
-            recommendation.nextWeight
-          )
+          {
+            action:
+              recommendation.action,
+            routineExerciseId:
+              recommendation.routineExerciseId,
+            currentWeight:
+              recommendation.currentWeight,
+            nextWeight:
+              recommendation.nextWeight,
+            currentStageIndex:
+              recommendation.currentStageIndex,
+            nextStageIndex:
+              recommendation.nextStageIndex
+          }
         );
 
       window.JYMLog.routineUI
         ?.refresh?.();
 
-      await renderProgressionRecommendations();
+      renderRecommendationList(
+        latestRecommendations
+      );
 
       showToast(
-        `${exercise.name} 목표를 ${nextWeightText}kg로 변경했습니다.`
+        `${exercise.name}의 다음 목표를 적용했습니다.`
       );
     } catch (error) {
       console.error(
-        "[JYM Log] 운동별 추천 중량 적용 실패",
+        "[JYM Log] 운동별 다음 목표 적용 실패",
         error
       );
 
@@ -1344,7 +1435,7 @@
       setRecommendationItemMessage(
         recommendationIndex,
         error.message ||
-          "추천 중량을 루틴에 저장하지 못했습니다.",
+          "다음 목표를 루틴에 저장하지 못했습니다.",
         true
       );
     } finally {
@@ -1395,7 +1486,7 @@
 
     if (selectedEntries.length === 0) {
       updateRecommendationBatchControls(
-        "선택한 항목 중 현재 적용할 수 있는 증량 추천이 없습니다.",
+        "선택한 항목 중 현재 적용할 수 있는 다음 목표가 없습니다.",
         true
       );
       return;
@@ -1406,7 +1497,7 @@
 
     if (
       !routineApi
-        ?.updateActiveRoutineExercise
+        ?.applyActiveRoutineProgressionTransition
     ) {
       updateRecommendationBatchControls(
         "루틴 저장 기능을 불러오지 못했습니다.",
@@ -1422,17 +1513,14 @@
           applyState
         }) =>
           `• ${applyState.exercise.name}: ` +
-          `${formatWeight(
-            recommendation.currentWeight
-          )}kg → ` +
-          `${formatWeight(
-            recommendation.nextWeight
-          )}kg`
+          getRecommendationTransitionText(
+            recommendation
+          )
       );
 
     const confirmed =
       window.confirm(
-        `선택한 ${selectedEntries.length}개 운동의 목표 중량을 변경할까요?\n\n` +
+        `선택한 ${selectedEntries.length}개 운동의 다음 목표를 적용할까요?\n\n` +
         `${changeLines.join("\n")}\n\n` +
         "다음 운동부터 적용되며 완료된 과거 기록은 변경되지 않습니다."
       );
@@ -1484,33 +1572,38 @@
       const exerciseIndex =
         currentApplyState.exerciseIndex;
 
-      const nextWeightText =
-        formatWeight(
-          recommendation.nextWeight
-        );
-
       setRecommendationItemMessage(
         recommendationIndex,
-        `${nextWeightText}kg 목표를 저장하고 있습니다.`
+        "다음 목표를 저장하고 있습니다."
       );
 
       try {
         await routineApi
-          .updateActiveRoutineExercise(
+          .applyActiveRoutineProgressionTransition(
             exerciseIndex,
-            buildRoutineExerciseInput(
-              exercise,
-              recommendation.nextWeight
-            )
+            {
+              action:
+                recommendation.action,
+              routineExerciseId:
+                recommendation.routineExerciseId,
+              currentWeight:
+                recommendation.currentWeight,
+              nextWeight:
+                recommendation.nextWeight,
+              currentStageIndex:
+                recommendation.currentStageIndex,
+              nextStageIndex:
+                recommendation.nextStageIndex
+            }
           );
 
         successes.push({
           exerciseName: exercise.name,
-          nextWeightText
+          action: recommendation.action
         });
       } catch (error) {
         console.error(
-          "[JYM Log] 추천 중량 일괄 적용 항목 저장 실패",
+          "[JYM Log] 다음 목표 일괄 적용 항목 저장 실패",
           {
             exerciseName:
               exercise.name,
@@ -1523,7 +1616,7 @@
             exercise.name,
           message:
             error.message ||
-            "추천 중량을 저장하지 못했습니다."
+            "다음 목표를 저장하지 못했습니다."
         });
       }
     }
@@ -1532,7 +1625,9 @@
       window.JYMLog.routineUI
         ?.refresh?.();
 
-      await renderProgressionRecommendations();
+      renderRecommendationList(
+        latestRecommendations
+      );
 
       if (failures.length > 0) {
         const failedNames =
@@ -1553,11 +1648,11 @@
         );
       } else {
         setRecommendationListMessage(
-          `${successes.length}개 운동의 추천 중량을 다음 목표로 적용했습니다.`
+          `${successes.length}개 운동의 다음 목표를 적용했습니다.`
         );
 
         showToast(
-          `${successes.length}개 추천 중량을 적용했습니다.`
+          `${successes.length}개 다음 목표를 적용했습니다.`
         );
       }
     } finally {

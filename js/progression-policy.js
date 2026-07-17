@@ -77,6 +77,14 @@
       return STRATEGIES.MANUAL;
     }
 
+    if (exercise?.type === "반복 단계형") {
+      return STRATEGIES.STAGE;
+    }
+
+    if (exercise?.type === "수동 관리형") {
+      return STRATEGIES.MANUAL;
+    }
+
     const minReps = toPositiveInteger(exercise?.min, 1);
     const maxReps = Math.max(
       minReps,
@@ -135,11 +143,7 @@
         normalizeStage(
           source.stages?.[0],
           0,
-          strategy === STRATEGIES.REP_RANGE
-            ? fixedFallback
-            : strategy === STRATEGIES.MANUAL
-              ? stageFallback
-              : fixedFallback
+          fixedFallback
         )
       ];
     }
@@ -231,7 +235,8 @@
     );
 
     const inputSetTargets =
-      policy.strategy === STRATEGIES.REP_RANGE
+      policy.strategy === STRATEGIES.REP_RANGE ||
+      policy.strategy === STRATEGIES.MANUAL
         ? buildRepeatedTargets(setCount, minReps)
         : [...successSetTargets];
 

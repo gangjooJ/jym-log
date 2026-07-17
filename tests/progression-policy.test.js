@@ -131,4 +131,40 @@ assert.equal(snapshot.routineExerciseId, "chest-main::bench-press");
 assert.equal(snapshot.target.stageIndex, 2);
 assert.deepEqual(Array.from(snapshot.target.successSetTargets), [10, 9, 7]);
 
+
+
+const inferredStage = policy.normalizeRoutineExercise({
+  id: "stage-exercise",
+  name: "단계 운동",
+  type: "반복 단계형",
+  weight: 50,
+  sets: 3,
+  min: 5,
+  max: 7,
+  increment: 2.5,
+  progressionPolicy: {
+    requiredSuccesses: 1,
+    stages: [
+      { setTargets: [5, 5, 5] },
+      { setTargets: [7, 7, 7] }
+    ]
+  }
+});
+assert.equal(inferredStage.progressionPolicy.strategy, "stage");
+
+const manualExercise = policy.normalizeRoutineExercise({
+  id: "manual-exercise",
+  name: "수동 운동",
+  type: "수동 관리형",
+  weight: 20,
+  sets: 3,
+  min: 10,
+  max: 10,
+  increment: 2.5
+});
+assert.equal(manualExercise.progressionPolicy.strategy, "manual");
+assert.equal(manualExercise.progressionPolicy.enabled, false);
+assert.equal(manualExercise.min, 10);
+assert.equal(manualExercise.max, 10);
+
 console.log("progression-policy tests passed");

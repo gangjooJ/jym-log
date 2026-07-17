@@ -93,6 +93,124 @@ function normalizeRoutineExercise(
     );
 }
 
+function getStrategyTypeLabel(strategy) {
+  if (strategy === "stage") {
+    return "반복 단계형";
+  }
+
+  if (strategy === "manual") {
+    return "수동 관리형";
+  }
+
+  return strategy === "load"
+    ? "고정 반복형"
+    : "반복 범위형";
+}
+
+function buildRepeatedTargets(setCount, reps) {
+  return Array.from(
+    { length: setCount },
+    () => reps
+  );
+}
+
+function normalizeProgressionStages(inputStages) {
+  if (!Array.isArray(inputStages) || inputStages.length === 0) {
+    throw new Error(
+      "반복 단계형에는 최소 1개의 단계가 필요합니다."
+    );
+  }
+
+  if (inputStages.length > 12) {
+    throw new Error(
+      "반복 단계는 최대 12개까지 설정할 수 있습니다."
+    );
+  }
+
+  let expectedSetCount = null;
+
+  return inputStages.map(
+    (stage, stageIndex) => {
+      const rawTargets =
+        Array.isArray(stage?.setTargets)
+          ? stage.setTargets
+          : [];
+
+      if (
+        rawTargets.length < 1 ||
+        rawTargets.length > 20
+      ) {
+        throw new Error(
+          `${stageIndex + 1}단계는 1~20개의 세트 목표가 필요합니다.`
+        );
+      }
+
+      const setTargets =
+        rawTargets.map(
+          (target) => Number(target)
+        );
+
+      if (
+        setTargets.some(
+          (target) =>
+            !Number.isInteger(target) ||
+            target < 1 ||
+            target > 100
+        )
+      ) {
+        throw new Error(
+          `${stageIndex + 1}단계 반복 수는 1~100 사이의 정수로 입력해 주세요.`
+        );
+      }
+
+      if (expectedSetCount === null) {
+        expectedSetCount =
+          setTargets.length;
+      } else if (
+        setTargets.length !==
+        expectedSetCount
+      ) {
+        throw new Error(
+          "모든 반복 단계는 같은 세트 수를 사용해야 합니다."
+        );
+      }
+
+      return {
+        id: String(
+          stage?.id ||
+          `stage-${stageIndex + 1}`
+        ),
+        label: String(
+          stage?.label ||
+          `${stageIndex + 1}단계`
+        ),
+        setTargets
+      };
+    }
+  );
+}
+
+function buildProgressionSignature(
+  exercise,
+  policy
+) {
+  return JSON.stringify({
+    weight: Number(exercise.weight),
+    strategy: policy.strategy,
+    enabled: policy.enabled,
+    requiredSuccesses:
+      policy.requiredSuccesses,
+    stages: policy.stages.map(
+      (stage) => ({
+        setTargets:
+          [...stage.setTargets]
+      })
+    ),
+    resetStageIndex:
+      policy.resetStageIndex
+  });
+}
+
 function validateExerciseInput(
   currentExercise,
   input,
@@ -116,10 +234,28 @@ function validateExerciseInput(
     );
   }
 
-  const type =
+  const allowedStrategies =
+    new Set([
+      "load",
+      "rep-range",
+      "stage",
+      "manual"
+    ]);
+
+  const legacyStrategy =
     input.type === "고정 반복형"
-      ? "고정 반복형"
-      : "반복 범위형";
+      ? "load"
+      : "rep-range";
+
+  const strategy =
+    allowedStrategies.has(
+      input.progressionStrategy
+    )
+      ? input.progressionStrategy
+      : legacyStrategy;
+
+  const type =
+    getStrategyTypeLabel(strategy);
 
   const weight = Number(input.weight);
 
@@ -133,43 +269,75 @@ function validateExerciseInput(
     );
   }
 
-  const sets = Number(input.sets);
+  let sets = Number(input.sets);
+  let minReps = Number(input.min);
+  let maxReps = Number(input.max);
+  let stages;
 
-  if (
-    !Number.isInteger(sets) ||
-    sets < 1 ||
-    sets > 20
-  ) {
-    throw new Error(
-      "세트 수는 1~20 사이의 정수로 입력해 주세요."
+  if (strategy === "stage") {
+    stages = normalizeProgressionStages(
+      input.progressionStages
     );
-  }
 
-  const minReps = Number(input.min);
+    const allTargets =
+      stages.flatMap(
+        (stage) => stage.setTargets
+      );
 
-  if (
-    !Number.isInteger(minReps) ||
-    minReps < 1 ||
-    minReps > 100
-  ) {
-    throw new Error(
-      "최소 반복 수는 1~100 사이로 입력해 주세요."
-    );
-  }
+    sets = stages[0].setTargets.length;
+    minReps = Math.min(...allTargets);
+    maxReps = Math.max(...allTargets);
+  } else {
+    if (
+      !Number.isInteger(sets) ||
+      sets < 1 ||
+      sets > 20
+    ) {
+      throw new Error(
+        "세트 수는 1~20 사이의 정수로 입력해 주세요."
+      );
+    }
 
-  const maxReps =
-    type === "고정 반복형"
-      ? minReps
-      : Number(input.max);
+    if (
+      !Number.isInteger(minReps) ||
+      minReps < 1 ||
+      minReps > 100
+    ) {
+      throw new Error(
+        "최소 반복 수는 1~100 사이로 입력해 주세요."
+      );
+    }
 
-  if (
-    !Number.isInteger(maxReps) ||
-    maxReps < minReps ||
-    maxReps > 100
-  ) {
-    throw new Error(
-      "최대 반복 수는 최소 반복 수 이상, 100회 이하로 입력해 주세요."
-    );
+    maxReps =
+      strategy === "load"
+        ? minReps
+        : maxReps;
+
+    if (
+      !Number.isInteger(maxReps) ||
+      maxReps < minReps ||
+      maxReps > 100
+    ) {
+      throw new Error(
+        "최대 반복 수는 최소 반복 수 이상, 100회 이하로 입력해 주세요."
+      );
+    }
+
+    const successReps =
+      strategy === "rep-range" ||
+      strategy === "manual"
+        ? maxReps
+        : minReps;
+
+    stages = [{
+      id: "stage-1",
+      label: "1단계",
+      setTargets:
+        buildRepeatedTargets(
+          sets,
+          successReps
+        )
+    }];
   }
 
   const rest = Number(input.rest);
@@ -197,27 +365,96 @@ function validateExerciseInput(
     );
   }
 
-  return normalizeRoutineExercise(
+  const requiredSuccesses =
+    strategy === "manual"
+      ? 1
+      : Number(
+          input.requiredSuccesses
+        );
+
+  if (
+    !Number.isInteger(
+      requiredSuccesses
+    ) ||
+    requiredSuccesses < 1 ||
+    requiredSuccesses > 10
+  ) {
+    throw new Error(
+      "필요 성공 횟수는 1~10회 사이로 입력해 주세요."
+    );
+  }
+
+  const routineId =
     activeRoutine?.id ||
-      currentExercise?.routineId ||
-      ACTIVE_ROUTINE_ID,
+    currentExercise?.routineId ||
+    ACTIVE_ROUTINE_ID;
+
+  const baseExercise = {
+    ...currentExercise,
+    id:
+      currentExercise.id ||
+      `exercise-${exerciseIndex + 1}`,
+    order: exerciseIndex,
+    name,
+    icon:
+      currentExercise.icon ||
+      name.charAt(0),
+    type,
+    weight,
+    sets,
+    min: minReps,
+    max: maxReps,
+    rest,
+    increment,
+    progressionPolicy: {
+      schemaVersion: 1,
+      strategy,
+      enabled:
+        strategy !== "manual",
+      requiredSuccesses,
+      stages,
+      resetStageIndex: 0
+    }
+  };
+
+  const currentNormalized =
+    normalizeRoutineExercise(
+      routineId,
+      currentExercise,
+      exerciseIndex
+    );
+
+  const proposedPolicy =
+    progressionPolicy.normalizePolicy(
+      baseExercise,
+      baseExercise.progressionPolicy
+    );
+
+  const keepState =
+    buildProgressionSignature(
+      currentNormalized,
+      currentNormalized.progressionPolicy
+    ) ===
+    buildProgressionSignature(
+      baseExercise,
+      proposedPolicy
+    );
+
+  return normalizeRoutineExercise(
+    routineId,
     {
-      ...currentExercise,
-      id:
-        currentExercise.id ||
-        `exercise-${exerciseIndex + 1}`,
-      order: exerciseIndex,
-      name,
-      icon:
-        currentExercise.icon ||
-        name.charAt(0),
-      type,
-      weight,
-      sets,
-      min: minReps,
-      max: maxReps,
-      rest,
-      increment
+      ...baseExercise,
+      progressionPolicy:
+        proposedPolicy,
+      progressionState:
+        keepState
+          ? currentNormalized
+              .progressionState
+          : {
+              currentStageIndex: 0,
+              successStreak: 0,
+              failureStreak: 0
+            }
     },
     exerciseIndex
   );
@@ -585,6 +822,196 @@ async function updateActiveRoutineExercise(
   return updatedExercise;
 }
 
+async function applyActiveRoutineProgressionTransition(
+  exerciseIndex,
+  transitionInput = {}
+) {
+  assertRoutineCanChange();
+
+  const currentExercise =
+    activeRoutine.exercises[
+      exerciseIndex
+    ];
+
+  if (!currentExercise) {
+    throw new Error(
+      "진행할 운동을 찾을 수 없습니다."
+    );
+  }
+
+  if (
+    transitionInput.routineExerciseId &&
+    transitionInput.routineExerciseId !==
+      currentExercise.routineExerciseId
+  ) {
+    throw new Error(
+      "추천 대상 운동이 현재 루틴과 일치하지 않습니다."
+    );
+  }
+
+  const policy =
+    currentExercise.progressionPolicy;
+  const state =
+    currentExercise.progressionState;
+  const target =
+    progressionPolicy.getCurrentTarget(
+      currentExercise,
+      policy,
+      state
+    );
+
+  const expectedWeight =
+    Number(
+      transitionInput.currentWeight
+    );
+
+  if (
+    Number.isFinite(expectedWeight) &&
+    Math.abs(
+      expectedWeight -
+      Number(currentExercise.weight)
+    ) > 0.0001
+  ) {
+    throw new Error(
+      "추천 계산 후 목표 중량이 변경되었습니다."
+    );
+  }
+
+  const expectedStageIndex =
+    Number(
+      transitionInput.currentStageIndex
+    );
+
+  if (
+    Number.isInteger(expectedStageIndex) &&
+    expectedStageIndex !==
+      target.stageIndex
+  ) {
+    throw new Error(
+      "추천 계산 후 반복 단계가 변경되었습니다."
+    );
+  }
+
+  let nextWeight =
+    Number(currentExercise.weight);
+  let nextState;
+
+  if (
+    transitionInput.action ===
+    "advance-stage"
+  ) {
+    if (
+      policy.strategy !== "stage" ||
+      target.stageIndex >=
+        policy.stages.length - 1
+    ) {
+      throw new Error(
+        "현재 운동은 다음 반복 단계로 이동할 수 없습니다."
+      );
+    }
+
+    nextState = {
+      currentStageIndex:
+        target.stageIndex + 1,
+      successStreak: 0,
+      failureStreak: 0
+    };
+  } else if (
+    transitionInput.action ===
+    "increase"
+  ) {
+    if (
+      policy.strategy === "manual" ||
+      (
+        policy.strategy === "stage" &&
+        target.stageIndex <
+          policy.stages.length - 1
+      )
+    ) {
+      throw new Error(
+        "현재 반복 단계에서는 중량을 증가할 수 없습니다."
+      );
+    }
+
+    nextWeight = Math.round(
+      (
+        Number(currentExercise.weight) +
+        Number(currentExercise.increment)
+      ) * 100
+    ) / 100;
+
+    nextState = {
+      currentStageIndex:
+        policy.resetStageIndex,
+      successStreak: 0,
+      failureStreak: 0
+    };
+  } else {
+    throw new Error(
+      "적용할 수 없는 진행 추천입니다."
+    );
+  }
+
+  if (
+    Number.isFinite(
+      Number(transitionInput.nextWeight)
+    ) &&
+    Math.abs(
+      Number(transitionInput.nextWeight) -
+      nextWeight
+    ) > 0.0001
+  ) {
+    throw new Error(
+      "추천 중량과 현재 루틴 규칙이 일치하지 않습니다."
+    );
+  }
+
+  if (
+    Number.isInteger(
+      Number(
+        transitionInput.nextStageIndex
+      )
+    ) &&
+    Number(
+      transitionInput.nextStageIndex
+    ) !== nextState.currentStageIndex
+  ) {
+    throw new Error(
+      "추천 단계와 현재 루틴 규칙이 일치하지 않습니다."
+    );
+  }
+
+  const updatedExercise =
+    normalizeRoutineExercise(
+      activeRoutine.id,
+      {
+        ...currentExercise,
+        weight: nextWeight,
+        progressionState:
+          nextState
+      },
+      exerciseIndex
+    );
+
+  const nextExercises =
+    activeRoutine.exercises.map(
+      (exercise, index) =>
+        index === exerciseIndex
+          ? updatedExercise
+          : exercise
+    );
+
+  await saveActiveRoutineExercises(
+    nextExercises,
+    transitionInput.action ===
+      "advance-stage"
+      ? "반복 단계 적용 완료"
+      : "추천 중량 적용 완료"
+  );
+
+  return updatedExercise;
+}
+
 async function addActiveRoutineExercise(
   exerciseInput
 ) {
@@ -766,6 +1193,7 @@ window.JYMLog.routines =
     ensureActiveRoutine,
     updateActiveRoutineMetadata,
     updateActiveRoutineExercise,
+    applyActiveRoutineProgressionTransition,
     addActiveRoutineExercise,
     deleteActiveRoutineExercise,
     reorderActiveRoutineExercises,
@@ -779,6 +1207,7 @@ export {
   ensureActiveRoutine,
   updateActiveRoutineMetadata,
   updateActiveRoutineExercise,
+  applyActiveRoutineProgressionTransition,
   addActiveRoutineExercise,
   deleteActiveRoutineExercise,
   reorderActiveRoutineExercises,

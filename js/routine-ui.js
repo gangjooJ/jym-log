@@ -100,6 +100,36 @@ const exerciseTypeInput =
     "exerciseTypeInput"
   );
 
+const exerciseProgressionHelp =
+  document.getElementById(
+    "exerciseProgressionHelp"
+  );
+
+const exerciseSuccessRuleField =
+  document.getElementById(
+    "exerciseSuccessRuleField"
+  );
+
+const exerciseRequiredSuccessesInput =
+  document.getElementById(
+    "exerciseRequiredSuccessesInput"
+  );
+
+const exerciseStageEditor =
+  document.getElementById(
+    "exerciseStageEditor"
+  );
+
+const exerciseStageList =
+  document.getElementById(
+    "exerciseStageList"
+  );
+
+const addExerciseStageBtn =
+  document.getElementById(
+    "addExerciseStageBtn"
+  );
+
 const exerciseWeightInput =
   document.getElementById(
     "exerciseWeightInput"
@@ -163,6 +193,7 @@ const addExerciseBtn =
 
 let editingExerciseIndex = null;
 let exerciseEditorMode = "edit";
+let exerciseStageDrafts = [];
 
 let routineOrderSaving = false;
 let routineDragState = null;
@@ -913,6 +944,166 @@ function setExerciseEditorMessage(
   );
 }
 
+function getExerciseStrategy(exercise) {
+  const strategy =
+    exercise?.progressionPolicy
+      ?.strategy;
+
+  if (
+    [
+      "load",
+      "rep-range",
+      "stage",
+      "manual"
+    ].includes(strategy)
+  ) {
+    return strategy;
+  }
+
+  if (exercise?.type === "반복 단계형") {
+    return "stage";
+  }
+
+  if (exercise?.type === "수동 관리형") {
+    return "manual";
+  }
+
+  return exercise?.type ===
+    "고정 반복형"
+    ? "load"
+    : "rep-range";
+}
+
+function formatStageTargets(targets) {
+  return (Array.isArray(targets) ? targets : [])
+    .join(" / ");
+}
+
+function parseStageTargets(value) {
+  const parts = String(value || "")
+    .trim()
+    .split(/[\\s,\\/]+/)
+    .filter(Boolean)
+    .map(Number);
+
+  if (
+    parts.length < 1 ||
+    parts.length > 20 ||
+    parts.some(
+      (part) =>
+        !Number.isInteger(part) ||
+        part < 1 ||
+        part > 100
+    )
+  ) {
+    throw new Error(
+      "각 단계는 1~20개의 반복 수를 1~100 사이 정수로 입력해 주세요."
+    );
+  }
+
+  return parts;
+}
+
+function createDefaultStageTargets() {
+  const setCount = Math.max(
+    1,
+    Number(exerciseSetsInput?.value) || 3
+  );
+  const reps = Math.max(
+    1,
+    Number(exerciseMinRepsInput?.value) || 5
+  );
+
+  return Array.from(
+    { length: setCount },
+    () => reps
+  );
+}
+
+function renderExerciseStages() {
+  if (!exerciseStageList) {
+    return;
+  }
+
+  exerciseStageList.innerHTML =
+    exerciseStageDrafts
+      .map(
+        (stage, index) => `
+          <div
+            class="progression-stage-row"
+            data-stage-index="${index}"
+          >
+            <span class="progression-stage-number">
+              ${index + 1}
+            </span>
+
+            <input
+              class="progression-stage-target-input"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              data-stage-target-index="${index}"
+              aria-label="${index + 1}단계 세트별 반복 목표"
+              value="${escapeHtml(
+                formatStageTargets(
+                  stage.setTargets
+                )
+              )}"
+            >
+
+            <div class="progression-stage-actions">
+              <button
+                class="progression-stage-action"
+                type="button"
+                data-stage-action="up"
+                data-stage-index="${index}"
+                aria-label="${index + 1}단계를 위로 이동"
+                ${index === 0 ? "disabled" : ""}
+              >↑</button>
+
+              <button
+                class="progression-stage-action"
+                type="button"
+                data-stage-action="down"
+                data-stage-index="${index}"
+                aria-label="${index + 1}단계를 아래로 이동"
+                ${index === exerciseStageDrafts.length - 1 ? "disabled" : ""}
+              >↓</button>
+
+              <button
+                class="progression-stage-action"
+                type="button"
+                data-stage-action="delete"
+                data-stage-index="${index}"
+                aria-label="${index + 1}단계 삭제"
+                ${exerciseStageDrafts.length <= 1 ? "disabled" : ""}
+              >×</button>
+            </div>
+          </div>
+        `
+      )
+      .join("");
+}
+
+function syncStageDerivedFields() {
+  if (exerciseStageDrafts.length === 0) {
+    return;
+  }
+
+  const targets =
+    exerciseStageDrafts.flatMap(
+      (stage) => stage.setTargets
+    );
+
+  exerciseSetsInput.value =
+    exerciseStageDrafts[0]
+      .setTargets.length;
+  exerciseMinRepsInput.value =
+    Math.min(...targets);
+  exerciseMaxRepsInput.value =
+    Math.max(...targets);
+}
+
 function syncExerciseTypeFields() {
   if (
     !exerciseTypeInput ||
@@ -922,17 +1113,113 @@ function syncExerciseTypeFields() {
     return;
   }
 
-  const isFixed =
-    exerciseTypeInput.value ===
-    "고정 반복형";
+  const strategy =
+    exerciseTypeInput.value;
+  const isLoad = strategy === "load";
+  const isStage = strategy === "stage";
+  const isManual = strategy === "manual";
 
+  exerciseStageEditor?.classList.toggle(
+    "hidden",
+    !isStage
+  );
+
+  if (exerciseSuccessRuleField) {
+    exerciseSuccessRuleField.classList.toggle(
+      "hidden",
+      isManual
+    );
+  }
+
+  exerciseRequiredSuccessesInput.disabled =
+    isManual;
+  exerciseIncrementInput.disabled =
+    isManual;
+  exerciseSetsInput.disabled =
+    isStage;
+  exerciseMinRepsInput.disabled =
+    isStage;
   exerciseMaxRepsInput.disabled =
-    isFixed;
+    isStage || isLoad;
 
-  if (isFixed) {
+  if (isLoad) {
     exerciseMaxRepsInput.value =
       exerciseMinRepsInput.value;
   }
+
+  if (isStage) {
+    if (exerciseStageDrafts.length === 0) {
+      exerciseStageDrafts = [{
+        id: "stage-1",
+        label: "1단계",
+        setTargets:
+          createDefaultStageTargets()
+      }];
+    }
+
+    renderExerciseStages();
+    syncStageDerivedFields();
+  }
+
+  if (exerciseProgressionHelp) {
+    const help = {
+      load:
+        "정해진 세트와 반복을 달성하면 설정한 중량만큼 증가합니다.",
+      "rep-range":
+        "모든 세트가 최대 반복에 도달하면 중량을 증가합니다.",
+      stage:
+        "현재 반복 단계를 달성하면 다음 단계로 이동하고, 최종 단계에서 중량을 증가합니다.",
+      manual:
+        "운동 기록만 저장하며 자동 진행 추천이나 적용 버튼을 표시하지 않습니다."
+    };
+
+    exerciseProgressionHelp.textContent =
+      help[strategy] || help.load;
+  }
+}
+
+function readExerciseStageDrafts() {
+  if (
+    exerciseTypeInput.value !== "stage"
+  ) {
+    return [];
+  }
+
+  const inputs =
+    exerciseStageList?.querySelectorAll(
+      "[data-stage-target-index]"
+    ) || [];
+
+  const stages =
+    [...inputs].map(
+      (input, index) => ({
+        id: `stage-${index + 1}`,
+        label: `${index + 1}단계`,
+        setTargets:
+          parseStageTargets(
+            input.value
+          )
+      })
+    );
+
+  const setCount =
+    stages[0]?.setTargets.length;
+
+  if (
+    stages.some(
+      (stage) =>
+        stage.setTargets.length !==
+        setCount
+    )
+  ) {
+    throw new Error(
+      "모든 반복 단계는 같은 세트 수를 사용해야 합니다."
+    );
+  }
+
+  exerciseStageDrafts = stages;
+  syncStageDerivedFields();
+  return stages;
 }
 
 function openExerciseEditor(
@@ -972,8 +1259,41 @@ function openExerciseEditor(
   exerciseNameInput.value =
     exercise.name;
 
+  const exerciseStrategy =
+    getExerciseStrategy(exercise);
+
   exerciseTypeInput.value =
-    exercise.type;
+    exerciseStrategy;
+
+  exerciseRequiredSuccessesInput.value =
+    exercise.progressionPolicy
+      ?.requiredSuccesses ||
+    (exerciseStrategy === "stage" ? 1 : 2);
+
+  exerciseStageDrafts =
+    exerciseStrategy === "stage"
+      ? exercise.progressionPolicy
+          .stages.map(
+            (stage, index) => ({
+              id:
+                stage.id ||
+                `stage-${index + 1}`,
+              label:
+                stage.label ||
+                `${index + 1}단계`,
+              setTargets:
+                [...stage.setTargets]
+            })
+          )
+      : [{
+          id: "stage-1",
+          label: "1단계",
+          setTargets:
+            Array.from(
+              { length: exercise.sets },
+              () => exercise.min
+            )
+        }];
 
   exerciseWeightInput.value =
     exercise.weight;
@@ -1046,7 +1366,16 @@ function openExerciseCreator() {
     "";
 
   exerciseTypeInput.value =
-    "반복 범위형";
+    "rep-range";
+
+  exerciseRequiredSuccessesInput.value =
+    2;
+
+  exerciseStageDrafts = [{
+    id: "stage-1",
+    label: "1단계",
+    setTargets: [5, 5, 5]
+  }];
 
   exerciseWeightInput.value =
     0;
@@ -1103,6 +1432,7 @@ function closeExerciseEditor() {
 
   editingExerciseIndex = null;
   exerciseEditorMode = "edit";
+  exerciseStageDrafts = [];
 
   deleteExerciseEditorBtn.classList.add(
     "hidden"
@@ -1136,12 +1466,46 @@ async function saveExerciseEditor(
     return;
   }
 
+  let progressionStages;
+
+  try {
+    progressionStages =
+      readExerciseStageDrafts();
+  } catch (error) {
+    setExerciseEditorMessage(
+      error.message,
+      true
+    );
+    return;
+  }
+
+  const strategy =
+    exerciseTypeInput.value;
+
+  const typeLabels = {
+    load: "고정 반복형",
+    "rep-range": "반복 범위형",
+    stage: "반복 단계형",
+    manual: "수동 관리형"
+  };
+
   const exerciseInput = {
     name:
       exerciseNameInput.value,
 
     type:
-      exerciseTypeInput.value,
+      typeLabels[strategy],
+
+    progressionStrategy:
+      strategy,
+
+    requiredSuccesses:
+      Number(
+        exerciseRequiredSuccessesInput
+          .value
+      ) || 1,
+
+    progressionStages,
 
     weight:
       exerciseWeightInput.value,
@@ -1467,11 +1831,152 @@ function initialize(options = {}) {
       () => {
         if (
           exerciseTypeInput.value ===
-          "고정 반복형"
+          "load"
         ) {
           exerciseMaxRepsInput.value =
             exerciseMinRepsInput.value;
         }
+      }
+    );
+  }
+
+  if (exerciseStageList) {
+    exerciseStageList.addEventListener(
+      "input",
+      (event) => {
+        const input =
+          event.target.closest(
+            "[data-stage-target-index]"
+          );
+
+        if (!input) {
+          return;
+        }
+
+        const stageIndex =
+          Number(
+            input.dataset
+              .stageTargetIndex
+          );
+
+        try {
+          exerciseStageDrafts[
+            stageIndex
+          ].setTargets =
+            parseStageTargets(
+              input.value
+            );
+          syncStageDerivedFields();
+          setExerciseEditorMessage(
+            "반복 단계 설정을 편집하고 있습니다."
+          );
+        } catch {
+          // 입력 중에는 완성되지 않은 값을 허용하고 저장 시 검증합니다.
+        }
+      }
+    );
+
+    exerciseStageList.addEventListener(
+      "click",
+      (event) => {
+        const button =
+          event.target.closest(
+            "[data-stage-action]"
+          );
+
+        if (!button) {
+          return;
+        }
+
+        const stageIndex = Number(
+          button.dataset.stageIndex
+        );
+        const action =
+          button.dataset.stageAction;
+
+        if (action === "delete") {
+          if (exerciseStageDrafts.length <= 1) {
+            return;
+          }
+          exerciseStageDrafts.splice(
+            stageIndex,
+            1
+          );
+        } else {
+          const targetIndex =
+            action === "up"
+              ? stageIndex - 1
+              : stageIndex + 1;
+
+          if (
+            targetIndex < 0 ||
+            targetIndex >=
+              exerciseStageDrafts.length
+          ) {
+            return;
+          }
+
+          const [stage] =
+            exerciseStageDrafts.splice(
+              stageIndex,
+              1
+            );
+          exerciseStageDrafts.splice(
+            targetIndex,
+            0,
+            stage
+          );
+        }
+
+        exerciseStageDrafts =
+          exerciseStageDrafts.map(
+            (stage, index) => ({
+              ...stage,
+              id: `stage-${index + 1}`,
+              label: `${index + 1}단계`
+            })
+          );
+
+        renderExerciseStages();
+        syncStageDerivedFields();
+      }
+    );
+  }
+
+  if (addExerciseStageBtn) {
+    addExerciseStageBtn.addEventListener(
+      "click",
+      () => {
+        if (
+          exerciseStageDrafts.length >= 12
+        ) {
+          setExerciseEditorMessage(
+            "반복 단계는 최대 12개까지 추가할 수 있습니다.",
+            true
+          );
+          return;
+        }
+
+        const previousTargets =
+          exerciseStageDrafts[
+            exerciseStageDrafts.length - 1
+          ]?.setTargets ||
+          createDefaultStageTargets();
+
+        exerciseStageDrafts.push({
+          id:
+            `stage-${exerciseStageDrafts.length + 1}`,
+          label:
+            `${exerciseStageDrafts.length + 1}단계`,
+          setTargets:
+            previousTargets.map(
+              (target) =>
+                Math.min(100, target + 1)
+            )
+        });
+
+        renderExerciseStages();
+        syncStageDerivedFields();
       }
     );
   }
