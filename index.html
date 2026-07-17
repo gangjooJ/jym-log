@@ -69,32 +69,63 @@
 <div class="app-shell hidden" id="mainApp">
   <div class="statusbar"></div>
   <header class="topbar">
-    <div class="brand">
-      <div class="brand-mark">JL</div>
+    <div class="topbar-leading">
+      <button
+        class="app-back-btn hidden"
+        id="navBackBtn"
+        type="button"
+        aria-label="이전 화면으로 돌아가기"
+      >
+        <span aria-hidden="true">‹</span>
+      </button>
+
+      <div class="brand">
+        <div class="brand-mark">JL</div>
+
         <div>
-          <div class="brand-title" data-app-name>JYM Log</div>
-          <div class="brand-sub" id="headerSub">오늘의 운동</div>
+          <div
+            class="brand-title"
+            data-app-name
+          >
+            JYM Log
+          </div>
+
+          <div
+            class="brand-sub"
+            id="headerSub"
+          >
+            오늘의 운동
+          </div>
         </div>
+      </div>
     </div>
+
     <div class="topbar-actions">
-  <div
-    class="sync-status"
-    id="syncStatus"
-    data-state="loading"
-    role="status"
-    aria-live="polite"
-  >
-    <span
-      class="sync-status-dot"
-      aria-hidden="true"
-    ></span>
+      <div
+        class="sync-status"
+        id="syncStatus"
+        data-state="loading"
+        role="status"
+        aria-live="polite"
+      >
+        <span
+          class="sync-status-dot"
+          aria-hidden="true"
+        ></span>
 
-    <span id="syncStatusText">
-      확인 중
-    </span>
-  </div>
+        <span id="syncStatusText">
+          확인 중
+        </span>
+      </div>
 
-    <button class="icon-btn" id="resetBtn" aria-label="프로토타입 초기화">↻</button>
+      <button
+        class="icon-btn"
+        id="resetBtn"
+        type="button"
+        aria-label="프로토타입 초기화"
+      >
+        ↻
+      </button>
     </div>
   </header>
 
@@ -916,6 +947,56 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div
+  class="navigation-modal"
+  id="leaveWorkoutModal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="leaveWorkoutTitle"
+  aria-hidden="true"
+>
+  <div class="navigation-modal-backdrop"></div>
+
+  <section class="navigation-sheet">
+    <div class="navigation-sheet-icon">
+      ‹
+    </div>
+
+    <div>
+      <p class="eyebrow">
+        운동 진행 중
+      </p>
+
+      <h2 id="leaveWorkoutTitle">
+        운동 화면을 나갈까요?
+      </h2>
+
+      <p class="navigation-sheet-description">
+        지금까지 입력한 운동 기록은 유지됩니다.
+        홈에서 다시 운동을 이어갈 수 있습니다.
+      </p>
+    </div>
+
+    <div class="navigation-sheet-actions">
+      <button
+        class="ghost-btn"
+        id="stayWorkoutBtn"
+        type="button"
+      >
+        계속 운동
+      </button>
+
+      <button
+        class="primary-btn"
+        id="leaveWorkoutBtn"
+        type="button"
+      >
+        나가기
+      </button>
+    </div>
+  </section>
+</div>
 
 <div
   class="exercise-editor-modal hidden"

@@ -1640,3 +1640,979 @@ body.routine-drag-active {
       repeat(2, minmax(0, 1fr));
   }
 }
+
+/* =========================================================
+   JYM Log dev-45
+   iOS Layout · Navigation · Motion Foundation
+   ========================================================= */
+
+:root {
+  --motion-instant: 90ms;
+  --motion-fast: 140ms;
+  --motion-standard: 220ms;
+  --motion-emphasis: 320ms;
+
+  --ease-standard:
+    cubic-bezier(
+      0.2,
+      0,
+      0,
+      1
+    );
+
+  --ease-enter:
+    cubic-bezier(
+      0,
+      0,
+      0.2,
+      1
+    );
+
+  --ease-exit:
+    cubic-bezier(
+      0.4,
+      0,
+      1,
+      1
+    );
+
+  --ease-spring:
+    cubic-bezier(
+      0.2,
+      0.8,
+      0.2,
+      1
+    );
+}
+
+html {
+  width: 100%;
+  min-height: 100%;
+  overflow-x: hidden;
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  -webkit-overflow-scrolling:
+    touch;
+}
+
+body.modal-open {
+  overflow: hidden;
+  touch-action: none;
+}
+
+.app-shell {
+  width: min(
+    100%,
+    430px
+  );
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+
+.statusbar {
+  height: max(
+    8px,
+    env(
+      safe-area-inset-top
+    )
+  );
+  min-height: 8px;
+}
+
+.topbar {
+  min-height: 66px;
+  padding:
+    12px
+    max(
+      16px,
+      env(
+        safe-area-inset-right
+      )
+    )
+    12px
+    max(
+      16px,
+      env(
+        safe-area-inset-left
+      )
+    );
+}
+
+.topbar-leading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.app-back-btn {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  padding: 0;
+  border: 1px solid
+    rgba(
+      229,
+      231,
+      235,
+      0.9
+    );
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.94
+    );
+  color: var(--text);
+  box-shadow:
+    0 6px 16px
+    rgba(
+      15,
+      23,
+      42,
+      0.07
+    );
+  font-size: 31px;
+  font-weight: 500;
+  line-height: 1;
+  -webkit-tap-highlight-color:
+    transparent;
+}
+
+.app-back-btn span {
+  display: block;
+  transform:
+    translateY(-1px);
+}
+
+main {
+  min-width: 0;
+  padding:
+    2px
+    max(
+      16px,
+      env(
+        safe-area-inset-right
+      )
+    )
+    calc(
+      112px +
+      env(
+        safe-area-inset-bottom
+      )
+    )
+    max(
+      16px,
+      env(
+        safe-area-inset-left
+      )
+    );
+}
+
+.screen {
+  display: none;
+  min-width: 0;
+  animation: none;
+  transform-origin:
+    50% 20%;
+}
+
+.screen.active {
+  display: block;
+  view-transition-name:
+    app-screen;
+}
+
+.screen-enter-forward {
+  animation:
+    screen-enter-forward
+    var(--motion-standard)
+    var(--ease-enter)
+    both;
+}
+
+.screen-enter-back {
+  animation:
+    screen-enter-back
+    var(--motion-standard)
+    var(--ease-enter)
+    both;
+}
+
+@keyframes screen-enter-forward {
+  from {
+    opacity: 0;
+    transform:
+      translate3d(
+        18px,
+        0,
+        0
+      )
+      scale(0.992);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translate3d(
+        0,
+        0,
+        0
+      )
+      scale(1);
+  }
+}
+
+@keyframes screen-enter-back {
+  from {
+    opacity: 0;
+    transform:
+      translate3d(
+        -14px,
+        0,
+        0
+      )
+      scale(0.995);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translate3d(
+        0,
+        0,
+        0
+      )
+      scale(1);
+  }
+}
+
+/* View Transition 지원 브라우저 */
+
+::view-transition-old(
+  app-screen
+),
+::view-transition-new(
+  app-screen
+) {
+  animation-duration:
+    var(--motion-standard);
+  animation-timing-function:
+    var(--ease-standard);
+}
+
+html[
+  data-nav-direction="forward"
+]
+::view-transition-old(
+  app-screen
+) {
+  animation-name:
+    view-old-forward;
+}
+
+html[
+  data-nav-direction="forward"
+]
+::view-transition-new(
+  app-screen
+) {
+  animation-name:
+    view-new-forward;
+}
+
+html[
+  data-nav-direction="back"
+]
+::view-transition-old(
+  app-screen
+) {
+  animation-name:
+    view-old-back;
+}
+
+html[
+  data-nav-direction="back"
+]
+::view-transition-new(
+  app-screen
+) {
+  animation-name:
+    view-new-back;
+}
+
+@keyframes view-old-forward {
+  to {
+    opacity: 0.28;
+    transform:
+      translate3d(
+        -10px,
+        0,
+        0
+      )
+      scale(0.994);
+  }
+}
+
+@keyframes view-new-forward {
+  from {
+    opacity: 0;
+    transform:
+      translate3d(
+        18px,
+        0,
+        0
+      )
+      scale(0.992);
+  }
+}
+
+@keyframes view-old-back {
+  to {
+    opacity: 0.25;
+    transform:
+      translate3d(
+        12px,
+        0,
+        0
+      )
+      scale(0.995);
+  }
+}
+
+@keyframes view-new-back {
+  from {
+    opacity: 0;
+    transform:
+      translate3d(
+        -14px,
+        0,
+        0
+      )
+      scale(0.995);
+  }
+}
+
+/* iOS 홈 화면 PWA 스와이프 미리보기 */
+
+.screen.active.is-swipe-back {
+  position: relative;
+  z-index: 2;
+  transform:
+    translate3d(
+      var(
+        --swipe-back-x,
+        0px
+      ),
+      0,
+      0
+    );
+  transition: none;
+  will-change: transform;
+  box-shadow:
+    -18px 0 36px
+    rgba(
+      15,
+      23,
+      42,
+      0.14
+    );
+}
+
+.screen.active.is-swipe-canceling {
+  transform:
+    translate3d(
+      var(
+        --swipe-back-x,
+        0px
+      ),
+      0,
+      0
+    );
+  transition:
+    transform
+    var(--motion-standard)
+    var(--ease-standard);
+}
+
+/* 공통 터치 피드백 */
+
+button,
+[role="button"],
+.nav-btn,
+.history-card {
+  -webkit-tap-highlight-color:
+    transparent;
+  touch-action: manipulation;
+}
+
+button {
+  transition:
+    transform
+      var(--motion-fast)
+      var(--ease-standard),
+    opacity
+      var(--motion-fast)
+      ease,
+    background-color
+      var(--motion-standard)
+      ease,
+    border-color
+      var(--motion-standard)
+      ease,
+    box-shadow
+      var(--motion-standard)
+      ease;
+}
+
+button:active:not(
+  :disabled
+) {
+  transform:
+    scale(0.965);
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline:
+    3px solid
+    rgba(
+      79,
+      70,
+      229,
+      0.2
+    );
+  outline-offset: 2px;
+}
+
+.nav-btn {
+  min-height: 52px;
+  transition:
+    transform
+      var(--motion-fast)
+      var(--ease-standard),
+    color
+      var(--motion-standard)
+      ease,
+    background-color
+      var(--motion-standard)
+      ease;
+}
+
+.nav-btn.active {
+  animation:
+    nav-selected
+    var(--motion-standard)
+    var(--ease-spring);
+}
+
+@keyframes nav-selected {
+  0% {
+    transform:
+      scale(0.94);
+  }
+
+  65% {
+    transform:
+      scale(1.025);
+  }
+
+  100% {
+    transform:
+      scale(1);
+  }
+}
+
+.card,
+.exercise-row,
+.metric,
+.set-row {
+  transition:
+    transform
+      var(--motion-standard)
+      var(--ease-standard),
+    opacity
+      var(--motion-standard)
+      ease,
+    border-color
+      var(--motion-standard)
+      ease,
+    background-color
+      var(--motion-standard)
+      ease,
+    box-shadow
+      var(--motion-standard)
+      ease;
+}
+
+.set-row.done {
+  animation:
+    set-row-complete
+    var(--motion-emphasis)
+    var(--ease-spring);
+}
+
+@keyframes set-row-complete {
+  0% {
+    transform:
+      scale(0.985);
+  }
+
+  55% {
+    transform:
+      scale(1.012);
+  }
+
+  100% {
+    transform:
+      scale(1);
+  }
+}
+
+.progress-bar {
+  transition:
+    width
+    var(--motion-emphasis)
+    var(--ease-standard);
+}
+
+/* 토스트 */
+
+.toast {
+  transform:
+    translate(
+      -50%,
+      22px
+    )
+    scale(0.98);
+  transition:
+    opacity
+      var(--motion-standard)
+      ease,
+    transform
+      var(--motion-standard)
+      var(--ease-spring);
+}
+
+.toast.show {
+  transform:
+    translate(
+      -50%,
+      0
+    )
+    scale(1);
+}
+
+/* 기존 피로도 바텀시트 */
+
+.modal.show {
+  animation:
+    modal-overlay-in
+    var(--motion-standard)
+    ease
+    both;
+}
+
+.modal.show .sheet {
+  animation:
+    modal-sheet-in
+    var(--motion-emphasis)
+    var(--ease-spring)
+    both;
+}
+
+/* 운동 편집·동기화 모달 */
+
+.exercise-editor-modal:not(
+  .hidden
+),
+.sync-conflict-modal:not(
+  .hidden
+) {
+  animation:
+    modal-overlay-in
+    var(--motion-standard)
+    ease
+    both;
+}
+
+.exercise-editor-modal:not(
+  .hidden
+)
+.exercise-editor-sheet,
+.sync-conflict-modal:not(
+  .hidden
+)
+.sync-conflict-sheet {
+  animation:
+    modal-sheet-in
+    var(--motion-emphasis)
+    var(--ease-spring)
+    both;
+}
+
+@keyframes modal-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-sheet-in {
+  from {
+    opacity: 0;
+    transform:
+      translate3d(
+        0,
+        28px,
+        0
+      )
+      scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translate3d(
+        0,
+        0,
+        0
+      )
+      scale(1);
+  }
+}
+
+/* 운동 이탈 확인 모달 */
+
+.navigation-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.navigation-modal.show {
+  display: flex;
+  animation:
+    modal-overlay-in
+    var(--motion-standard)
+    ease
+    both;
+}
+
+.navigation-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    rgba(
+      15,
+      23,
+      42,
+      0.48
+    );
+  backdrop-filter:
+    blur(3px);
+  -webkit-backdrop-filter:
+    blur(3px);
+}
+
+.navigation-sheet {
+  position: relative;
+  z-index: 1;
+  width: min(
+    100%,
+    430px
+  );
+  padding:
+    22px
+    18px
+    calc(
+      22px +
+      env(
+        safe-area-inset-bottom
+      )
+    );
+  border-radius:
+    28px
+    28px
+    0
+    0;
+  background:
+    var(--surface);
+  box-shadow:
+    0 -22px 52px
+    rgba(
+      15,
+      23,
+      42,
+      0.22
+    );
+  animation:
+    modal-sheet-in
+    var(--motion-emphasis)
+    var(--ease-spring)
+    both;
+}
+
+.navigation-sheet-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background:
+    var(--primary-soft);
+  color: var(--accent);
+  font-size: 32px;
+  line-height: 1;
+}
+
+.navigation-sheet h2 {
+  font-size: 22px;
+  line-height: 1.35;
+}
+
+.navigation-sheet-description {
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+  word-break: keep-all;
+}
+
+.navigation-sheet-actions {
+  display: grid;
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(
+        0,
+        1fr
+      )
+    );
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.navigation-sheet-actions button {
+  width: 100%;
+}
+
+/* iPhone 13 및 모바일 화면 */
+
+@media (
+  max-width: 699px
+) {
+  body {
+    background:
+      var(--bg);
+  }
+
+  .app-shell {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  .topbar-actions {
+    gap: 6px;
+  }
+
+  .sync-status {
+    max-width: 104px;
+  }
+
+  .sync-status-text,
+  #syncStatusText {
+    overflow: hidden;
+    text-overflow:
+      ellipsis;
+    white-space: nowrap;
+  }
+
+  input,
+  select,
+  textarea {
+    /*
+     * iOS Safari의 입력 시
+     * 자동 확대 방지
+     */
+    font-size:
+      16px !important;
+  }
+
+  .bottom-nav {
+    width: 100%;
+    padding:
+      8px
+      max(
+        8px,
+        env(
+          safe-area-inset-right
+        )
+      )
+      calc(
+        8px +
+        env(
+          safe-area-inset-bottom
+        )
+      )
+      max(
+        8px,
+        env(
+          safe-area-inset-left
+        )
+      );
+  }
+
+  .timer-card {
+    bottom:
+      calc(
+        82px +
+        env(
+          safe-area-inset-bottom
+        )
+      );
+  }
+
+  .sheet,
+  .exercise-editor-sheet,
+  .sync-conflict-sheet {
+    max-height:
+      calc(
+        100dvh -
+        env(
+          safe-area-inset-top
+        )
+      );
+    overflow-y: auto;
+    overscroll-behavior:
+      contain;
+  }
+}
+
+@media (
+  max-width: 390px
+) {
+  .topbar {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .app-back-btn {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+
+  .brand {
+    gap: 8px;
+  }
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+  }
+
+  .sync-status {
+    max-width: 86px;
+    padding: 0 8px;
+  }
+
+  .hero {
+    padding: 20px;
+  }
+
+  .hero-top {
+    flex-wrap: wrap;
+  }
+
+  .hero-top .pill {
+    max-width: 100%;
+  }
+
+  .hero-stats {
+    gap: 6px;
+  }
+
+  .hero-stat {
+    min-width: 0;
+    padding:
+      11px
+      5px;
+  }
+
+  .hero-stat strong {
+    font-size: 15px;
+  }
+
+  .set-row {
+    grid-template-columns:
+      38px
+      minmax(0, 1fr)
+      minmax(0, 1fr)
+      46px;
+    gap: 6px;
+    padding: 8px;
+  }
+}
+
+/* 기존 데스크톱 미디어쿼리 보정 */
+
+@media (
+  min-width: 700px
+) {
+  .app-shell {
+    min-height:
+      calc(
+        100dvh -
+        48px
+      );
+  }
+}
+
+/* 접근성: 동작 줄이기 */
+
+@media (
+  prefers-reduced-motion:
+    reduce
+) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior:
+      auto !important;
+    animation-duration:
+      1ms !important;
+    animation-delay:
+      0ms !important;
+    animation-iteration-count:
+      1 !important;
+    transition-duration:
+      1ms !important;
+  }
+}
