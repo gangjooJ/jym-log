@@ -27,6 +27,21 @@
       "historySessionList"
     );
 
+  const progressionHistorySummary =
+    document.getElementById(
+      "progressionHistorySummary"
+    );
+
+  const progressionHistoryList =
+    document.getElementById(
+      "progressionHistoryList"
+    );
+
+  const progressionHistoryMessage =
+    document.getElementById(
+      "progressionHistoryMessage"
+    );
+
   const weekRange =
     document.getElementById(
       "historyWeekRange"
@@ -432,6 +447,372 @@
         .join("");
   }
 
+  function formatProgressionChangeDate(
+    timestampMillis
+  ) {
+    if (!timestampMillis) {
+      return "현재 루틴";
+    }
+
+    return new Intl.DateTimeFormat(
+      window.JYMLog.config.locale,
+      {
+        timeZone:
+          window.JYMLog.config
+            .timezone,
+        month: "numeric",
+        day: "numeric"
+      }
+    ).format(
+      new Date(timestampMillis)
+    );
+  }
+
+  function formatProgressionWeight(
+    value
+  ) {
+    const number = Number(value) || 0;
+
+    return Number.isInteger(number)
+      ? String(number)
+      : String(
+          Math.round(number * 100) /
+          100
+        );
+  }
+
+  function getProgressionChangeLabel(
+    change
+  ) {
+    return change?.kind ===
+      "recommended-increase"
+      ? "증량 추천 반영"
+      : "목표 변경";
+  }
+
+  function renderProgressionChange(
+    change
+  ) {
+    return `
+      <div class="progression-history-change-row">
+        <span>
+          ${escapeHtml(
+            formatProgressionChangeDate(
+              change.completedAtMillis
+            )
+          )} · ${escapeHtml(
+            getProgressionChangeLabel(
+              change
+            )
+          )}
+        </span>
+
+        <strong>
+          ${
+            change.onlyWeightChanged
+              ? `${formatProgressionWeight(
+                  change.fromWeight
+                )}kg → ${formatProgressionWeight(
+                  change.toWeight
+                )}kg`
+              : `${escapeHtml(
+                  change.fromTargetText ||
+                  `${formatProgressionWeight(
+                    change.fromWeight
+                  )}kg`
+                )} → ${escapeHtml(
+                  change.toTargetText ||
+                  `${formatProgressionWeight(
+                    change.toWeight
+                  )}kg`
+                )}`
+          }
+        </strong>
+      </div>
+    `;
+  }
+
+  function renderProgressionHistoryCard(
+    history,
+    historyIndex
+  ) {
+    const requiredSuccesses =
+      Math.max(
+        1,
+        Number(
+          history.requiredSuccesses
+        ) || 2
+      );
+
+    const visibleStreak =
+      Math.min(
+        requiredSuccesses,
+        Math.max(
+          0,
+          Number(
+            history.currentStreak
+          ) || 0
+        )
+      );
+
+    const dots =
+      Array.from(
+        {
+          length:
+            requiredSuccesses
+        },
+        (_, index) => `
+          <span
+            class="progression-history-dot ${
+              index < visibleStreak
+                ? "active"
+                : ""
+            }"
+            aria-hidden="true"
+          ></span>
+        `
+      ).join("");
+
+    const changes =
+      Array.isArray(
+        history.changes
+      )
+        ? history.changes
+        : [];
+
+    const changeMarkup =
+      changes.length > 0
+        ? `
+          <div class="progression-history-changes">
+            <div class="progression-history-change-title">
+              최근 목표 변경
+            </div>
+
+            <div class="progression-history-change-list">
+              ${changes
+                .map(
+                  renderProgressionChange
+                )
+                .join("")}
+            </div>
+          </div>
+        `
+        : "";
+
+    return `
+      <article
+        class="card progression-history-card"
+        data-state="${escapeHtml(
+          history.state
+        )}"
+      >
+        <div class="progression-history-head">
+          <div class="progression-history-title">
+            <span class="progression-history-order">
+              ${String(
+                historyIndex + 1
+              ).padStart(2, "0")}
+            </span>
+
+            <strong>
+              ${escapeHtml(
+                history.exerciseName
+              )}
+            </strong>
+          </div>
+
+          <span class="progression-history-badge">
+            ${escapeHtml(
+              history.badge
+            )}
+          </span>
+        </div>
+
+        <div class="progression-history-goal">
+          <span>현재 루틴 목표</span>
+          <strong>
+            ${escapeHtml(
+              history.routineTargetText
+            )}
+          </strong>
+        </div>
+
+        <div class="progression-history-streak">
+          <div class="progression-history-streak-head">
+            <span>최근 동일 목표 연속 성공</span>
+            <strong>
+              ${Number(
+                history.currentStreak
+              ) || 0} / ${requiredSuccesses}
+            </strong>
+          </div>
+
+          <div class="progression-history-dots">
+            ${dots}
+          </div>
+        </div>
+
+        <div class="progression-history-metrics">
+          <div class="progression-history-metric">
+            <span>누적 성공</span>
+            <strong>
+              ${Number(
+                history.totalSuccesses
+              ) || 0}회
+            </strong>
+          </div>
+
+          <div class="progression-history-metric">
+            <span>기록 세션</span>
+            <strong>
+              ${Number(
+                history.recordCount
+              ) || 0}회
+            </strong>
+          </div>
+        </div>
+
+        <p class="progression-history-status">
+          ${escapeHtml(
+            history.statusMessage
+          )}
+        </p>
+
+        ${changeMarkup}
+      </article>
+    `;
+  }
+
+  function setProgressionHistoryMessage(
+    message,
+    isError = false
+  ) {
+    if (!progressionHistoryMessage) {
+      return;
+    }
+
+    progressionHistoryMessage.textContent =
+      message;
+
+    progressionHistoryMessage.classList.toggle(
+      "error",
+      isError
+    );
+  }
+
+  function setProgressionHistoryLoading() {
+    if (progressionHistorySummary) {
+      progressionHistorySummary.textContent =
+        "불러오는 중";
+    }
+
+    if (progressionHistoryList) {
+      progressionHistoryList.setAttribute(
+        "aria-busy",
+        "true"
+      );
+
+      progressionHistoryList.innerHTML = `
+        <div class="card progression-history-state">
+          증량 진행 이력을 분석하고 있습니다.
+        </div>
+      `;
+    }
+
+    setProgressionHistoryMessage("");
+  }
+
+  function renderProgressionHistory(
+    sessions = sessionsCache
+  ) {
+    if (
+      !progressionHistorySummary ||
+      !progressionHistoryList
+    ) {
+      return;
+    }
+
+    const historyEngine =
+      window.JYMLog
+        .progressionHistory;
+
+    const exercises =
+      window.JYMLog.workout
+        ?.exercises || [];
+
+    progressionHistoryList.setAttribute(
+      "aria-busy",
+      "false"
+    );
+
+    if (
+      !historyEngine
+        ?.buildOverview
+    ) {
+      progressionHistorySummary.textContent =
+        "오류";
+
+      progressionHistoryList.innerHTML = `
+        <div class="card progression-history-state error">
+          증량 이력 모듈을 불러오지 못했습니다.
+        </div>
+      `;
+
+      setProgressionHistoryMessage(
+        "화면을 새로고침한 뒤 다시 확인해 주세요.",
+        true
+      );
+      return;
+    }
+
+    const overview =
+      historyEngine.buildOverview({
+        exercises,
+        sessions,
+        requiredSuccesses:
+          window.JYMLog
+            .progressionEngine
+            ?.requiredConsecutiveSuccesses ||
+          2,
+        maxChanges: 3
+      });
+
+    progressionHistorySummary.textContent =
+      `적용 ${overview.appliedCount} · ` +
+      `준비 ${overview.readyCount} · ` +
+      `진행 ${overview.progressCount} · ` +
+      `재도전 ${overview.retryCount}`;
+
+    if (
+      overview.exerciseHistories
+        .length === 0
+    ) {
+      progressionHistoryList.innerHTML = `
+        <div class="card progression-history-state">
+          현재 루틴에 등록된 운동이 없습니다.
+        </div>
+      `;
+
+      setProgressionHistoryMessage(
+        "루틴에 운동을 추가하면 운동별 진행 이력이 표시됩니다."
+      );
+      return;
+    }
+
+    progressionHistoryList.innerHTML =
+      overview.exerciseHistories
+        .map(
+          renderProgressionHistoryCard
+        )
+        .join("");
+
+    setProgressionHistoryMessage(
+      overview.totalChanges > 0
+        ? "완료 세션의 목표 변화와 현재 루틴을 비교했습니다. 추천 조건이 확인된 변경만 ‘증량 추천 반영’으로 표시합니다."
+        : "완료 세션을 기준으로 운동별 연속 성공 횟수를 계산했습니다."
+    );
+  }
+
   async function load() {
     if (
       !sessionList ||
@@ -439,6 +820,8 @@
     ) {
       return;
     }
+
+    setProgressionHistoryLoading();
 
     sessionCount.textContent =
       "불러오는 중";
@@ -480,6 +863,10 @@
       renderSessions(
         sessionsCache
       );
+
+      renderProgressionHistory(
+        sessionsCache
+      );
     } catch (error) {
       console.error(
         "[JYM Log] 운동 기록 불러오기 실패",
@@ -500,6 +887,30 @@
           네트워크 연결을 확인한 뒤 다시 열어 주세요.
         </div>
       `;
+
+
+      if (progressionHistorySummary) {
+        progressionHistorySummary.textContent =
+          "오류";
+      }
+
+      if (progressionHistoryList) {
+        progressionHistoryList.setAttribute(
+          "aria-busy",
+          "false"
+        );
+
+        progressionHistoryList.innerHTML = `
+          <div class="card progression-history-state error">
+            증량 진행 이력을 불러오지 못했습니다.
+          </div>
+        `;
+      }
+
+      setProgressionHistoryMessage(
+        "운동 기록을 불러온 뒤 다시 분석할 수 있습니다.",
+        true
+      );
     }
   }
 
@@ -806,6 +1217,8 @@
     renderCalendar(
       sessionsCache
     );
+
+    setProgressionHistoryLoading();
   }
 
   function attachEvents() {
@@ -874,6 +1287,18 @@
           sessionCard.dataset
             .sessionId
         );
+      }
+    );
+
+
+    window.addEventListener(
+      "jym-log:routine-ready",
+      () => {
+        if (sessionsCache.length > 0) {
+          renderProgressionHistory(
+            sessionsCache
+          );
+        }
       }
     );
   }

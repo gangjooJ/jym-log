@@ -14,6 +14,7 @@
   <link rel="apple-touch-icon" href="./icon-192.png" />
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/progression.css" />
+  <link rel="stylesheet" href="./css/progression-history.css" />
 </head>
 
 <body>
@@ -338,6 +339,32 @@
           id="historyCalendar"
           aria-label="이번 주 운동 달력"
         ></div>
+
+        <div class="section-title">
+          <h2>증량 진행 이력</h2>
+
+          <small id="progressionHistorySummary">
+            불러오는 중
+          </small>
+        </div>
+
+        <div
+          class="progression-history-list"
+          id="progressionHistoryList"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div class="card progression-history-state">
+            증량 진행 이력을 분석하고 있습니다.
+          </div>
+        </div>
+
+        <p
+          class="progression-history-message"
+          id="progressionHistoryMessage"
+          role="status"
+          aria-live="polite"
+        ></p>
 
         <div class="section-title">
           <h2>최근 세션</h2>
@@ -1051,6 +1078,7 @@
 <script src="./js/progression-engine.js"></script>
 <script src="./js/workout-ui.js"></script>
 <script src="./js/routine-ui.js"></script>
+<script src="./js/progression-history.js"></script>
 <script src="./js/history-ui.js"></script>
 <script src="./js/analysis-ui.js"></script>
 <script src="./js/sync-conflict-ui.js"></script>

@@ -1,0 +1,239 @@
+.progression-history-list {
+  display: grid;
+  gap: 12px;
+}
+
+.progression-history-card {
+  padding: 16px;
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+.progression-history-head,
+.progression-history-title,
+.progression-history-streak-head,
+.progression-history-change-row {
+  display: flex;
+  align-items: center;
+}
+
+.progression-history-head {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progression-history-title {
+  min-width: 0;
+  gap: 9px;
+}
+
+.progression-history-title strong {
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progression-history-order {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+.progression-history-badge {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(107, 114, 128, .12);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.progression-history-card[data-state="applied"]
+  .progression-history-badge,
+.progression-history-card[data-state="ready"]
+  .progression-history-badge {
+  background: rgba(15, 159, 110, .12);
+  color: var(--good);
+}
+
+.progression-history-card[data-state="progress"]
+  .progression-history-badge {
+  background: rgba(79, 70, 229, .1);
+  color: var(--accent);
+}
+
+.progression-history-card[data-state="retry"]
+  .progression-history-badge {
+  background: rgba(217, 119, 6, .12);
+  color: var(--warn);
+}
+
+.progression-history-card[data-state="changed"]
+  .progression-history-badge {
+  background: rgba(220, 38, 38, .1);
+  color: var(--danger);
+}
+
+.progression-history-goal {
+  margin-top: 13px;
+  padding: 12px 13px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.progression-history-goal span,
+.progression-history-metric span,
+.progression-history-change-title {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.progression-history-goal strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.progression-history-streak {
+  margin-top: 13px;
+}
+
+.progression-history-streak-head {
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.progression-history-streak-head strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.progression-history-dots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.progression-history-dot {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.progression-history-dot.active {
+  background: var(--accent);
+}
+
+.progression-history-card[data-state="applied"]
+  .progression-history-dot.active,
+.progression-history-card[data-state="ready"]
+  .progression-history-dot.active {
+  background: var(--good);
+}
+
+.progression-history-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.progression-history-metric {
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+}
+
+.progression-history-metric strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 14px;
+}
+
+.progression-history-status {
+  margin: 11px 1px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.progression-history-changes {
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.progression-history-change-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.progression-history-change-row {
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.progression-history-change-row strong {
+  color: var(--text);
+  font-size: 12px;
+  text-align: right;
+}
+
+.progression-history-state {
+  padding: 16px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.progression-history-state.error,
+.progression-history-message.error {
+  color: var(--danger);
+}
+
+.progression-history-message {
+  margin: 10px 2px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+#progressionHistoryList[aria-busy="true"] {
+  opacity: .72;
+  cursor: wait;
+}
+
+@media (max-width: 360px) {
+  .progression-history-head {
+    align-items: flex-start;
+  }
+
+  .progression-history-title strong {
+    white-space: normal;
+  }
+
+  .progression-history-change-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .progression-history-change-row strong {
+    text-align: left;
+  }
+}
