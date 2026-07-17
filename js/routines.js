@@ -15,6 +15,15 @@ window.JYMLog =
 const workout =
   window.JYMLog.workout;
 
+const progressionPolicy =
+  window.JYMLog.progressionPolicy;
+
+if (!progressionPolicy) {
+  throw new Error(
+    "진행 정책 모듈을 불러오지 못했습니다."
+  );
+}
+
 const ROUTINE_SCHEMA_VERSION = 1;
 const ACTIVE_ROUTINE_ID = "main";
 
@@ -33,9 +42,7 @@ function normalizeText(value) {
 }
 
 function validateRoutineName(value) {
-  const name =
-    normalizeText(value);
-
+  const name = normalizeText(value);
   const length =
     Array.from(name).length;
 
@@ -71,6 +78,21 @@ function normalizeDescription(value) {
     "사용자 설정 루틴";
 }
 
+function normalizeRoutineExercise(
+  routineId,
+  exercise,
+  exerciseIndex
+) {
+  return progressionPolicy
+    .normalizeRoutineExercise(
+      exercise,
+      {
+        routineId,
+        index: exerciseIndex
+      }
+    );
+}
+
 function validateExerciseInput(
   currentExercise,
   input,
@@ -99,8 +121,7 @@ function validateExerciseInput(
       ? "고정 반복형"
       : "반복 범위형";
 
-  const weight =
-    Number(input.weight);
+  const weight = Number(input.weight);
 
   if (
     !Number.isFinite(weight) ||
@@ -112,8 +133,7 @@ function validateExerciseInput(
     );
   }
 
-  const sets =
-    Number(input.sets);
+  const sets = Number(input.sets);
 
   if (
     !Number.isInteger(sets) ||
@@ -125,8 +145,7 @@ function validateExerciseInput(
     );
   }
 
-  const minReps =
-    Number(input.min);
+  const minReps = Number(input.min);
 
   if (
     !Number.isInteger(minReps) ||
@@ -138,7 +157,7 @@ function validateExerciseInput(
     );
   }
 
-  let maxReps =
+  const maxReps =
     type === "고정 반복형"
       ? minReps
       : Number(input.max);
@@ -153,8 +172,7 @@ function validateExerciseInput(
     );
   }
 
-  const rest =
-    Number(input.rest);
+  const rest = Number(input.rest);
 
   if (
     !Number.isInteger(rest) ||
@@ -179,32 +197,30 @@ function validateExerciseInput(
     );
   }
 
-  return {
-    ...currentExercise,
-
-    id:
-      currentExercise.id ||
-      `exercise-${exerciseIndex + 1}`,
-
-    order:
-      exerciseIndex,
-
-    name,
-
-    icon:
-      currentExercise.icon ||
-      name.charAt(0),
-
-    type,
-    weight,
-    sets,
-    min:
-      minReps,
-    max:
-      maxReps,
-    rest,
-    increment
-  };
+  return normalizeRoutineExercise(
+    activeRoutine?.id ||
+      currentExercise?.routineId ||
+      ACTIVE_ROUTINE_ID,
+    {
+      ...currentExercise,
+      id:
+        currentExercise.id ||
+        `exercise-${exerciseIndex + 1}`,
+      order: exerciseIndex,
+      name,
+      icon:
+        currentExercise.icon ||
+        name.charAt(0),
+      type,
+      weight,
+      sets,
+      min: minReps,
+      max: maxReps,
+      rest,
+      increment
+    },
+    exerciseIndex
+  );
 }
 
 function emitRoutineReady() {
@@ -213,54 +229,40 @@ function emitRoutineReady() {
       "jym-log:routine-ready",
       {
         detail: {
-          routine:
-            activeRoutine
+          routine: activeRoutine
         }
       }
     )
   );
 }
 
-/**
- * 현재 기본 운동 목록으로
- * 첫 번째 사용자 루틴을 만듭니다.
- */
 function createDefaultRoutine(userId) {
   const exercises =
     workout.exercises.map(
-      (exercise, index) => ({
-        ...cloneData(exercise),
-
-        id:
-          exercise.id ||
-          `exercise-${index + 1}`,
-
-        order:
+      (exercise, index) =>
+        normalizeRoutineExercise(
+          ACTIVE_ROUTINE_ID,
+          {
+            ...cloneData(exercise),
+            id:
+              exercise.id ||
+              `exercise-${index + 1}`,
+            order: index
+          },
           index
-      })
+        )
     );
 
   return {
-    id:
-      ACTIVE_ROUTINE_ID,
-
+    id: ACTIVE_ROUTINE_ID,
     userId,
-
     schemaVersion:
       ROUTINE_SCHEMA_VERSION,
-
-    name:
-      "가슴 · 팔 A",
-
-    code:
-      "upper-a",
-
+    name: "가슴 · 팔 A",
+    code: "upper-a",
     description:
       "벤치프레스 중심",
-
-    isActive:
-      true,
-
+    isActive: true,
     exercises
   };
 }
@@ -283,62 +285,40 @@ function normalizeRoutine(
     [...sourceExercises]
       .sort(
         (first, second) =>
-          (
-            Number(first.order) || 0
-          ) -
-          (
-            Number(second.order) || 0
-          )
+          (Number(first.order) || 0) -
+          (Number(second.order) || 0)
       )
       .map(
-        (exercise, index) => ({
-          ...cloneData(exercise),
-
-          id:
-            String(
-              exercise.id ||
-              `exercise-${index + 1}`
-            ),
-
-          order:
+        (exercise, index) =>
+          normalizeRoutineExercise(
+            routineId,
+            exercise,
             index
-        })
+          )
       );
 
   return {
-    id:
-      routineId,
-
+    id: routineId,
     userId,
-
     schemaVersion:
       ROUTINE_SCHEMA_VERSION,
-
     name:
       normalizeText(data?.name) ||
       fallbackRoutine.name,
-
     code:
       normalizeText(data?.code) ||
       fallbackRoutine.code,
-
     description:
       normalizeText(
         data?.description
       ) ||
       fallbackRoutine.description,
-
     isActive:
       data?.isActive !== false,
-
     exercises
   };
 }
 
-/**
- * 로그인 사용자의 기본 루틴을 확인합니다.
- * 문서가 없으면 기본 루틴을 생성합니다.
- */
 async function ensureActiveRoutine(
   userId
 ) {
@@ -370,10 +350,8 @@ async function ensureActiveRoutine(
       routineDocument,
       {
         ...defaultRoutine,
-
         createdAt:
           serverTimestamp(),
-
         updatedAt:
           serverTimestamp()
       }
@@ -404,13 +382,9 @@ async function ensureActiveRoutine(
   );
 
   emitRoutineReady();
-
   return activeRoutine;
 }
 
-/**
- * 활성 루틴의 이름과 설명을 수정합니다.
- */
 async function updateActiveRoutineMetadata(
   nameValue,
   descriptionValue
@@ -422,9 +396,7 @@ async function updateActiveRoutineMetadata(
   }
 
   const name =
-    validateRoutineName(
-      nameValue
-    );
+    validateRoutineName(nameValue);
 
   const description =
     normalizeDescription(
@@ -445,13 +417,10 @@ async function updateActiveRoutineMetadata(
     {
       userId:
         activeRoutine.userId,
-
       schemaVersion:
         ROUTINE_SCHEMA_VERSION,
-
       name,
       description,
-
       updatedAt:
         serverTimestamp()
     },
@@ -510,20 +479,21 @@ function createExerciseId() {
   ].join("-");
 }
 
-/**
- * 운동 목록을 Firestore에 저장하고
- * 현재 앱 화면에도 적용합니다.
- */
 async function saveActiveRoutineExercises(
   nextExercises,
   logMessage
 ) {
   const orderedExercises =
     nextExercises.map(
-      (exercise, index) => ({
-        ...exercise,
-        order: index
-      })
+      (exercise, index) =>
+        normalizeRoutineExercise(
+          activeRoutine.id,
+          {
+            ...exercise,
+            order: index
+          },
+          index
+        )
     );
 
   const routineDocument =
@@ -540,13 +510,10 @@ async function saveActiveRoutineExercises(
     {
       userId:
         activeRoutine.userId,
-
       schemaVersion:
         ROUTINE_SCHEMA_VERSION,
-
       exercises:
         orderedExercises,
-
       updatedAt:
         serverTimestamp()
     },
@@ -566,10 +533,6 @@ async function saveActiveRoutineExercises(
     false
   );
 
-  /*
-   * 운동 구조가 바뀌면 이전 초안의
-   * 세트 번호가 어긋날 수 있으므로 초기화합니다.
-   */
   workout.resetWorkout();
   workout.saveState();
 
@@ -582,9 +545,6 @@ async function saveActiveRoutineExercises(
   return orderedExercises;
 }
 
-/**
- * 기존 운동 설정 수정
- */
 async function updateActiveRoutineExercise(
   exerciseIndex,
   exerciseInput
@@ -625,17 +585,13 @@ async function updateActiveRoutineExercise(
   return updatedExercise;
 }
 
-/**
- * 새 운동 추가
- */
 async function addActiveRoutineExercise(
   exerciseInput
 ) {
   assertRoutineCanChange();
 
   if (
-    activeRoutine.exercises.length >=
-    30
+    activeRoutine.exercises.length >= 30
   ) {
     throw new Error(
       "하나의 루틴에는 운동을 최대 30개까지 추가할 수 있습니다."
@@ -646,39 +602,17 @@ async function addActiveRoutineExercise(
     activeRoutine.exercises.length;
 
   const exerciseDraft = {
-    id:
-      createExerciseId(),
-
-    order:
-      exerciseIndex,
-
-    name:
-      "새 운동",
-
-    icon:
-      "",
-
-    type:
-      "반복 범위형",
-
-    weight:
-      0,
-
-    sets:
-      3,
-
-    min:
-      8,
-
-    max:
-      12,
-
-    rest:
-      90,
-
-    increment:
-      2.5,
-
+    id: createExerciseId(),
+    order: exerciseIndex,
+    name: "새 운동",
+    icon: "",
+    type: "반복 범위형",
+    weight: 0,
+    sets: 3,
+    min: 8,
+    max: 12,
+    rest: 90,
+    increment: 2.5,
     previous:
       "이전 기록 없음"
   };
@@ -703,9 +637,6 @@ async function addActiveRoutineExercise(
   return newExercise;
 }
 
-/**
- * 기존 운동 삭제
- */
 async function deleteActiveRoutineExercise(
   exerciseIndex
 ) {
@@ -744,9 +675,6 @@ async function deleteActiveRoutineExercise(
   return deletedExercise;
 }
 
-/**
- * 운동 한 개를 원하는 위치로 이동합니다.
- */
 async function reorderActiveRoutineExercises(
   sourceIndex,
   targetIndex
@@ -797,9 +725,6 @@ async function reorderActiveRoutineExercises(
   return nextExercises;
 }
 
-/**
- * 화살표 버튼으로 운동을 한 칸 이동합니다.
- */
 async function moveActiveRoutineExercise(
   exerciseIndex,
   direction
@@ -845,7 +770,6 @@ window.JYMLog.routines =
     deleteActiveRoutineExercise,
     reorderActiveRoutineExercises,
     moveActiveRoutineExercise,
-
     get activeRoutine() {
       return activeRoutine;
     }

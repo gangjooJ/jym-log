@@ -3,6 +3,16 @@ const path = require("node:path");
 const vm = require("node:vm");
 const assert = require("node:assert/strict");
 
+const policySource = fs.readFileSync(
+  path.join(
+    __dirname,
+    "..",
+    "js",
+    "progression-policy.js"
+  ),
+  "utf8"
+);
+
 const source = fs.readFileSync(
   path.join(
     __dirname,
@@ -21,6 +31,7 @@ const context = {
 };
 
 vm.createContext(context);
+vm.runInContext(policySource, context);
 vm.runInContext(source, context);
 
 const engine =

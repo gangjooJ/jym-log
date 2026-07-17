@@ -769,11 +769,6 @@
       historyEngine.buildOverview({
         exercises,
         sessions,
-        requiredSuccesses:
-          window.JYMLog
-            .progressionEngine
-            ?.requiredConsecutiveSuccesses ||
-          2,
         maxChanges: 3
       });
 

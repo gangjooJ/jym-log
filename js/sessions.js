@@ -10,148 +10,198 @@ import {
   db
 } from "./firebase-client.js";
 
-window.JYMLog =
-  window.JYMLog || {};
+window.JYMLog = window.JYMLog || {};
 
-const workout =
-  window.JYMLog.workout;
+const workout = window.JYMLog.workout;
+const progressionPolicy =
+  window.JYMLog.progressionPolicy;
+
+if (!progressionPolicy) {
+  throw new Error(
+    "진행 정책 모듈을 불러오지 못했습니다."
+  );
+}
 
 const SESSION_SCHEMA_VERSION = 1;
 
-/**
- * 완료한 세트 수를 계산합니다.
- */
 function getCompletedSetCount(state) {
   return Object.values(
     state.sets || {}
-  ).filter(
-    (set) => set.done
-  ).length;
+  ).filter((set) => set.done).length;
 }
 
-/**
- * 완료한 세트의 총 볼륨을 계산합니다.
- *
- * 볼륨 = 중량 × 반복 수
- */
 function getTotalVolume(state) {
   return Math.round(
     Object.values(state.sets || {})
       .filter((set) => set.done)
       .reduce((total, set) => {
-        const weight =
-          Number(set.weight) || 0;
-
-        const reps =
-          Number(set.reps) || 0;
-
+        const weight = Number(set.weight) || 0;
+        const reps = Number(set.reps) || 0;
         return total + weight * reps;
       }, 0)
   );
 }
 
-/**
- * 벤치프레스 목표 달성 여부를 계산합니다.
- */
-function isBenchPressSuccess(state) {
-  const benchPress =
-    workout.exercises[0];
+function getExerciseSets(
+  state,
+  exercise,
+  exerciseIndex,
+  target
+) {
+  const sets = [];
 
   for (
     let setIndex = 0;
-    setIndex < benchPress.sets;
+    setIndex < target.setCount;
     setIndex += 1
   ) {
-    const set =
-      state.sets?.[`0-${setIndex}`];
+    const savedSet =
+      state.sets?.[
+        `${exerciseIndex}-${setIndex}`
+      ];
 
-    if (
-      !set?.done ||
-      Number(set.reps) < benchPress.max
-    ) {
-      return false;
-    }
+    sets.push({
+      setNumber: setIndex + 1,
+      weight:
+        Number(
+          savedSet?.weight ??
+          exercise.weight
+        ) || 0,
+      reps:
+        Number(
+          savedSet?.reps ??
+          target.inputSetTargets[
+            setIndex
+          ] ??
+          exercise.min
+        ) || 0,
+      done: Boolean(savedSet?.done)
+    });
   }
 
-  return true;
+  return sets;
 }
 
-/**
- * 운동별 세트 기록을
- * 세션 저장 형식으로 변환합니다.
- */
-function buildExerciseResults(state) {
+function buildExerciseResults(
+  state,
+  routineId
+) {
   return workout.exercises.map(
     (exercise, exerciseIndex) => {
-      const sets = [];
+      const normalizedExercise =
+        progressionPolicy
+          .normalizeRoutineExercise(
+            exercise,
+            {
+              routineId,
+              index: exerciseIndex
+            }
+          );
 
-      for (
-        let setIndex = 0;
-        setIndex < exercise.sets;
-        setIndex += 1
-      ) {
-        const savedSet =
-          state.sets?.[
-            `${exerciseIndex}-${setIndex}`
-          ];
+      const progressionSnapshot =
+        progressionPolicy.createSnapshot(
+          normalizedExercise,
+          {
+            routineId,
+            index: exerciseIndex
+          }
+        );
 
-        sets.push({
-          setNumber: setIndex + 1,
+      const target =
+        progressionSnapshot.target;
 
-          weight:
-            Number(
-              savedSet?.weight ??
-              exercise.weight
-            ) || 0,
-
-          reps:
-            Number(
-              savedSet?.reps ??
-              exercise.min
-            ) || 0,
-
-          done:
-            Boolean(savedSet?.done)
-        });
-      }
+      const sets = getExerciseSets(
+        state,
+        normalizedExercise,
+        exerciseIndex,
+        target
+      );
 
       return {
+        routineExerciseId:
+          normalizedExercise
+            .routineExerciseId,
         exerciseId:
-          exercise.id ||
-          `exercise-${exerciseIndex + 1}`,
-
+          normalizedExercise.id,
         exerciseIndex,
-
-        order:
-          exerciseIndex,
-
+        order: exerciseIndex,
         name:
-          exercise.name,
-
+          normalizedExercise.name,
         type:
-          exercise.type,
-
+          normalizedExercise.type,
         target: {
-          weight: exercise.weight,
-          sets: exercise.sets,
-          minReps: exercise.min,
-          maxReps: exercise.max
+          weight: target.weight,
+          sets: target.setCount,
+          minReps: target.minReps,
+          maxReps: target.maxReps,
+          setTargets:
+            [...target.inputSetTargets],
+          successSetTargets:
+            [...target.successSetTargets],
+          strategy:
+            target.strategy,
+          stageIndex:
+            target.stageIndex,
+          stageId:
+            target.stageId
         },
-
+        progressionSnapshot,
         sets
       };
     }
   );
 }
 
-/**
- * 완료된 운동 1회를 Firestore에 저장합니다.
- */
+function isBenchPressSuccess(
+  state,
+  routineId
+) {
+  const firstExercise =
+    workout.exercises[0];
+
+  if (!firstExercise) {
+    return false;
+  }
+
+  const normalizedExercise =
+    progressionPolicy
+      .normalizeRoutineExercise(
+        firstExercise,
+        {
+          routineId,
+          index: 0
+        }
+      );
+
+  const target =
+    progressionPolicy
+      .getCurrentTarget(
+        normalizedExercise,
+        normalizedExercise
+          .progressionPolicy,
+        normalizedExercise
+          .progressionState
+      );
+
+  const sets = getExerciseSets(
+    state,
+    normalizedExercise,
+    0,
+    target
+  );
+
+  return progressionPolicy
+    .evaluateSets(
+      sets,
+      target,
+      target.weight
+    ).success;
+}
+
 async function saveCompletedWorkoutSession(
   state = workout.state
 ) {
-  const user =
-    auth.currentUser;
+  const user = auth.currentUser;
 
   if (!user?.uid) {
     throw new Error(
@@ -174,8 +224,7 @@ async function saveCompletedWorkoutSession(
 
   const completedAtMillis =
     Number(
-      state.completedAt ||
-      Date.now()
+      state.completedAt || Date.now()
     );
 
   const durationSeconds =
@@ -189,76 +238,68 @@ async function saveCompletedWorkoutSession(
       )
     );
 
-  /**
-   * 운동 시작 시각을 문서 ID에 사용합니다.
-   *
-   * 같은 운동을 다시 저장해도
-   * 동일 문서가 갱신되므로 중복이 생기지 않습니다.
-   */
   const sessionId =
     `session-${startedAtMillis}`;
 
-  const sessionDocument =
-    doc(
-      db,
-      "users",
-      user.uid,
-      "workoutSessions",
-      sessionId
-    );
+  const sessionDocument = doc(
+    db,
+    "users",
+    user.uid,
+    "workoutSessions",
+    sessionId
+  );
 
   const activeRoutine =
     window.JYMLog.routines
       ?.activeRoutine;
-  
+
+  const routineId =
+    String(
+      state.routineId ||
+      activeRoutine?.id ||
+      "main"
+    );
+
   await setDoc(
     sessionDocument,
     {
       userId: user.uid,
       schemaVersion:
         SESSION_SCHEMA_VERSION,
-
-      routineId:
-        activeRoutine?.id ||
-        "main",
-
+      routineId,
       routineName:
         activeRoutine?.name ||
         "가슴 · 팔 A",
-
       routineCode:
         activeRoutine?.code ||
         "upper-a",
-
       startedAt:
         Timestamp.fromMillis(
           startedAtMillis
         ),
-
       completedAt:
         Timestamp.fromMillis(
           completedAtMillis
         ),
-
       startedAtMillis,
       completedAtMillis,
       durationSeconds,
-
       completedSets:
         getCompletedSetCount(state),
-
       totalVolume:
         getTotalVolume(state),
-
       fatigue:
         Number(state.fatigue) || 3,
-
       benchPressSuccess:
-        isBenchPressSuccess(state),
-
+        isBenchPressSuccess(
+          state,
+          routineId
+        ),
       exercises:
-        buildExerciseResults(state),
-
+        buildExerciseResults(
+          state,
+          routineId
+        ),
       savedAt:
         serverTimestamp()
     },

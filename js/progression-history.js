@@ -1,33 +1,22 @@
 (() => {
-  window.JYMLog =
-    window.JYMLog || {};
+  window.JYMLog = window.JYMLog || {};
 
-  const DEFAULT_REQUIRED_SUCCESSES = 2;
+  const policyApi = window.JYMLog.progressionPolicy;
 
-  function toFiniteNumber(
-    value,
-    fallback = 0
-  ) {
-    const number = Number(value);
-
-    return Number.isFinite(number)
-      ? number
-      : fallback;
+  if (!policyApi) {
+    throw new Error("진행 정책 모듈을 불러오지 못했습니다.");
   }
 
-  function toPositiveInteger(
-    value,
-    fallback = 1
-  ) {
-    return Math.max(
-      1,
-      Math.round(
-        toFiniteNumber(
-          value,
-          fallback
-        )
-      )
-    );
+  function toNumber(value, fallback = 0) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  }
+
+  function formatNumber(value) {
+    const number = toNumber(value);
+    return Number.isInteger(number)
+      ? String(number)
+      : String(Math.round(number * 100) / 100);
   }
 
   function normalizeName(value) {
@@ -37,866 +26,363 @@
       .toLowerCase();
   }
 
-  function formatNumber(value) {
-    const number =
-      toFiniteNumber(value);
-
-    return Number.isInteger(number)
-      ? String(number)
-      : String(
-          Math.round(number * 100) /
-          100
-        );
+  function arraysEqual(first, second) {
+    return Array.isArray(first) &&
+      Array.isArray(second) &&
+      first.length === second.length &&
+      first.every((value, index) => Number(value) === Number(second[index]));
   }
 
-  function formatRepTarget(
-    minReps,
-    maxReps
-  ) {
-    return minReps === maxReps
-      ? String(maxReps)
-      : `${minReps}–${maxReps}`;
-  }
-
-  function areNumbersEqual(
-    first,
-    second,
-    tolerance = 0.001
-  ) {
-    return (
-      Math.abs(
-        toFiniteNumber(first) -
-        toFiniteNumber(second)
-      ) <= tolerance
-    );
-  }
-
-  function getRoutinePrescription(
-    exercise
-  ) {
-    const minReps =
-      toPositiveInteger(
-        exercise?.min,
-        1
-      );
-
-    const maxReps =
-      Math.max(
-        minReps,
-        toPositiveInteger(
-          exercise?.max,
-          minReps
-        )
-      );
-
-    const increment =
-      toFiniteNumber(
-        exercise?.increment,
-        2.5
-      );
-
-    return {
-      exerciseId:
-        String(exercise?.id || ""),
-      name:
-        String(
-          exercise?.name || "운동"
-        ),
-      normalizedName:
-        normalizeName(
-          exercise?.name
-        ),
-      type:
-        String(
-          exercise?.type ||
-          "반복 범위형"
-        ),
-      weight:
-        Math.max(
-          0,
-          toFiniteNumber(
-            exercise?.weight
-          )
-        ),
-      sets:
-        toPositiveInteger(
-          exercise?.sets,
-          1
-        ),
-      minReps,
-      maxReps,
-      increment:
-        increment > 0
-          ? increment
-          : 2.5
-    };
-  }
-
-  function getSessionPrescription(
-    exerciseResult
-  ) {
-    const target =
-      exerciseResult?.target || {};
-
-    const resultSets =
-      Array.isArray(
-        exerciseResult?.sets
-      )
-        ? exerciseResult.sets
-        : [];
-
-    const minReps =
-      toPositiveInteger(
-        target.minReps,
-        1
-      );
-
-    const maxReps =
-      Math.max(
-        minReps,
-        toPositiveInteger(
-          target.maxReps,
-          minReps
-        )
-      );
-
-    return {
-      exerciseId:
-        String(
-          exerciseResult
-            ?.exerciseId || ""
-        ),
-      name:
-        String(
-          exerciseResult?.name ||
-          "운동"
-        ),
-      normalizedName:
-        normalizeName(
-          exerciseResult?.name
-        ),
-      type:
-        String(
-          exerciseResult?.type ||
-          "반복 범위형"
-        ),
-      weight:
-        Math.max(
-          0,
-          toFiniteNumber(
-            target.weight,
-            resultSets[0]?.weight
-          )
-        ),
-      sets:
-        toPositiveInteger(
-          target.sets,
-          Math.max(
-            1,
-            resultSets.length
-          )
-        ),
-      minReps,
-      maxReps
-    };
-  }
-
-  function formatPrescription(
-    prescription
-  ) {
-    if (!prescription) {
+  function formatTarget(target) {
+    if (!target) {
       return "목표 정보 없음";
     }
 
-    return (
-      `${formatNumber(
-        prescription.weight
-      )}kg · ` +
-      `${prescription.sets} × ` +
-      `${formatRepTarget(
-        prescription.minReps,
-        prescription.maxReps
-      )}`
+    const targets = Array.isArray(target.successSetTargets)
+      ? target.successSetTargets
+      : [];
+    const uniform = targets.length > 0 && targets.every(
+      (value) => Number(value) === Number(targets[0])
     );
+
+    if (target.strategy === "rep-range") {
+      return `${formatNumber(target.weight)}kg · ${target.setCount} × ${target.minReps}–${target.maxReps}`;
+    }
+
+    return uniform
+      ? `${formatNumber(target.weight)}kg · ${target.setCount} × ${targets[0]}`
+      : `${formatNumber(target.weight)}kg · ${targets.join(" / ")}`;
   }
 
-  function isSamePrescription(
-    first,
-    second
-  ) {
+  function buildRoutineModel(exercise, exerciseIndex = 0) {
+    const normalized = policyApi.normalizeRoutineExercise(exercise, {
+      routineId: exercise?.routineId || "main",
+      index: exerciseIndex
+    });
+
+    return {
+      exercise: normalized,
+      exerciseId: normalized.id,
+      routineExerciseId: normalized.routineExerciseId,
+      exerciseName: normalized.name,
+      normalizedName: normalizeName(normalized.name),
+      policy: normalized.progressionPolicy,
+      state: normalized.progressionState,
+      target: policyApi.getCurrentTarget(
+        normalized,
+        normalized.progressionPolicy,
+        normalized.progressionState
+      ),
+      increment: normalized.increment
+    };
+  }
+
+  function buildSessionModel(result, fallbackExercise, exerciseIndex = 0) {
+    const snapshot = result?.progressionSnapshot;
+
+    if (snapshot?.policy && snapshot?.target) {
+      const fallback = buildRoutineModel(fallbackExercise || {}, exerciseIndex);
+      return {
+        exerciseId: String(snapshot.exerciseId || result?.exerciseId || fallback.exerciseId),
+        routineExerciseId: String(snapshot.routineExerciseId || result?.routineExerciseId || fallback.routineExerciseId),
+        exerciseName: String(result?.name || fallback.exerciseName),
+        normalizedName: normalizeName(result?.name || fallback.exerciseName),
+        policy: policyApi.normalizePolicy(fallback.exercise, snapshot.policy),
+        state: policyApi.normalizeState(snapshot.policy, snapshot.state),
+        target: {
+          ...snapshot.target,
+          inputSetTargets: policyApi.normalizeSetTargets(
+            snapshot.target.inputSetTargets ?? result?.target?.setTargets,
+            [snapshot.target.minReps || 1]
+          ),
+          successSetTargets: policyApi.normalizeSetTargets(
+            snapshot.target.successSetTargets ?? result?.target?.successSetTargets,
+            [snapshot.target.maxReps || 1]
+          )
+        },
+        increment: toNumber(snapshot.increment, fallback.increment)
+      };
+    }
+
+    return buildRoutineModel({
+      ...(fallbackExercise || {}),
+      id: result?.exerciseId || fallbackExercise?.id,
+      routineExerciseId: result?.routineExerciseId || fallbackExercise?.routineExerciseId,
+      name: result?.name || fallbackExercise?.name,
+      type: result?.type || fallbackExercise?.type,
+      weight: result?.target?.weight,
+      sets: result?.target?.sets || result?.sets?.length,
+      min: result?.target?.minReps,
+      max: result?.target?.maxReps,
+      increment: fallbackExercise?.increment || 2.5
+    }, exerciseIndex);
+  }
+
+  function isSameTarget(first, second) {
     if (!first || !second) {
       return false;
     }
 
-    return (
-      areNumbersEqual(
-        first.weight,
-        second.weight
-      ) &&
-      first.sets === second.sets &&
-      first.minReps ===
-        second.minReps &&
-      first.maxReps ===
-        second.maxReps &&
-      first.type === second.type
-    );
-  }
-
-  function evaluateExerciseResult(
-    exerciseResult
-  ) {
-    if (!exerciseResult) {
-      return {
-        success: false,
-        missingSets: 0,
-        incompleteSets: 0,
-        belowWeightSets: 0,
-        belowRepSets: 0
-      };
-    }
-
-    const prescription =
-      getSessionPrescription(
-        exerciseResult
-      );
-
-    const sets =
-      Array.isArray(
-        exerciseResult.sets
-      )
-        ? exerciseResult.sets
-        : [];
-
-    let missingSets = 0;
-    let incompleteSets = 0;
-    let belowWeightSets = 0;
-    let belowRepSets = 0;
-
-    for (
-      let setIndex = 0;
-      setIndex < prescription.sets;
-      setIndex += 1
+    if (
+      first.routineExerciseId &&
+      second.routineExerciseId &&
+      first.routineExerciseId !== second.routineExerciseId
     ) {
-      const set = sets[setIndex];
-
-      if (!set) {
-        missingSets += 1;
-        continue;
-      }
-
-      if (!set.done) {
-        incompleteSets += 1;
-      }
-
-      if (
-        toFiniteNumber(
-          set.weight
-        ) < prescription.weight
-      ) {
-        belowWeightSets += 1;
-      }
-
-      if (
-        toFiniteNumber(
-          set.reps
-        ) < prescription.maxReps
-      ) {
-        belowRepSets += 1;
-      }
+      return false;
     }
 
-    return {
-      success:
-        missingSets === 0 &&
-        incompleteSets === 0 &&
-        belowWeightSets === 0 &&
-        belowRepSets === 0,
-      missingSets,
-      incompleteSets,
-      belowWeightSets,
-      belowRepSets
-    };
+    return Number(first.target.weight) === Number(second.target.weight) &&
+      first.target.strategy === second.target.strategy &&
+      Number(first.target.stageIndex) === Number(second.target.stageIndex) &&
+      first.policy.requiredSuccesses === second.policy.requiredSuccesses &&
+      arraysEqual(first.target.successSetTargets, second.target.successSetTargets);
   }
 
-  function findSessionExercise(
-    session,
-    exercise,
-    exerciseIndex
-  ) {
-    const results =
-      Array.isArray(
-        session?.exercises
-      )
-        ? session.exercises
-        : [];
+  function findSessionExercise(session, exercise, exerciseIndex) {
+    const results = Array.isArray(session?.exercises) ? session.exercises : [];
+    const routineExerciseId = String(exercise?.routineExerciseId || "");
 
-    const exerciseId =
-      String(exercise?.id || "");
-
-    if (exerciseId) {
-      const idMatch =
-        results.find(
-          (result) =>
-            String(
-              result?.exerciseId ||
-              ""
-            ) === exerciseId
-        );
-
-      if (idMatch) {
-        return idMatch;
-      }
-    }
-
-    const normalizedName =
-      normalizeName(
-        exercise?.name
+    if (routineExerciseId) {
+      const match = results.find((result) =>
+        String(result?.routineExerciseId || result?.progressionSnapshot?.routineExerciseId || "") === routineExerciseId
       );
-
-    if (normalizedName) {
-      const nameMatch =
-        results.find(
-          (result) =>
-            normalizeName(
-              result?.name
-            ) === normalizedName
-        );
-
-      if (nameMatch) {
-        return nameMatch;
-      }
+      if (match) return match;
     }
 
-    return (
-      results.find(
-        (result) =>
-          Number(
-            result?.exerciseIndex
-          ) === exerciseIndex
-      ) || null
-    );
+    const exerciseId = String(exercise?.id || "");
+    if (exerciseId) {
+      const match = results.find((result) => String(result?.exerciseId || "") === exerciseId);
+      if (match) return match;
+    }
+
+    const name = normalizeName(exercise?.name);
+    if (name) {
+      const match = results.find((result) => normalizeName(result?.name) === name);
+      if (match) return match;
+    }
+
+    return results.find((result) => Number(result?.exerciseIndex) === exerciseIndex) || null;
   }
 
-  function buildRecords({
-    exercise,
-    exerciseIndex,
-    sessions
-  }) {
-    return [...(
-      Array.isArray(sessions)
-        ? sessions
-        : []
-    )]
-      .sort(
-        (first, second) =>
-          toFiniteNumber(
-            first?.completedAtMillis
-          ) -
-          toFiniteNumber(
-            second?.completedAtMillis
-          )
-      )
+  function buildRecords({ exercise, exerciseIndex, sessions }) {
+    return [...(Array.isArray(sessions) ? sessions : [])]
+      .sort((a, b) => toNumber(a?.completedAtMillis) - toNumber(b?.completedAtMillis))
       .map((session) => {
-        const exerciseResult =
-          findSessionExercise(
-            session,
-            exercise,
-            exerciseIndex
-          );
-
-        if (!exerciseResult) {
-          return null;
-        }
-
-        const prescription =
-          getSessionPrescription(
-            exerciseResult
-          );
-
-        const evaluation =
-          evaluateExerciseResult(
-            exerciseResult
-          );
-
+        const result = findSessionExercise(session, exercise, exerciseIndex);
+        if (!result) return null;
+        const model = buildSessionModel(result, exercise, exerciseIndex);
+        const evaluation = policyApi.evaluateSets(result.sets, model.target, model.target.weight);
         return {
-          sessionId:
-            String(session?.id || ""),
-          startedAtMillis:
-            toFiniteNumber(
-              session?.startedAtMillis
-            ),
-          completedAtMillis:
-            toFiniteNumber(
-              session?.completedAtMillis
-            ),
-          prescription,
-          success:
-            evaluation.success,
+          sessionId: String(session?.id || ""),
+          completedAtMillis: toNumber(session?.completedAtMillis),
+          model,
+          success: evaluation.success,
           evaluation
         };
       })
       .filter(Boolean);
   }
 
-  function countStreakEndingAt(
-    records,
-    endIndex
-  ) {
-    const endRecord =
-      records[endIndex];
-
-    if (!endRecord?.success) {
-      return 0;
-    }
-
+  function countStreakEndingAt(records, endIndex) {
+    const end = records[endIndex];
+    if (!end?.success) return 0;
     let count = 0;
 
-    for (
-      let index = endIndex;
-      index >= 0;
-      index -= 1
-    ) {
+    for (let index = endIndex; index >= 0; index -= 1) {
       const record = records[index];
-
-      if (
-        !record.success ||
-        !isSamePrescription(
-          record.prescription,
-          endRecord.prescription
-        )
-      ) {
-        break;
-      }
-
+      if (!record.success || !isSameTarget(record.model, end.model)) break;
       count += 1;
     }
 
     return count;
   }
 
-  function inferChangeKind({
-    fromWeight,
-    toWeight,
-    previousStreak,
-    increment,
-    requiredSuccesses
-  }) {
-    const expectedWeight =
-      Math.round(
-        (
-          toFiniteNumber(
-            fromWeight
-          ) +
-          toFiniteNumber(
-            increment,
-            2.5
-          )
-        ) * 100
-      ) / 100;
+  function inferChangeKind(previous, current, previousStreak) {
+    const required = previous.policy.requiredSuccesses;
+    const expectedWeight = Math.round(
+      (toNumber(previous.target.weight) + toNumber(previous.increment, 2.5)) * 100
+    ) / 100;
 
     if (
-      toFiniteNumber(toWeight) >
-        toFiniteNumber(fromWeight) &&
-      previousStreak >=
-        requiredSuccesses &&
-      areNumbersEqual(
-        toWeight,
-        expectedWeight
-      )
+      previousStreak >= required &&
+      Number(current.target.weight) === expectedWeight
     ) {
       return "recommended-increase";
+    }
+
+    if (
+      previousStreak >= required &&
+      Number(current.target.weight) === Number(previous.target.weight) &&
+      Number(current.target.stageIndex) > Number(previous.target.stageIndex)
+    ) {
+      return "stage-advance";
     }
 
     return "target-change";
   }
 
-  function buildHistoricalChanges({
-    records,
-    increment,
-    requiredSuccesses,
-    maxChanges
-  }) {
+  function buildChanges(records, routineModel, maxChanges) {
     const changes = [];
 
-    for (
-      let index = 1;
-      index < records.length;
-      index += 1
-    ) {
-      const previous =
-        records[index - 1];
-      const current =
-        records[index];
-
-      if (
-        isSamePrescription(
-          previous.prescription,
-          current.prescription
-        )
-      ) {
-        continue;
-      }
-
-      const previousStreak =
-        countStreakEndingAt(
-          records,
-          index - 1
-        );
-
-      const onlyWeightChanged =
-        previous.prescription.sets ===
-          current.prescription.sets &&
-        previous.prescription.minReps ===
-          current.prescription.minReps &&
-        previous.prescription.maxReps ===
-          current.prescription.maxReps &&
-        previous.prescription.type ===
-          current.prescription.type &&
-        !areNumbersEqual(
-          previous.prescription.weight,
-          current.prescription.weight
-        );
-
+    for (let index = 1; index < records.length; index += 1) {
+      const previous = records[index - 1];
+      const current = records[index];
+      if (isSameTarget(previous.model, current.model)) continue;
+      const previousStreak = countStreakEndingAt(records, index - 1);
       changes.push({
-        kind:
-          onlyWeightChanged
-            ? inferChangeKind({
-                fromWeight:
-                  previous.prescription.weight,
-                toWeight:
-                  current.prescription.weight,
-                previousStreak,
-                increment,
-                requiredSuccesses
-              })
-            : "target-change",
-        fromWeight:
-          previous.prescription.weight,
-        toWeight:
-          current.prescription.weight,
-        fromTargetText:
-          formatPrescription(
-            previous.prescription
-          ),
-        toTargetText:
-          formatPrescription(
-            current.prescription
-          ),
-        onlyWeightChanged,
+        kind: inferChangeKind(previous.model, current.model, previousStreak),
+        fromWeight: previous.model.target.weight,
+        toWeight: current.model.target.weight,
+        fromTargetText: formatTarget(previous.model.target),
+        toTargetText: formatTarget(current.model.target),
         previousStreak,
-        completedAtMillis:
-          current.completedAtMillis,
+        completedAtMillis: current.completedAtMillis,
         source: "session"
       });
     }
 
-    return changes
-      .reverse()
-      .slice(
-        0,
-        Math.max(0, maxChanges)
-      );
+    if (records.length > 0) {
+      const latest = records[records.length - 1];
+      if (!isSameTarget(latest.model, routineModel)) {
+        const previousStreak = countStreakEndingAt(records, records.length - 1);
+        changes.push({
+          kind: inferChangeKind(latest.model, routineModel, previousStreak),
+          fromWeight: latest.model.target.weight,
+          toWeight: routineModel.target.weight,
+          fromTargetText: formatTarget(latest.model.target),
+          toTargetText: formatTarget(routineModel.target),
+          previousStreak,
+          completedAtMillis: 0,
+          source: "routine"
+        });
+      }
+    }
+
+    return changes.reverse().slice(0, Math.max(0, maxChanges));
   }
 
   function buildExerciseHistory({
     exercise,
     exerciseIndex = 0,
     sessions = [],
-    requiredSuccesses =
-      DEFAULT_REQUIRED_SUCCESSES,
     maxChanges = 3
   }) {
-    const routinePrescription =
-      getRoutinePrescription(
-        exercise
-      );
-
-    const records =
-      buildRecords({
-        exercise,
-        exerciseIndex,
-        sessions
-      });
-
-    const totalSuccesses =
-      records.filter(
-        (record) => record.success
-      ).length;
+    const routineModel = buildRoutineModel(exercise, exerciseIndex);
+    const records = buildRecords({ exercise: routineModel.exercise, exerciseIndex, sessions });
+    const requiredSuccesses = routineModel.policy.requiredSuccesses;
+    const totalSuccesses = records.filter((record) => record.success).length;
 
     if (records.length === 0) {
       return {
         exerciseIndex,
-        exerciseId:
-          routinePrescription.exerciseId,
-        exerciseName:
-          routinePrescription.name,
+        exerciseId: routineModel.exerciseId,
+        routineExerciseId: routineModel.routineExerciseId,
+        exerciseName: routineModel.exerciseName,
         state: "no-records",
         badge: "기록 없음",
-        routinePrescription,
-        routineTargetText:
-          formatPrescription(
-            routinePrescription
-          ),
-        latestPrescription: null,
-        latestTargetText:
-          "완료 기록 없음",
+        routineTargetText: formatTarget(routineModel.target),
         currentStreak: 0,
         requiredSuccesses,
         totalSuccesses: 0,
         recordCount: 0,
         latestSuccess: null,
         latestCompletedAtMillis: 0,
-        statusMessage:
-          "운동을 완료하면 연속 성공과 목표 변경 이력이 표시됩니다.",
+        statusMessage: "운동을 완료하면 연속 성공과 목표 변경 이력이 표시됩니다.",
         changes: []
       };
     }
 
-    const latestIndex =
-      records.length - 1;
-    const latestRecord =
-      records[latestIndex];
-    const currentStreak =
-      countStreakEndingAt(
-        records,
-        latestIndex
-      );
-
-    const targetChangedAfterLastSession =
-      !isSamePrescription(
-        routinePrescription,
-        latestRecord.prescription
-      );
-
-    const changes =
-      buildHistoricalChanges({
-        records,
-        increment:
-          routinePrescription.increment,
-        requiredSuccesses,
-        maxChanges
-      });
+    const latestIndex = records.length - 1;
+    const latest = records[latestIndex];
+    const currentStreak = countStreakEndingAt(records, latestIndex);
+    const targetChanged = !isSameTarget(routineModel, latest.model);
+    const changes = buildChanges(records, routineModel, maxChanges);
 
     let state = "retry";
     let badge = "재도전";
-    let statusMessage =
-      "최근 목표를 달성하지 못해 같은 중량 재도전이 필요합니다.";
+    let statusMessage = "최근 목표를 달성하지 못해 현재 목표 재도전이 필요합니다.";
 
-    if (targetChangedAfterLastSession) {
-      const onlyWeightChanged =
-        routinePrescription.sets ===
-          latestRecord.prescription.sets &&
-        routinePrescription.minReps ===
-          latestRecord.prescription.minReps &&
-        routinePrescription.maxReps ===
-          latestRecord.prescription.maxReps &&
-        routinePrescription.type ===
-          latestRecord.prescription.type &&
-        !areNumbersEqual(
-          routinePrescription.weight,
-          latestRecord.prescription.weight
-        );
-
-      const changeKind =
-        onlyWeightChanged
-          ? inferChangeKind({
-              fromWeight:
-                latestRecord
-                  .prescription.weight,
-              toWeight:
-                routinePrescription.weight,
-              previousStreak:
-                currentStreak,
-              increment:
-                routinePrescription.increment,
-              requiredSuccesses
-            })
-          : "target-change";
-
-      const currentChange = {
-        kind: changeKind,
-        fromWeight:
-          latestRecord
-            .prescription.weight,
-        toWeight:
-          routinePrescription.weight,
-        fromTargetText:
-          formatPrescription(
-            latestRecord.prescription
-          ),
-        toTargetText:
-          formatPrescription(
-            routinePrescription
-          ),
-        onlyWeightChanged,
-        previousStreak:
-          currentStreak,
-        completedAtMillis: 0,
-        source: "routine"
-      };
-
-      changes.unshift(
-        currentChange
-      );
-
-      if (
-        changes.length > maxChanges
-      ) {
-        changes.length = maxChanges;
+    if (targetChanged) {
+      const kind = changes[0]?.kind;
+      if (kind === "recommended-increase") {
+        state = "applied";
+        badge = "증량 적용";
+        statusMessage = `${formatTarget(latest.model.target)} 목표 달성 후 ${formatTarget(routineModel.target)}가 반영되었습니다.`;
+      } else if (kind === "stage-advance") {
+        state = "progress";
+        badge = "단계 진행";
+        statusMessage = `${formatTarget(latest.model.target)}에서 ${formatTarget(routineModel.target)}로 다음 단계가 반영되었습니다.`;
+      } else {
+        state = "changed";
+        badge = "목표 변경";
+        statusMessage = `최근 완료 목표와 현재 루틴 목표가 다릅니다.`;
       }
-
-      state =
-        changeKind ===
-        "recommended-increase"
-          ? "applied"
-          : "changed";
-
-      badge =
-        state === "applied"
-          ? "증량 적용"
-          : "목표 변경";
-
-      statusMessage =
-        state === "applied"
-          ? `${formatNumber(
-              latestRecord
-                .prescription.weight
-            )}kg 목표를 ${currentStreak}회 연속 달성해 ${formatNumber(
-              routinePrescription.weight
-            )}kg가 다음 목표로 반영되었습니다.`
-          : `최근 완료 목표 ${formatNumber(
-              latestRecord
-                .prescription.weight
-            )}kg와 현재 루틴 목표 ${formatNumber(
-              routinePrescription.weight
-            )}kg가 다릅니다.`;
-    } else if (
-      latestRecord.success &&
-      currentStreak >=
-        requiredSuccesses
-    ) {
+    } else if (latest.success && currentStreak >= requiredSuccesses) {
       state = "ready";
-      badge = "증량 준비";
-      statusMessage =
-        `${formatNumber(
-          latestRecord
-            .prescription.weight
-        )}kg 목표를 ${currentStreak}회 연속 달성했습니다.`;
-    } else if (
-      latestRecord.success &&
-      currentStreak > 0
-    ) {
+      badge = routineModel.policy.strategy === "stage" ? "다음 단계 준비" : "증량 준비";
+      statusMessage = `현재 목표를 ${currentStreak}회 연속 달성했습니다.`;
+    } else if (latest.success) {
       state = "progress";
-      badge =
-        `${currentStreak}/${requiredSuccesses} 성공`;
-      statusMessage =
-        `현재 목표를 ${currentStreak}회 연속 달성했습니다. ${requiredSuccesses}회 연속 성공 시 증량합니다.`;
+      badge = `${currentStreak}/${requiredSuccesses} 성공`;
+      statusMessage = `현재 목표를 ${currentStreak}회 연속 달성했습니다. ${requiredSuccesses}회 성공 시 다음 단계로 진행합니다.`;
     }
 
     return {
       exerciseIndex,
-      exerciseId:
-        routinePrescription.exerciseId,
-      exerciseName:
-        routinePrescription.name,
+      exerciseId: routineModel.exerciseId,
+      routineExerciseId: routineModel.routineExerciseId,
+      exerciseName: routineModel.exerciseName,
       state,
       badge,
-      routinePrescription,
-      routineTargetText:
-        formatPrescription(
-          routinePrescription
-        ),
-      latestPrescription:
-        latestRecord.prescription,
-      latestTargetText:
-        formatPrescription(
-          latestRecord.prescription
-        ),
+      routineTargetText: formatTarget(routineModel.target),
+      latestTargetText: formatTarget(latest.model.target),
       currentStreak,
       requiredSuccesses,
       totalSuccesses,
-      recordCount:
-        records.length,
-      latestSuccess:
-        latestRecord.success,
-      latestCompletedAtMillis:
-        latestRecord
-          .completedAtMillis,
+      recordCount: records.length,
+      latestSuccess: latest.success,
+      latestCompletedAtMillis: latest.completedAtMillis,
       statusMessage,
       changes
     };
   }
 
-  function buildOverview({
-    exercises = [],
-    sessions = [],
-    requiredSuccesses =
-      DEFAULT_REQUIRED_SUCCESSES,
-    maxChanges = 3
-  }) {
-    const exerciseHistories =
-      (
-        Array.isArray(exercises)
-          ? exercises
-          : []
-      ).map(
-        (exercise, exerciseIndex) =>
-          buildExerciseHistory({
-            exercise,
-            exerciseIndex,
-            sessions,
-            requiredSuccesses,
-            maxChanges
-          })
-      );
+  function buildOverview({ exercises = [], sessions = [], maxChanges = 3 }) {
+    const exerciseHistories = (Array.isArray(exercises) ? exercises : []).map(
+      (exercise, exerciseIndex) => buildExerciseHistory({
+        exercise,
+        exerciseIndex,
+        sessions,
+        maxChanges
+      })
+    );
 
-    const countState =
-      (state) =>
-        exerciseHistories.filter(
-          (history) =>
-            history.state === state
-        ).length;
+    const countState = (state) => exerciseHistories.filter((history) => history.state === state).length;
 
     return {
       exerciseHistories,
-      totalExercises:
-        exerciseHistories.length,
-      appliedCount:
-        countState("applied"),
-      readyCount:
-        countState("ready"),
-      progressCount:
-        countState("progress"),
-      retryCount:
-        countState("retry"),
-      changedCount:
-        countState("changed"),
-      noRecordCount:
-        countState("no-records"),
-      totalSuccesses:
-        exerciseHistories.reduce(
-          (total, history) =>
-            total +
-            history.totalSuccesses,
-          0
-        ),
-      totalChanges:
-        exerciseHistories.reduce(
-          (total, history) =>
-            total +
-            history.changes.length,
-          0
-        )
+      totalExercises: exerciseHistories.length,
+      appliedCount: countState("applied"),
+      readyCount: countState("ready"),
+      progressCount: countState("progress"),
+      retryCount: countState("retry"),
+      changedCount: countState("changed"),
+      noRecordCount: countState("no-records"),
+      totalSuccesses: exerciseHistories.reduce((total, history) => total + history.totalSuccesses, 0),
+      totalChanges: exerciseHistories.reduce((total, history) => total + history.changes.length, 0)
     };
   }
 
-  window.JYMLog.progressionHistory =
-    Object.freeze({
-      defaultRequiredSuccesses:
-        DEFAULT_REQUIRED_SUCCESSES,
-      buildOverview,
-      buildExerciseHistory,
-      evaluateExerciseResult,
-      formatPrescription
-    });
+  window.JYMLog.progressionHistory = Object.freeze({
+    defaultRequiredSuccesses: 2,
+    buildOverview,
+    buildExerciseHistory,
+    evaluateExerciseResult(exerciseResult) {
+      const model = buildSessionModel(exerciseResult, {}, Number(exerciseResult?.exerciseIndex) || 0);
+      return policyApi.evaluateSets(exerciseResult?.sets, model.target, model.target.weight);
+    },
+    formatPrescription(target) {
+      return formatTarget(target?.target || target);
+    }
+  });
 })();
