@@ -1323,6 +1323,19 @@ async function deleteActiveRoutine() {
     true
   );
 
+  try {
+    await window.JYMLog
+      .routineSchedule
+      ?.removeRoutineReferences?.(
+        deletedRoutine.id
+      );
+  } catch (error) {
+    console.warn(
+      "[JYM Log] 삭제한 루틴의 주간 일정 정리에 실패했습니다.",
+      error
+    );
+  }
+
   console.info(
     `[JYM Log] 루틴 삭제 완료: ${deletedRoutine.name}`
   );
@@ -1943,15 +1956,6 @@ window.JYMLog.routines =
     get routines() {
       return cloneData(
         availableRoutines
-      );
-    },
-
-    get canDeleteActiveRoutine() {
-      return Boolean(
-        activeRoutine &&
-        activeRoutine.id !==
-          DEFAULT_ROUTINE_ID &&
-        availableRoutines.length > 1
       );
     }
   });

@@ -1,0 +1,87 @@
+.routine-schedule-title {
+  margin-top: 22px;
+}
+
+.routine-schedule-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.routine-schedule-head strong {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.routine-schedule-head p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.routine-schedule-grid {
+  display: grid;
+  gap: 9px;
+}
+
+.routine-schedule-row {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.routine-schedule-row label {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.routine-schedule-row select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.routine-schedule-row select:focus {
+  border-color: var(--primary);
+  outline: 2px solid
+    color-mix(
+      in srgb,
+      var(--primary) 22%,
+      transparent
+    );
+  outline-offset: 1px;
+}
+
+.routine-schedule-message {
+  min-height: 18px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.routine-schedule-message.success {
+  color: #16803c;
+}
+
+.routine-schedule-message.error {
+  color: #c53030;
+}
+
+@media (max-width: 390px) {
+  .routine-schedule-row {
+    grid-template-columns:
+      66px minmax(0, 1fr);
+  }
+}

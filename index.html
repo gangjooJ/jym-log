@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="./css/progression.css" />
   <link rel="stylesheet" href="./css/progression-history.css" />
   <link rel="stylesheet" href="./css/progression-editor.css" />
+  <link rel="stylesheet" href="./css/routine-schedule.css"
 </head>
 
 <body>
@@ -104,8 +105,20 @@
 
       <div class="hero" style="margin-top:18px">
         <div class="hero-top">
-          <span class="pill"><span class="dot"></span> 오늘 루틴 준비됨</span>
-          <span class="pill">상체 A</span>
+          <span
+            class="pill"
+            id="homeScheduleStatus"
+          >
+            <span class="dot"></span>
+            일정 확인 중
+          </span>
+
+          <span
+            class="pill"
+            id="homeScheduleName"
+          >
+            직접 선택
+          </span>
         </div>
         <h2 id="homeRoutineName">
           가슴 · 팔
@@ -606,6 +619,56 @@
           루틴을 선택하거나 새 루틴을 만들 수 있습니다.
         </p>
       </div>
+
+      <div
+        class="section-title routine-schedule-title"
+      >
+        <h2>주간 운동 일정</h2>
+        <small>요일별 자동 선택</small>
+      </div>
+
+      <section
+        class="card routine-schedule-card"
+        aria-labelledby="routineScheduleTitle"
+      >
+        <div class="routine-schedule-head">
+          <div>
+            <strong id="routineScheduleTitle">
+              이번 주 계획
+            </strong>
+
+            <p>
+              루틴 지정일에는 앱을 열 때 해당 루틴으로 자동 전환됩니다.
+            </p>
+          </div>
+        </div>
+
+        <div
+          class="routine-schedule-grid"
+          id="routineScheduleGrid"
+          aria-live="polite"
+        >
+          일정을 불러오고 있습니다.
+        </div>
+
+        <button
+          class="primary-btn full"
+          id="saveRoutineScheduleBtn"
+          type="button"
+          aria-busy="false"
+        >
+          주간 일정 저장
+        </button>
+
+        <p
+          class="routine-schedule-message"
+          id="routineScheduleMessage"
+          role="status"
+          aria-live="polite"
+        >
+          주간 일정을 불러오고 있습니다.
+        </p>
+      </section>
 
       <div class="section-title">
         <h2 id="routineNameLabel">
@@ -1214,6 +1277,11 @@
 <script src="./js/analysis-ui.js"></script>
 <script src="./js/sync-conflict-ui.js"></script>
 <script src="./js/app.js"></script>
+<script
+  type="module"
+  src="./js/routine-schedule.js"
+></script>
+
 <script
   type="module"
   src="./js/auth.js"
