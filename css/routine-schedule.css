@@ -85,3 +85,98 @@
       66px minmax(0, 1fr);
   }
 }
+
+.today-routine-override {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 18px;
+  padding: 12px;
+  border: 1px solid
+    rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background:
+    rgba(255, 255, 255, 0.07);
+}
+
+.today-routine-override label {
+  color: rgba(
+    255,
+    255,
+    255,
+    0.82
+  );
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.today-routine-override-controls {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto
+    auto;
+  gap: 7px;
+}
+
+.today-routine-override select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 11px;
+  border: 1px solid
+    rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(
+    255,
+    255,
+    255,
+    0.1
+  );
+  color: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.today-routine-override select option {
+  color: #111827;
+}
+
+.today-routine-override-controls button {
+  min-height: 42px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.today-routine-override-message {
+  min-height: 16px;
+  margin: 0;
+  color: rgba(
+    255,
+    255,
+    255,
+    0.64
+  );
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.today-routine-override-message.success {
+  color: #86efac;
+}
+
+.today-routine-override-message.error {
+  color: #fca5a5;
+}
+
+@media (max-width: 390px) {
+  .today-routine-override-controls {
+    grid-template-columns:
+      minmax(0, 1fr)
+      auto;
+  }
+
+  #clearTodayRoutineOverrideBtn {
+    grid-column: 1 / -1;
+  }
+}

@@ -249,15 +249,40 @@ async function saveCompletedWorkoutSession(
     sessionId
   );
 
+  const routineApi =
+    window.JYMLog.routines;
+
   const activeRoutine =
-    window.JYMLog.routines
-      ?.activeRoutine;
+    routineApi?.activeRoutine;
 
   const routineId =
     String(
       state.routineId ||
       activeRoutine?.id ||
       "main"
+    );
+
+  const sessionRoutine =
+    routineApi?.routines
+      ?.find(
+        (routine) =>
+          routine.id ===
+          routineId
+      ) ||
+    activeRoutine;
+
+  const routineName =
+    String(
+      state.routineName ||
+      sessionRoutine?.name ||
+      "운동 루틴"
+    );
+
+  const routineCode =
+    String(
+      state.routineCode ||
+      sessionRoutine?.code ||
+      routineId
     );
 
   await setDoc(
@@ -267,12 +292,37 @@ async function saveCompletedWorkoutSession(
       schemaVersion:
         SESSION_SCHEMA_VERSION,
       routineId,
-      routineName:
-        activeRoutine?.name ||
-        "가슴 · 팔 A",
-      routineCode:
-        activeRoutine?.code ||
-        "upper-a",
+      routineName,
+      routineCode,
+
+      scheduledDate:
+        state.scheduledDate ||
+        null,
+
+      scheduleSource:
+        state.scheduleSource ||
+        "manual",
+
+      scheduledType:
+        state.scheduledType ||
+        "manual",
+
+      scheduledRoutineId:
+        state.scheduledRoutineId ||
+        null,
+
+      scheduledRoutineName:
+        state.scheduledRoutineName ||
+        null,
+
+      overrideRoutineId:
+        state.overrideRoutineId ||
+        null,
+
+      overrideRoutineName:
+        state.overrideRoutineName ||
+        null,
+
       startedAt:
         Timestamp.fromMillis(
           startedAtMillis

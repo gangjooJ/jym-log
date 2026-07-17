@@ -97,6 +97,17 @@ window.JYMLog.workout = (() => {
 
   const defaultState = {
     routineId: "main",
+    routineName: "",
+    routineCode: "",
+
+    scheduledDate: null,
+    scheduleSource: "manual",
+    scheduledType: "manual",
+    scheduledRoutineId: null,
+    scheduledRoutineName: null,
+    overrideRoutineId: null,
+    overrideRoutineName: null,
+
     activeExercise: 0,
     started: false,
     startedAt: null,
@@ -364,7 +375,20 @@ window.JYMLog.workout = (() => {
     saveState();
   }
 
-  function beginWorkout() {
+  function beginWorkout(
+    context = {}
+  ) {
+    /*
+    * 이미 운동 중이면 시작 시점의
+    * 루틴·일정 스냅샷을 덮어쓰지 않습니다.
+    */
+    if (
+      state.started &&
+      !state.completed
+    ) {
+      return state;
+    }
+
     if (state.completed) {
       replaceState(
         createDefaultState(),
@@ -372,22 +396,80 @@ window.JYMLog.workout = (() => {
       );
     }
 
-    state.routineId =
+    const activeRoutine =
       window.JYMLog.routines
-        ?.activeRoutine?.id ||
-      exercises[0]?.routineId ||
-      state.routineId ||
-      "main";
+        ?.activeRoutine;
+
+    const routineId =
+      String(
+        context.routineId ||
+        activeRoutine?.id ||
+        exercises[0]?.routineId ||
+        state.routineId ||
+        "main"
+      );
+
+    state.routineId =
+      routineId;
+
+    state.routineName =
+      String(
+        context.routineName ||
+        activeRoutine?.name ||
+        "운동 루틴"
+      );
+
+    state.routineCode =
+      String(
+        context.routineCode ||
+        activeRoutine?.code ||
+        routineId
+      );
+
+    state.scheduledDate =
+      context.scheduledDate ||
+      null;
+
+    state.scheduleSource =
+      String(
+        context.scheduleSource ||
+        "manual"
+      );
+
+    state.scheduledType =
+      String(
+        context.scheduledType ||
+        "manual"
+      );
+
+    state.scheduledRoutineId =
+      context.scheduledRoutineId ||
+      null;
+
+    state.scheduledRoutineName =
+      context.scheduledRoutineName ||
+      null;
+
+    state.overrideRoutineId =
+      context.overrideRoutineId ||
+      null;
+
+    state.overrideRoutineName =
+      context.overrideRoutineName ||
+      null;
 
     state.started = true;
     state.completed = false;
     state.completedAt = null;
 
     if (!state.startedAt) {
-      state.startedAt = Date.now();
+      state.startedAt =
+        Date.now();
     }
 
     saveState();
+
+    return state;
   }
 
   function finishWorkout() {

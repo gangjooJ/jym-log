@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="./css/progression.css" />
   <link rel="stylesheet" href="./css/progression-history.css" />
   <link rel="stylesheet" href="./css/progression-editor.css" />
-  <link rel="stylesheet" href="./css/routine-schedule.css"
+  <link rel="stylesheet" href="./css/routine-schedule.css" />
 </head>
 
 <body>
@@ -120,6 +120,58 @@
             직접 선택
           </span>
         </div>
+
+        <div
+          class="today-routine-override"
+          aria-labelledby="todayRoutineOverrideLabel"
+        >
+          <label
+            id="todayRoutineOverrideLabel"
+            for="todayRoutineOverrideSelect"
+          >
+            오늘만 다른 루틴
+          </label>
+
+          <div class="today-routine-override-controls">
+            <select
+              id="todayRoutineOverrideSelect"
+              disabled
+            >
+              <option value="">
+                오늘 수행할 루틴 선택
+              </option>
+            </select>
+
+            <button
+              class="secondary-btn"
+              id="applyTodayRoutineOverrideBtn"
+              type="button"
+              disabled
+              aria-busy="false"
+            >
+              적용
+            </button>
+
+            <button
+              class="ghost-btn"
+              id="clearTodayRoutineOverrideBtn"
+              type="button"
+              disabled
+            >
+              해제
+            </button>
+          </div>
+
+          <p
+            class="today-routine-override-message"
+            id="todayRoutineOverrideMessage"
+            role="status"
+            aria-live="polite"
+          >
+            주간 일정은 유지되고 오늘 날짜에만 적용됩니다.
+          </p>
+        </div>
+
         <h2 id="homeRoutineName">
           가슴 · 팔
         </h2>
@@ -1280,6 +1332,11 @@
 <script
   type="module"
   src="./js/routine-schedule.js"
+></script>
+
+<script
+  type="module"
+  src="./js/routine-override.js"
 ></script>
 
 <script

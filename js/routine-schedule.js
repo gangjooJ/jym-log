@@ -723,6 +723,24 @@ async function applyTodaySchedule() {
     return null;
   }
 
+  /*
+  * 오늘만 변경이 있으면
+  * 주간 일정 자동 전환보다 우선합니다.
+  */
+  const overrideApi =
+    window.JYMLog
+      .routineOverride;
+
+  if (
+    overrideApi
+      ?.hasTodayOverride
+  ) {
+    return (
+      overrideApi
+        .applySavedOverride()
+    );
+  }
+
   const todayEntry =
     getTodayEntry();
 

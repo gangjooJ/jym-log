@@ -422,7 +422,16 @@
       return;
     }
 
-    workout.beginWorkout();
+    const workoutContext =
+      window.JYMLog
+        .routineOverride
+        ?.getWorkoutContext?.() ||
+      {};
+
+    workout.beginWorkout(
+      workoutContext
+    );
+
     syncState();
 
     setFinishBusy(false);
