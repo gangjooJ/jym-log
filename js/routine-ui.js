@@ -298,7 +298,7 @@ function renderRoutineLibrary(
 
   routines =
     window.JYMLog.routines
-      ?.routines
+      ?.routines,
 
   updateMessage = true
 ) {
