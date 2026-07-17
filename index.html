@@ -547,7 +547,57 @@
     </section>
 
     <section class="screen" id="screen-routine">
-      <div class="eyebrow">루틴 설계</div><h1>규칙은 유연하게,<br>운동은 일관되게.</h1>
+      <div class="eyebrow">루틴 설계</div>
+      <h1>규칙은 유연하게,<br>운동은 일관되게.</h1>
+
+      <div
+        class="card routine-library"
+        id="routineLibrary"
+        style="margin-top:18px"
+      >
+        <div class="routine-library-field">
+          <label for="routineSelector">
+            내 루틴
+          </label>
+
+          <select
+            id="routineSelector"
+            aria-describedby="routineLibraryMessage"
+          >
+            <option value="main">
+              기본 루틴
+            </option>
+          </select>
+        </div>
+
+        <div class="routine-library-actions">
+          <button
+            class="secondary-btn"
+            id="createRoutineBtn"
+            type="button"
+          >
+            + 새 루틴
+          </button>
+
+          <button
+            class="ghost-btn"
+            id="duplicateRoutineBtn"
+            type="button"
+          >
+            현재 루틴 복제
+          </button>
+        </div>
+
+        <p
+          class="routine-library-message"
+          id="routineLibraryMessage"
+          role="status"
+          aria-live="polite"
+        >
+          루틴을 선택하거나 새 루틴을 만들 수 있습니다.
+        </p>
+      </div>
+
       <div class="section-title">
         <h2 id="routineNameLabel">
           가슴 · 팔 A

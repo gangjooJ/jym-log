@@ -40,6 +40,26 @@ const routineExerciseCount =
     "routineExerciseCount"
   );
 
+const routineSelector =
+  document.getElementById(
+    "routineSelector"
+  );
+
+const createRoutineBtn =
+  document.getElementById(
+    "createRoutineBtn"
+  );
+
+const duplicateRoutineBtn =
+  document.getElementById(
+    "duplicateRoutineBtn"
+  );
+
+const routineLibraryMessage =
+  document.getElementById(
+    "routineLibraryMessage"
+  );
+
 const routineListElement =
   document.getElementById(
     "routineList"
@@ -198,7 +218,8 @@ let exerciseStageDrafts = [];
 let routineOrderSaving = false;
 let routineDragState = null;
 
-
+let routineLibraryBusy =
+  false;
 let initialized = false;
 
 let showToast = (message) => {
@@ -212,6 +233,308 @@ let onRoutineChanged = () => {};
 
 function toast(message) {
   showToast(message);
+}
+
+function setRoutineLibraryMessage(
+  message,
+  status = "default"
+) {
+  if (!routineLibraryMessage) {
+    return;
+  }
+
+  routineLibraryMessage.textContent =
+    message;
+
+  routineLibraryMessage.classList.toggle(
+    "success",
+    status === "success"
+  );
+
+  routineLibraryMessage.classList.toggle(
+    "error",
+    status === "error"
+  );
+}
+
+function setRoutineLibraryBusy(
+  isBusy
+) {
+  routineLibraryBusy =
+    isBusy;
+
+  if (routineSelector) {
+    routineSelector.disabled =
+      isBusy;
+  }
+
+  if (createRoutineBtn) {
+    createRoutineBtn.disabled =
+      isBusy;
+  }
+
+  if (duplicateRoutineBtn) {
+    duplicateRoutineBtn.disabled =
+      isBusy;
+  }
+}
+
+function renderRoutineLibrary(
+  routine =
+    window.JYMLog.routines
+      ?.activeRoutine,
+
+  routines =
+    window.JYMLog.routines
+      ?.routines
+) {
+  if (!routineSelector) {
+    return;
+  }
+
+  const routineList =
+    Array.isArray(routines)
+      ? routines
+      : [];
+
+  routineSelector.innerHTML =
+    routineList
+      .map(
+        (item) => `
+          <option
+            value="${escapeHtml(
+              item.id
+            )}"
+          >
+            ${escapeHtml(
+              item.name
+            )}
+          </option>
+        `
+      )
+      .join("");
+
+  if (routine?.id) {
+    routineSelector.value =
+      routine.id;
+  }
+
+  routineSelector.disabled =
+    routineLibraryBusy ||
+    routineList.length <= 1;
+
+  if (duplicateRoutineBtn) {
+    duplicateRoutineBtn.disabled =
+      routineLibraryBusy ||
+      !routine;
+  }
+
+  if (routineList.length > 0) {
+    setRoutineLibraryMessage(
+      `${routineList.length}개 루틴 중 "${routine?.name || "루틴"}"을 사용하고 있습니다.`
+    );
+  }
+}
+
+async function changeActiveRoutine() {
+  if (
+    routineLibraryBusy ||
+    !routineSelector
+  ) {
+    return;
+  }
+
+  const routineApi =
+    window.JYMLog.routines;
+
+  const nextRoutineId =
+    routineSelector.value;
+
+  if (
+    !routineApi ||
+    nextRoutineId ===
+      routineApi.activeRoutineId
+  ) {
+    return;
+  }
+
+  setRoutineLibraryBusy(true);
+
+  setRoutineLibraryMessage(
+    "선택한 루틴으로 전환하고 있습니다."
+  );
+
+  try {
+    const routine =
+      await routineApi
+        .switchActiveRoutine(
+          nextRoutineId
+        );
+
+    setRoutineLibraryMessage(
+      `"${routine.name}" 루틴으로 전환했습니다.`,
+      "success"
+    );
+
+    toast(
+      `"${routine.name}" 루틴을 불러왔습니다.`
+    );
+  } catch (error) {
+    console.error(
+      "[JYM Log] 루틴 전환 실패",
+      error
+    );
+
+    routineSelector.value =
+      routineApi?.activeRoutineId ||
+      "";
+
+    setRoutineLibraryMessage(
+      error.message ||
+      "루틴을 전환하지 못했습니다.",
+      "error"
+    );
+  } finally {
+    setRoutineLibraryBusy(false);
+
+    renderRoutineLibrary();
+  }
+}
+
+async function createNewRoutine() {
+  if (routineLibraryBusy) {
+    return;
+  }
+
+  const routineApi =
+    window.JYMLog.routines;
+
+  if (!routineApi) {
+    return;
+  }
+
+  const name =
+    window.prompt(
+      "새 루틴 이름을 입력해 주세요.",
+      "새 운동 루틴"
+    );
+
+  if (name === null) {
+    return;
+  }
+
+  setRoutineLibraryBusy(true);
+
+  setRoutineLibraryMessage(
+    "새 루틴을 만들고 있습니다."
+  );
+
+  try {
+    const routine =
+      await routineApi
+        .createRoutine(
+          name,
+          "사용자 설정 루틴"
+        );
+
+    setRoutineLibraryMessage(
+      `"${routine.name}" 루틴을 만들었습니다.`,
+      "success"
+    );
+
+    toast(
+      `"${routine.name}" 루틴이 생성되었습니다.`
+    );
+  } catch (error) {
+    console.error(
+      "[JYM Log] 새 루틴 생성 실패",
+      error
+    );
+
+    setRoutineLibraryMessage(
+      error.message ||
+      "새 루틴을 만들지 못했습니다.",
+      "error"
+    );
+  } finally {
+    setRoutineLibraryBusy(false);
+
+    renderRoutineLibrary();
+  }
+}
+
+async function duplicateCurrentRoutine() {
+  if (routineLibraryBusy) {
+    return;
+  }
+
+  const routineApi =
+    window.JYMLog.routines;
+
+  const currentRoutine =
+    routineApi?.activeRoutine;
+
+  if (!currentRoutine) {
+    return;
+  }
+
+  const rawSuggestedName =
+    `${currentRoutine.name} 복사본`;
+
+  const suggestedName =
+    Array.from(
+      rawSuggestedName
+    )
+      .slice(0, 30)
+      .join("");
+
+  const name =
+    window.prompt(
+      "복제할 루틴의 이름을 입력해 주세요.",
+      suggestedName
+    );
+
+  if (name === null) {
+    return;
+  }
+
+  setRoutineLibraryBusy(true);
+
+  setRoutineLibraryMessage(
+    "현재 루틴을 복제하고 있습니다."
+  );
+
+  try {
+    const routine =
+      await routineApi
+        .duplicateActiveRoutine(
+          name
+        );
+
+    setRoutineLibraryMessage(
+      `"${routine.name}" 루틴을 만들었습니다.`,
+      "success"
+    );
+
+    toast(
+      `"${currentRoutine.name}" 루틴을 복제했습니다.`
+    );
+  } catch (error) {
+    console.error(
+      "[JYM Log] 루틴 복제 실패",
+      error
+    );
+
+    setRoutineLibraryMessage(
+      error.message ||
+      "루틴을 복제하지 못했습니다.",
+      "error"
+    );
+  } finally {
+    setRoutineLibraryBusy(false);
+
+    renderRoutineLibrary();
+  }
 }
 
 function setRoutineEditorMessage(
@@ -1761,8 +2084,17 @@ function handleRoutinePointerDown(
 function refresh(
   routine =
     window.JYMLog.routines
-      ?.activeRoutine
+      ?.activeRoutine,
+
+  routines =
+    window.JYMLog.routines
+      ?.routines
 ) {
+  renderRoutineLibrary(
+    routine,
+    routines
+  );
+
   renderRoutineMetadata(
     routine
   );
@@ -1801,6 +2133,33 @@ function initialize(options = {}) {
     routineListElement.addEventListener(
       "pointerdown",
       handleRoutinePointerDown
+    );
+  }
+
+  if (routineSelector) {
+    routineSelector.addEventListener(
+      "change",
+      () => {
+        void changeActiveRoutine();
+      }
+    );
+  }
+
+  if (createRoutineBtn) {
+    createRoutineBtn.addEventListener(
+      "click",
+      () => {
+        void createNewRoutine();
+      }
+    );
+  }
+
+  if (duplicateRoutineBtn) {
+    duplicateRoutineBtn.addEventListener(
+      "click",
+      () => {
+        void duplicateCurrentRoutine();
+      }
     );
   }
 
@@ -2029,7 +2388,13 @@ function initialize(options = {}) {
       const routine =
         event.detail?.routine;
 
-      refresh(routine);
+      const routines =
+        event.detail?.routines;
+
+      refresh(
+        routine,
+        routines
+      );
       onRoutineChanged(routine);
 
       console.info(

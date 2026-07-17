@@ -1,6 +1,8 @@
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
   serverTimestamp,
   setDoc
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
@@ -25,9 +27,20 @@ if (!progressionPolicy) {
 }
 
 const ROUTINE_SCHEMA_VERSION = 1;
-const ACTIVE_ROUTINE_ID = "main";
+
+const DEFAULT_ROUTINE_ID = "main";
+
+const ROUTINE_PREFERENCE_DOC_ID =
+  "routinePreferences";
+
+const ACTIVE_ROUTINE_STORAGE_PREFIX =
+  "jym-log:active-routine";
+
+const MAX_ROUTINE_COUNT = 20;
 
 let activeRoutine = null;
+
+let availableRoutines = [];
 
 function cloneData(value) {
   return JSON.parse(
@@ -387,7 +400,7 @@ function validateExerciseInput(
   const routineId =
     activeRoutine?.id ||
     currentExercise?.routineId ||
-    ACTIVE_ROUTINE_ID;
+    DEFAULT_ROUTINE_ID;
 
   const baseExercise = {
     ...currentExercise,
@@ -466,7 +479,16 @@ function emitRoutineReady() {
       "jym-log:routine-ready",
       {
         detail: {
-          routine: activeRoutine
+          routine: activeRoutine,
+
+          routines:
+            cloneData(
+              availableRoutines
+            ),
+
+          activeRoutineId:
+            activeRoutine?.id ||
+            null
         }
       }
     )
@@ -478,7 +500,7 @@ function createDefaultRoutine(userId) {
     workout.exercises.map(
       (exercise, index) =>
         normalizeRoutineExercise(
-          ACTIVE_ROUTINE_ID,
+          DEFAULT_ROUTINE_ID,
           {
             ...cloneData(exercise),
             id:
@@ -491,7 +513,7 @@ function createDefaultRoutine(userId) {
     );
 
   return {
-    id: ACTIVE_ROUTINE_ID,
+    id: DEFAULT_ROUTINE_ID,
     userId,
     schemaVersion:
       ROUTINE_SCHEMA_VERSION,
@@ -556,6 +578,288 @@ function normalizeRoutine(
   };
 }
 
+function getRoutineDocument(
+  userId,
+  routineId
+) {
+  return doc(
+    db,
+    "users",
+    userId,
+    "routines",
+    routineId
+  );
+}
+
+function getRoutinePreferenceDocument(
+  userId
+) {
+  return doc(
+    db,
+    "users",
+    userId,
+    "appData",
+    ROUTINE_PREFERENCE_DOC_ID
+  );
+}
+
+function getActiveRoutineStorageKey(
+  userId
+) {
+  return [
+    ACTIVE_ROUTINE_STORAGE_PREFIX,
+    userId
+  ].join(":");
+}
+
+function createRoutineId() {
+  if (
+    window.crypto &&
+    typeof window.crypto.randomUUID ===
+      "function"
+  ) {
+    return (
+      "routine-" +
+      window.crypto.randomUUID()
+    );
+  }
+
+  return [
+    "routine",
+    Date.now(),
+    Math.random()
+      .toString(36)
+      .slice(2, 10)
+  ].join("-");
+}
+
+function sortRoutineList(
+  routines
+) {
+  return [...routines].sort(
+    (first, second) => {
+      if (
+        first.id ===
+        DEFAULT_ROUTINE_ID
+      ) {
+        return -1;
+      }
+
+      if (
+        second.id ===
+        DEFAULT_ROUTINE_ID
+      ) {
+        return 1;
+      }
+
+      return String(first.name)
+        .localeCompare(
+          String(second.name),
+          "ko"
+        );
+    }
+  );
+}
+
+function replaceRoutineInCache(
+  routine
+) {
+  if (!routine?.id) {
+    return;
+  }
+
+  const existingIndex =
+    availableRoutines.findIndex(
+      (item) =>
+        item.id === routine.id
+    );
+
+  if (existingIndex >= 0) {
+    availableRoutines[
+      existingIndex
+    ] = routine;
+  } else {
+    availableRoutines.push(
+      routine
+    );
+  }
+
+  availableRoutines =
+    sortRoutineList(
+      availableRoutines
+    );
+}
+
+async function loadAvailableRoutines(
+  userId
+) {
+  const routineCollection =
+    collection(
+      db,
+      "users",
+      userId,
+      "routines"
+    );
+
+  const routineSnapshots =
+    await getDocs(
+      routineCollection
+    );
+
+  availableRoutines =
+    sortRoutineList(
+      routineSnapshots.docs.map(
+        (snapshot) =>
+          normalizeRoutine(
+            snapshot.id,
+            snapshot.data(),
+            userId
+          )
+      )
+    );
+
+  return availableRoutines;
+}
+
+async function loadPreferredRoutineId(
+  userId
+) {
+  const storageKey =
+    getActiveRoutineStorageKey(
+      userId
+    );
+
+  const localRoutineId =
+    localStorage.getItem(
+      storageKey
+    );
+
+  try {
+    const preferenceSnapshot =
+      await getDoc(
+        getRoutinePreferenceDocument(
+          userId
+        )
+      );
+
+    const cloudRoutineId =
+      preferenceSnapshot.exists()
+        ? String(
+            preferenceSnapshot
+              .data()
+              ?.activeRoutineId ||
+            ""
+          )
+        : "";
+
+    if (cloudRoutineId) {
+      localStorage.setItem(
+        storageKey,
+        cloudRoutineId
+      );
+
+      return cloudRoutineId;
+    }
+  } catch (error) {
+    console.warn(
+      "[JYM Log] 활성 루틴 클라우드 설정을 불러오지 못했습니다.",
+      error
+    );
+  }
+
+  return (
+    localRoutineId ||
+    DEFAULT_ROUTINE_ID
+  );
+}
+
+async function savePreferredRoutineId(
+  userId,
+  routineId
+) {
+  localStorage.setItem(
+    getActiveRoutineStorageKey(
+      userId
+    ),
+    routineId
+  );
+
+  try {
+    await setDoc(
+      getRoutinePreferenceDocument(
+        userId
+      ),
+      {
+        userId,
+        activeRoutineId:
+          routineId,
+        updatedAt:
+          serverTimestamp()
+      },
+      {
+        merge: true
+      }
+    );
+  } catch (error) {
+    /*
+     * 환경에 따라 appData 쓰기 권한이
+     * 제한돼도 현재 기기의 루틴 선택은
+     * LocalStorage에 보존합니다.
+     */
+    console.warn(
+      "[JYM Log] 활성 루틴 클라우드 설정 저장 실패",
+      error
+    );
+  }
+}
+
+function applyActiveRoutineToWorkout(
+  shouldResetWorkout = true
+) {
+  workout.replaceExercises(
+    activeRoutine.exercises,
+    false
+  );
+
+  if (shouldResetWorkout) {
+    workout.resetWorkout();
+    workout.saveState();
+  }
+
+  emitRoutineReady();
+}
+
+function createStarterExercise(
+  routineId
+) {
+  return normalizeRoutineExercise(
+    routineId,
+    {
+      id: createExerciseId(),
+      routineId,
+      routineExerciseId: "",
+      order: 0,
+      name: "새 운동",
+      icon: "🏋️",
+      type: "반복 범위형",
+      weight: 0,
+      sets: 3,
+      min: 8,
+      max: 12,
+      rest: 90,
+      increment: 2.5,
+      previous:
+        "이전 기록 없음",
+      progressionState: {
+        currentStageIndex: 0,
+        successStreak: 0,
+        failureStreak: 0
+      }
+    },
+    0
+  );
+}
+
 async function ensureActiveRoutine(
   userId
 ) {
@@ -565,26 +869,27 @@ async function ensureActiveRoutine(
     );
   }
 
-  const routineDocument =
-    doc(
-      db,
-      "users",
+  const defaultRoutineDocument =
+    getRoutineDocument(
       userId,
-      "routines",
-      ACTIVE_ROUTINE_ID
+      DEFAULT_ROUTINE_ID
     );
 
-  const routineSnapshot =
+  const defaultRoutineSnapshot =
     await getDoc(
-      routineDocument
+      defaultRoutineDocument
     );
 
-  if (!routineSnapshot.exists()) {
+  if (
+    !defaultRoutineSnapshot.exists()
+  ) {
     const defaultRoutine =
-      createDefaultRoutine(userId);
+      createDefaultRoutine(
+        userId
+      );
 
     await setDoc(
-      routineDocument,
+      defaultRoutineDocument,
       {
         ...defaultRoutine,
         createdAt:
@@ -594,32 +899,319 @@ async function ensureActiveRoutine(
       }
     );
 
-    activeRoutine =
-      defaultRoutine;
-
     console.info(
       "[JYM Log] 기본 운동 루틴 생성 완료"
     );
-  } else {
-    activeRoutine =
-      normalizeRoutine(
-        routineSnapshot.id,
-        routineSnapshot.data(),
-        userId
-      );
+  }
 
-    console.info(
-      "[JYM Log] 사용자 운동 루틴 불러오기 완료"
+  await loadAvailableRoutines(
+    userId
+  );
+
+  const preferredRoutineId =
+    await loadPreferredRoutineId(
+      userId
+    );
+
+  activeRoutine =
+    availableRoutines.find(
+      (routine) =>
+        routine.id ===
+        preferredRoutineId
+    ) ||
+    availableRoutines.find(
+      (routine) =>
+        routine.id ===
+        DEFAULT_ROUTINE_ID
+    ) ||
+    availableRoutines[0];
+
+  if (!activeRoutine) {
+    throw new Error(
+      "사용할 수 있는 운동 루틴을 찾지 못했습니다."
     );
   }
 
-  workout.replaceExercises(
-    activeRoutine.exercises,
+  await savePreferredRoutineId(
+    userId,
+    activeRoutine.id
+  );
+
+  /*
+   * 로그인 직후에는 저장되어 있던
+   * 현재 운동 상태를 임의로 초기화하지 않습니다.
+   */
+  applyActiveRoutineToWorkout(
     false
   );
 
-  emitRoutineReady();
+  console.info(
+    `[JYM Log] 활성 루틴 불러오기 완료: ${activeRoutine.name}`
+  );
+
   return activeRoutine;
+}
+
+async function switchActiveRoutine(
+  routineId
+) {
+  assertRoutineCanChange();
+
+  const normalizedRoutineId =
+    String(routineId || "")
+      .trim();
+
+  if (!normalizedRoutineId) {
+    throw new Error(
+      "전환할 루틴을 선택해 주세요."
+    );
+  }
+
+  if (
+    activeRoutine.id ===
+    normalizedRoutineId
+  ) {
+    return activeRoutine;
+  }
+
+  let targetRoutine =
+    availableRoutines.find(
+      (routine) =>
+        routine.id ===
+        normalizedRoutineId
+    );
+
+  if (!targetRoutine) {
+    const routineSnapshot =
+      await getDoc(
+        getRoutineDocument(
+          activeRoutine.userId,
+          normalizedRoutineId
+        )
+      );
+
+    if (!routineSnapshot.exists()) {
+      throw new Error(
+        "선택한 루틴을 찾을 수 없습니다."
+      );
+    }
+
+    targetRoutine =
+      normalizeRoutine(
+        routineSnapshot.id,
+        routineSnapshot.data(),
+        activeRoutine.userId
+      );
+
+    replaceRoutineInCache(
+      targetRoutine
+    );
+  }
+
+  activeRoutine =
+    targetRoutine;
+
+  await savePreferredRoutineId(
+    activeRoutine.userId,
+    activeRoutine.id
+  );
+
+  applyActiveRoutineToWorkout(
+    true
+  );
+
+  console.info(
+    `[JYM Log] 활성 루틴 전환 완료: ${activeRoutine.name}`
+  );
+
+  return activeRoutine;
+}
+
+async function createRoutine(
+  nameValue,
+  descriptionValue = ""
+) {
+  assertRoutineCanChange();
+
+  if (
+    availableRoutines.length >=
+    MAX_ROUTINE_COUNT
+  ) {
+    throw new Error(
+      `루틴은 최대 ${MAX_ROUTINE_COUNT}개까지 만들 수 있습니다.`
+    );
+  }
+
+  const name =
+    validateRoutineName(
+      nameValue
+    );
+
+  const description =
+    normalizeDescription(
+      descriptionValue
+    );
+
+  const routineId =
+    createRoutineId();
+
+  const routine = {
+    id: routineId,
+    userId:
+      activeRoutine.userId,
+    schemaVersion:
+      ROUTINE_SCHEMA_VERSION,
+    name,
+    code: routineId,
+    description,
+    isActive: true,
+    exercises: [
+      createStarterExercise(
+        routineId
+      )
+    ]
+  };
+
+  await setDoc(
+    getRoutineDocument(
+      routine.userId,
+      routine.id
+    ),
+    {
+      ...routine,
+      createdAt:
+        serverTimestamp(),
+      updatedAt:
+        serverTimestamp()
+    }
+  );
+
+  replaceRoutineInCache(
+    routine
+  );
+
+  activeRoutine =
+    routine;
+
+  await savePreferredRoutineId(
+    routine.userId,
+    routine.id
+  );
+
+  applyActiveRoutineToWorkout(
+    true
+  );
+
+  console.info(
+    `[JYM Log] 새 루틴 생성 완료: ${routine.name}`
+  );
+
+  return routine;
+}
+
+async function duplicateActiveRoutine(
+  nameValue
+) {
+  assertRoutineCanChange();
+
+  if (
+    availableRoutines.length >=
+    MAX_ROUTINE_COUNT
+  ) {
+    throw new Error(
+      `루틴은 최대 ${MAX_ROUTINE_COUNT}개까지 만들 수 있습니다.`
+    );
+  }
+
+  const name =
+    validateRoutineName(
+      nameValue
+    );
+
+  const routineId =
+    createRoutineId();
+
+  const copiedExercises =
+    activeRoutine.exercises.map(
+      (exercise, index) =>
+        normalizeRoutineExercise(
+          routineId,
+          {
+            ...cloneData(exercise),
+
+            /*
+             * 새 루틴에 귀속되도록
+             * 루틴 식별자를 새로 만듭니다.
+             */
+            routineId,
+            routineExerciseId: "",
+            order: index,
+
+            /*
+             * 진행 정책은 복사하지만,
+             * 현재 성공·실패·단계 상태는
+             * 새 루틴에서 처음부터 시작합니다.
+             */
+            progressionState: {
+              currentStageIndex: 0,
+              successStreak: 0,
+              failureStreak: 0
+            }
+          },
+          index
+        )
+    );
+
+  const routine = {
+    id: routineId,
+    userId:
+      activeRoutine.userId,
+    schemaVersion:
+      ROUTINE_SCHEMA_VERSION,
+    name,
+    code: routineId,
+    description:
+      activeRoutine.description,
+    isActive: true,
+    exercises:
+      copiedExercises
+  };
+
+  await setDoc(
+    getRoutineDocument(
+      routine.userId,
+      routine.id
+    ),
+    {
+      ...routine,
+      createdAt:
+        serverTimestamp(),
+      updatedAt:
+        serverTimestamp()
+    }
+  );
+
+  replaceRoutineInCache(
+    routine
+  );
+
+  activeRoutine =
+    routine;
+
+  await savePreferredRoutineId(
+    routine.userId,
+    routine.id
+  );
+
+  applyActiveRoutineToWorkout(
+    true
+  );
+
+  console.info(
+    `[JYM Log] 루틴 복제 완료: ${routine.name}`
+  );
+
+  return routine;
 }
 
 async function updateActiveRoutineMetadata(
@@ -671,6 +1263,10 @@ async function updateActiveRoutineMetadata(
     name,
     description
   };
+
+  replaceRoutineInCache(
+    activeRoutine
+  );
 
   emitRoutineReady();
 
@@ -764,6 +1360,10 @@ async function saveActiveRoutineExercises(
     exercises:
       orderedExercises
   };
+
+  replaceRoutineInCache(
+    activeRoutine
+  );
 
   workout.replaceExercises(
     orderedExercises,
@@ -1191,6 +1791,11 @@ async function moveActiveRoutineExercise(
 window.JYMLog.routines =
   Object.freeze({
     ensureActiveRoutine,
+
+    switchActiveRoutine,
+    createRoutine,
+    duplicateActiveRoutine,
+
     updateActiveRoutineMetadata,
     updateActiveRoutineExercise,
     applyActiveRoutineProgressionTransition,
@@ -1198,13 +1803,32 @@ window.JYMLog.routines =
     deleteActiveRoutineExercise,
     reorderActiveRoutineExercises,
     moveActiveRoutineExercise,
+
     get activeRoutine() {
       return activeRoutine;
+    },
+
+    get activeRoutineId() {
+      return (
+        activeRoutine?.id ||
+        null
+      );
+    },
+
+    get routines() {
+      return cloneData(
+        availableRoutines
+      );
     }
   });
 
 export {
   ensureActiveRoutine,
+
+  switchActiveRoutine,
+  createRoutine,
+  duplicateActiveRoutine,
+
   updateActiveRoutineMetadata,
   updateActiveRoutineExercise,
   applyActiveRoutineProgressionTransition,
