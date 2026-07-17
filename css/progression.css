@@ -117,6 +117,75 @@
   cursor: wait;
 }
 
+
+.progression-batch {
+  margin-top: 16px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .68);
+}
+
+.progression-batch-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progression-select-all,
+.progression-select-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.progression-select-item {
+  margin-top: 10px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.progression-select-all input,
+.progression-select-item input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.progression-select-all input:disabled,
+.progression-select-item input:disabled {
+  cursor: not-allowed;
+}
+
+.progression-batch-btn {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 40px;
+  padding: 0 13px;
+  font-size: 12px;
+}
+
+.progression-batch-message {
+  margin: 9px 1px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.progression-batch-message.error {
+  color: var(--danger);
+}
+
+.progression-batch[aria-busy="true"] {
+  cursor: wait;
+}
+
 @media (max-width: 360px) {
   .progression-item-head {
     align-items: flex-start;
@@ -124,5 +193,14 @@
 
   .progression-item-title strong {
     white-space: normal;
+  }
+
+  .progression-batch-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .progression-batch-btn {
+    width: 100%;
   }
 }

@@ -21,6 +21,8 @@
     false;
   let activeRecommendationIndex =
     null;
+  let selectedRecommendationIndexes =
+    new Set();
 
   const startWorkoutBtn =
     document.getElementById(
@@ -165,6 +167,31 @@
   const recommendationListMessage =
     document.getElementById(
       "recommendationListMessage"
+    );
+
+  const recommendationBatchArea =
+    document.getElementById(
+      "recommendationBatchArea"
+    );
+
+  const recommendationSelectAll =
+    document.getElementById(
+      "recommendationSelectAll"
+    );
+
+  const recommendationBatchSummary =
+    document.getElementById(
+      "recommendationBatchSummary"
+    );
+
+  const applySelectedRecommendationsBtn =
+    document.getElementById(
+      "applySelectedRecommendationsBtn"
+    );
+
+  const recommendationBatchMessage =
+    document.getElementById(
+      "recommendationBatchMessage"
     );
 
   function showToast(message) {
@@ -484,6 +511,14 @@
       false;
     activeRecommendationIndex =
       null;
+    selectedRecommendationIndexes =
+      new Set();
+
+    if (recommendationBatchArea) {
+      recommendationBatchArea.classList.add(
+        "hidden"
+      );
+    }
 
     if (recommendationList) {
       recommendationList.innerHTML = "";
@@ -722,6 +757,23 @@
         recommendation
       );
 
+    const selectionMarkup =
+      applyState.canApply
+        ? `
+          <label class="progression-select-item">
+            <input
+              type="checkbox"
+              data-select-recommendation-index="${recommendationIndex}"
+              checked
+            >
+
+            <span>
+              일괄 적용에 포함
+            </span>
+          </label>
+        `
+        : "";
+
     const applyMarkup =
       applyState.showButton
         ? `
@@ -787,6 +839,8 @@
           </span>
         </div>
 
+        ${selectionMarkup}
+
         <div class="progression-target">
           ${escapeRecommendationHtml(
             recommendation.text
@@ -823,6 +877,23 @@
         (recommendation) => ({
           ...recommendation
         })
+      );
+
+    selectedRecommendationIndexes =
+      new Set(
+        list
+          .map(
+            (recommendation, index) =>
+              getRecommendationApplyState(
+                recommendation
+              ).canApply
+                ? index
+                : null
+          )
+          .filter(
+            (index) =>
+              index !== null
+          )
       );
 
     const increaseCount =
@@ -864,7 +935,7 @@
     if (recommendReason2) {
       recommendReason2.textContent =
         increaseCount > 0
-          ? `증량 추천 ${increaseCount}개는 각 운동 카드에서 개별 적용할 수 있습니다.`
+          ? `증량 추천 ${increaseCount}개는 개별 또는 선택 일괄 적용할 수 있습니다.`
           : "이번 세션에는 자동 적용할 증량 추천이 없습니다.";
     }
 
@@ -882,6 +953,8 @@
       setRecommendationListMessage(
         "루틴에 운동을 추가한 뒤 다시 확인해 주세요."
       );
+
+      updateRecommendationBatchControls();
       return;
     }
 
@@ -895,6 +968,158 @@
     setRecommendationListMessage(
       `총 ${list.length}개 운동의 다음 목표를 분석했습니다.`
     );
+
+    updateRecommendationBatchControls(
+      "적용할 증량 추천을 선택한 뒤 일괄 적용할 수 있습니다."
+    );
+  }
+
+  function setRecommendationBatchMessage(
+    message,
+    isError = false
+  ) {
+    if (!recommendationBatchMessage) {
+      return;
+    }
+
+    recommendationBatchMessage.textContent =
+      message;
+
+    recommendationBatchMessage.classList.toggle(
+      "error",
+      isError
+    );
+  }
+
+  function getReadyRecommendationIndexes() {
+    return latestRecommendations
+      .map(
+        (recommendation, index) =>
+          getRecommendationApplyState(
+            recommendation
+          ).canApply
+            ? index
+            : null
+      )
+      .filter(
+        (index) =>
+          index !== null
+      );
+  }
+
+  function updateRecommendationBatchControls(
+    message = null,
+    isError = false
+  ) {
+    const increaseCount =
+      latestRecommendations.filter(
+        (recommendation) =>
+          recommendation.action ===
+          "increase"
+      ).length;
+
+    const readyIndexes =
+      getReadyRecommendationIndexes();
+
+    const readyIndexSet =
+      new Set(readyIndexes);
+
+    selectedRecommendationIndexes =
+      new Set(
+        [...selectedRecommendationIndexes]
+          .filter(
+            (index) =>
+              readyIndexSet.has(index)
+          )
+      );
+
+    const selectedCount =
+      selectedRecommendationIndexes.size;
+
+    recommendationBatchArea
+      ?.classList.toggle(
+        "hidden",
+        increaseCount === 0
+      );
+
+    if (recommendationBatchSummary) {
+      recommendationBatchSummary.textContent =
+        `적용 가능 ${readyIndexes.length}개 · 선택 ${selectedCount}개`;
+    }
+
+    if (recommendationSelectAll) {
+      recommendationSelectAll.checked =
+        readyIndexes.length > 0 &&
+        selectedCount ===
+          readyIndexes.length;
+
+      recommendationSelectAll.indeterminate =
+        selectedCount > 0 &&
+        selectedCount <
+          readyIndexes.length;
+
+      recommendationSelectAll.disabled =
+        recommendationApplyInProgress ||
+        readyIndexes.length === 0;
+    }
+
+    recommendationList
+      ?.querySelectorAll(
+        "[data-select-recommendation-index]"
+      )
+      .forEach(
+        (checkbox) => {
+          const index = Number(
+            checkbox.dataset
+              .selectRecommendationIndex
+          );
+
+          checkbox.checked =
+            selectedRecommendationIndexes
+              .has(index);
+
+          checkbox.disabled =
+            recommendationApplyInProgress;
+        }
+      );
+
+    if (applySelectedRecommendationsBtn) {
+      applySelectedRecommendationsBtn.disabled =
+        recommendationApplyInProgress ||
+        selectedCount === 0;
+
+      applySelectedRecommendationsBtn.setAttribute(
+        "aria-busy",
+        String(
+          recommendationApplyInProgress &&
+          activeRecommendationIndex ===
+            null
+        )
+      );
+
+      applySelectedRecommendationsBtn.textContent =
+        recommendationApplyInProgress
+          ? activeRecommendationIndex ===
+              null
+            ? "선택 추천 적용 중..."
+            : "다른 추천 적용 중..."
+          : `선택 ${selectedCount}개 일괄 적용`;
+    }
+
+    if (message !== null) {
+      setRecommendationBatchMessage(
+        message,
+        isError
+      );
+    } else if (
+      increaseCount > 0 &&
+      readyIndexes.length === 0 &&
+      !recommendationApplyInProgress
+    ) {
+      setRecommendationBatchMessage(
+        "현재 바로 적용할 수 있는 증량 추천이 없습니다. 완료 기록 저장 또는 루틴 목표를 확인해 주세요."
+      );
+    }
   }
 
   function setRecommendationItemMessage(
@@ -937,6 +1162,13 @@
         ? recommendationIndex
         : null;
 
+    if (recommendationBatchArea) {
+      recommendationBatchArea.setAttribute(
+        "aria-busy",
+        String(isBusy)
+      );
+    }
+
     recommendationList
       ?.querySelectorAll(
         "[data-apply-recommendation-index]"
@@ -972,6 +1204,25 @@
           }
         }
       );
+
+    updateRecommendationBatchControls();
+  }
+
+  function buildRoutineExerciseInput(
+    exercise,
+    nextWeight
+  ) {
+    return {
+      name: exercise.name,
+      type: exercise.type,
+      weight: nextWeight,
+      sets: Number(exercise.sets),
+      min: Number(exercise.min),
+      max: Number(exercise.max),
+      rest: Number(exercise.rest),
+      increment:
+        Number(exercise.increment)
+    };
   }
 
   async function applyProgressionRecommendation(
@@ -1061,18 +1312,10 @@
       await routineApi
         .updateActiveRoutineExercise(
           exerciseIndex,
-          {
-            name: exercise.name,
-            type: exercise.type,
-            weight:
-              recommendation.nextWeight,
-            sets: Number(exercise.sets),
-            min: Number(exercise.min),
-            max: Number(exercise.max),
-            rest: Number(exercise.rest),
-            increment:
-              Number(exercise.increment)
-          }
+          buildRoutineExerciseInput(
+            exercise,
+            recommendation.nextWeight
+          )
         );
 
       window.JYMLog.routineUI
@@ -1109,6 +1352,220 @@
         false;
       activeRecommendationIndex =
         null;
+      updateRecommendationBatchControls();
+    }
+  }
+
+  async function applySelectedProgressionRecommendations() {
+    if (
+      recommendationApplyInProgress
+    ) {
+      return;
+    }
+
+    const selectedEntries =
+      [...selectedRecommendationIndexes]
+        .sort(
+          (first, second) =>
+            first - second
+        )
+        .map(
+          (recommendationIndex) => {
+            const recommendation =
+              latestRecommendations[
+                recommendationIndex
+              ];
+
+            return {
+              recommendationIndex,
+              recommendation,
+              applyState:
+                getRecommendationApplyState(
+                  recommendation
+                )
+            };
+          }
+        )
+        .filter(
+          (entry) =>
+            entry.recommendation &&
+            entry.applyState.canApply &&
+            entry.applyState.exercise
+        );
+
+    if (selectedEntries.length === 0) {
+      updateRecommendationBatchControls(
+        "선택한 항목 중 현재 적용할 수 있는 증량 추천이 없습니다.",
+        true
+      );
+      return;
+    }
+
+    const routineApi =
+      window.JYMLog.routines;
+
+    if (
+      !routineApi
+        ?.updateActiveRoutineExercise
+    ) {
+      updateRecommendationBatchControls(
+        "루틴 저장 기능을 불러오지 못했습니다.",
+        true
+      );
+      return;
+    }
+
+    const changeLines =
+      selectedEntries.map(
+        ({
+          recommendation,
+          applyState
+        }) =>
+          `• ${applyState.exercise.name}: ` +
+          `${formatWeight(
+            recommendation.currentWeight
+          )}kg → ` +
+          `${formatWeight(
+            recommendation.nextWeight
+          )}kg`
+      );
+
+    const confirmed =
+      window.confirm(
+        `선택한 ${selectedEntries.length}개 운동의 목표 중량을 변경할까요?\n\n` +
+        `${changeLines.join("\n")}\n\n` +
+        "다음 운동부터 적용되며 완료된 과거 기록은 변경되지 않습니다."
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setRecommendationApplyBusy(
+      true,
+      null
+    );
+
+    setRecommendationBatchMessage(
+      `선택한 ${selectedEntries.length}개 추천을 순서대로 저장하고 있습니다.`
+    );
+
+    const successes = [];
+    const failures = [];
+
+    for (const entry of selectedEntries) {
+      const {
+        recommendationIndex,
+        recommendation
+      } = entry;
+
+      const currentApplyState =
+        getRecommendationApplyState(
+          recommendation
+        );
+
+      if (
+        !currentApplyState.canApply ||
+        !currentApplyState.exercise
+      ) {
+        failures.push({
+          exerciseName:
+            recommendation.exerciseName,
+          message:
+            currentApplyState.message ||
+            "현재 루틴 상태와 추천이 일치하지 않습니다."
+        });
+        continue;
+      }
+
+      const exercise =
+        currentApplyState.exercise;
+
+      const exerciseIndex =
+        currentApplyState.exerciseIndex;
+
+      const nextWeightText =
+        formatWeight(
+          recommendation.nextWeight
+        );
+
+      setRecommendationItemMessage(
+        recommendationIndex,
+        `${nextWeightText}kg 목표를 저장하고 있습니다.`
+      );
+
+      try {
+        await routineApi
+          .updateActiveRoutineExercise(
+            exerciseIndex,
+            buildRoutineExerciseInput(
+              exercise,
+              recommendation.nextWeight
+            )
+          );
+
+        successes.push({
+          exerciseName: exercise.name,
+          nextWeightText
+        });
+      } catch (error) {
+        console.error(
+          "[JYM Log] 추천 중량 일괄 적용 항목 저장 실패",
+          {
+            exerciseName:
+              exercise.name,
+            error
+          }
+        );
+
+        failures.push({
+          exerciseName:
+            exercise.name,
+          message:
+            error.message ||
+            "추천 중량을 저장하지 못했습니다."
+        });
+      }
+    }
+
+    try {
+      window.JYMLog.routineUI
+        ?.refresh?.();
+
+      await renderProgressionRecommendations();
+
+      if (failures.length > 0) {
+        const failedNames =
+          failures
+            .map(
+              (failure) =>
+                failure.exerciseName
+            )
+            .join(", ");
+
+        setRecommendationListMessage(
+          `${successes.length}개 적용 완료 · ${failures.length}개 실패 (${failedNames}). 실패한 추천만 다시 확인해 주세요.`,
+          true
+        );
+
+        showToast(
+          `${successes.length}개 적용, ${failures.length}개 확인 필요`
+        );
+      } else {
+        setRecommendationListMessage(
+          `${successes.length}개 운동의 추천 중량을 다음 목표로 적용했습니다.`
+        );
+
+        showToast(
+          `${successes.length}개 추천 중량을 적용했습니다.`
+        );
+      }
+    } finally {
+      recommendationApplyInProgress =
+        false;
+      activeRecommendationIndex =
+        null;
+      updateRecommendationBatchControls();
     }
   }
 
@@ -1787,6 +2244,78 @@
           void applyProgressionRecommendation(
             recommendationIndex
           );
+        }
+      );
+
+    recommendationList
+      ?.addEventListener(
+        "change",
+        (event) => {
+          const checkbox =
+            event.target.closest(
+              "[data-select-recommendation-index]"
+            );
+
+          if (!checkbox) {
+            return;
+          }
+
+          const recommendationIndex =
+            Number(
+              checkbox.dataset
+                .selectRecommendationIndex
+            );
+
+          if (
+            !Number.isInteger(
+              recommendationIndex
+            ) ||
+            recommendationIndex < 0
+          ) {
+            return;
+          }
+
+          if (checkbox.checked) {
+            selectedRecommendationIndexes.add(
+              recommendationIndex
+            );
+          } else {
+            selectedRecommendationIndexes.delete(
+              recommendationIndex
+            );
+          }
+
+          updateRecommendationBatchControls(
+            "선택한 추천만 일괄 적용됩니다."
+          );
+        }
+      );
+
+    recommendationSelectAll
+      ?.addEventListener(
+        "change",
+        () => {
+          const readyIndexes =
+            getReadyRecommendationIndexes();
+
+          selectedRecommendationIndexes =
+            recommendationSelectAll.checked
+              ? new Set(readyIndexes)
+              : new Set();
+
+          updateRecommendationBatchControls(
+            recommendationSelectAll.checked
+              ? "적용 가능한 증량 추천을 모두 선택했습니다."
+              : "일괄 적용 선택을 모두 해제했습니다."
+          );
+        }
+      );
+
+    applySelectedRecommendationsBtn
+      ?.addEventListener(
+        "click",
+        () => {
+          void applySelectedProgressionRecommendations();
         }
       );
 

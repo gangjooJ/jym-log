@@ -233,6 +233,42 @@
         </div>
 
         <div
+          class="progression-batch hidden"
+          id="recommendationBatchArea"
+          aria-busy="false"
+        >
+          <div class="progression-batch-head">
+            <label class="progression-select-all">
+              <input
+                id="recommendationSelectAll"
+                type="checkbox"
+              >
+
+              <span id="recommendationBatchSummary">
+                적용 가능 0개 · 선택 0개
+              </span>
+            </label>
+
+            <button
+              class="secondary-btn progression-batch-btn"
+              id="applySelectedRecommendationsBtn"
+              type="button"
+              disabled
+              aria-busy="false"
+            >
+              선택 0개 일괄 적용
+            </button>
+          </div>
+
+          <p
+            class="progression-batch-message"
+            id="recommendationBatchMessage"
+            role="status"
+            aria-live="polite"
+          ></p>
+        </div>
+
+        <div
           class="progression-list"
           id="recommendationList"
           aria-label="운동별 다음 목표 추천"
