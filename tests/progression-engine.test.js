@@ -178,6 +178,59 @@ assert.match(
   /목표 중량/
 );
 
+
+const changedRoutineExercise = {
+  ...exercise,
+  weight: 82.5
+};
+
+const savedCurrentSession =
+  makeSession(
+    [5, 5, 5, 5, 5],
+    2000
+  );
+
+const stableAfterRoutineChange =
+  engine.buildRecommendation({
+    exercise:
+      changedRoutineExercise,
+    exerciseIndex: 0,
+    state:
+      makeState(
+        [5, 5, 5, 5, 5],
+        2000
+      ),
+    sessions: [
+      makeSession(
+        [5, 5, 5, 5, 5],
+        1000
+      ),
+      savedCurrentSession
+    ],
+    currentExerciseResult:
+      savedCurrentSession
+        .exercises[0],
+    currentSessionSaved: true
+  });
+
+assert.equal(
+  stableAfterRoutineChange.action,
+  "increase"
+);
+assert.equal(
+  stableAfterRoutineChange.currentWeight,
+  80
+);
+assert.equal(
+  stableAfterRoutineChange.nextWeight,
+  82.5
+);
+assert.equal(
+  stableAfterRoutineChange
+    .currentSessionSaved,
+  true
+);
+
 console.log(
   "progression-engine tests passed"
 );

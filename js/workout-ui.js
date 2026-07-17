@@ -16,6 +16,9 @@
   let toast = null;
   let finishInProgress = false;
   let recommendationRequestId = 0;
+  let latestRecommendation = null;
+  let recommendationApplyInProgress =
+    false;
 
   const startWorkoutBtn =
     document.getElementById(
@@ -150,6 +153,21 @@
   const recommendReason2 =
     document.getElementById(
       "recommendReason2"
+    );
+
+  const recommendApplyArea =
+    document.getElementById(
+      "recommendApplyArea"
+    );
+
+  const applyRecommendationBtn =
+    document.getElementById(
+      "applyRecommendationBtn"
+    );
+
+  const recommendApplyMessage =
+    document.getElementById(
+      "recommendApplyMessage"
     );
 
   function showToast(message) {
@@ -404,9 +422,426 @@
       );
   }
 
+  function formatWeight(value) {
+    const number = Number(value);
+
+    if (!Number.isFinite(number)) {
+      return "0";
+    }
+
+    return Number.isInteger(number)
+      ? String(number)
+      : String(
+          Math.round(number * 100) /
+          100
+        );
+  }
+
+  function areWeightsEqual(
+    first,
+    second
+  ) {
+    return Math.abs(
+      Number(first) - Number(second)
+    ) <= 0.001;
+  }
+
+  function normalizeExerciseName(value) {
+    return String(value || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+  }
+
+  function setRecommendationApplyMessage(
+    message,
+    isError = false
+  ) {
+    if (!recommendApplyMessage) {
+      return;
+    }
+
+    recommendApplyMessage.textContent =
+      message;
+
+    recommendApplyMessage.style.color =
+      isError
+        ? "var(--danger)"
+        : "var(--muted)";
+  }
+
+  function resetRecommendationAction() {
+    latestRecommendation = null;
+    recommendationApplyInProgress =
+      false;
+
+    recommendApplyArea?.classList.add(
+      "hidden"
+    );
+
+    if (applyRecommendationBtn) {
+      applyRecommendationBtn.disabled =
+        true;
+
+      applyRecommendationBtn.textContent =
+        "추천 중량 적용";
+
+      applyRecommendationBtn.setAttribute(
+        "aria-busy",
+        "false"
+      );
+    }
+
+    setRecommendationApplyMessage(
+      ""
+    );
+  }
+
+  function isSameRecommendedExercise(
+    exercise,
+    recommendation
+  ) {
+    if (!exercise || !recommendation) {
+      return false;
+    }
+
+    const recommendationId =
+      String(
+        recommendation.exerciseId ||
+        ""
+      );
+
+    const exerciseId =
+      String(exercise.id || "");
+
+    if (
+      recommendationId &&
+      exerciseId
+    ) {
+      return (
+        recommendationId ===
+        exerciseId
+      );
+    }
+
+    return (
+      normalizeExerciseName(
+        exercise.name
+      ) ===
+      normalizeExerciseName(
+        recommendation.exerciseName
+      )
+    );
+  }
+
+  function renderRecommendationAction(
+    recommendation,
+    exercise,
+    exerciseIndex
+  ) {
+    resetRecommendationAction();
+
+    if (
+      recommendation?.action !==
+        "increase" ||
+      !exercise ||
+      !recommendApplyArea ||
+      !applyRecommendationBtn
+    ) {
+      return;
+    }
+
+    latestRecommendation = {
+      ...recommendation,
+      exerciseIndex,
+      exerciseId:
+        recommendation.exerciseId ||
+        String(exercise.id || ""),
+      exerciseName:
+        recommendation.exerciseName ||
+        exercise.name
+    };
+
+    recommendApplyArea.classList.remove(
+      "hidden"
+    );
+
+    const nextWeightText =
+      formatWeight(
+        recommendation.nextWeight
+      );
+
+    if (
+      !recommendation
+        .currentSessionSaved
+    ) {
+      applyRecommendationBtn.disabled =
+        true;
+
+      applyRecommendationBtn.textContent =
+        "완료 기록 저장 후 적용";
+
+      setRecommendationApplyMessage(
+        "완료 기록이 저장되면 추천 중량을 적용할 수 있습니다."
+      );
+
+      return;
+    }
+
+    if (
+      areWeightsEqual(
+        exercise.weight,
+        recommendation.nextWeight
+      )
+    ) {
+      applyRecommendationBtn.disabled =
+        true;
+
+      applyRecommendationBtn.textContent =
+        "추천 중량 적용 완료";
+
+      setRecommendationApplyMessage(
+        `${nextWeightText}kg가 이미 다음 목표로 적용되어 있습니다.`
+      );
+
+      return;
+    }
+
+    if (
+      !areWeightsEqual(
+        exercise.weight,
+        recommendation.currentWeight
+      )
+    ) {
+      applyRecommendationBtn.disabled =
+        true;
+
+      applyRecommendationBtn.textContent =
+        "루틴 목표 확인 필요";
+
+      setRecommendationApplyMessage(
+        "추천을 계산한 뒤 루틴 목표가 변경되어 자동 적용을 중단했습니다.",
+        true
+      );
+
+      return;
+    }
+
+    applyRecommendationBtn.disabled =
+      false;
+
+    applyRecommendationBtn.textContent =
+      `${nextWeightText}kg를 다음 목표로 적용`;
+
+    setRecommendationApplyMessage(
+      "누르면 다음 운동의 목표 중량만 변경되며, 완료된 과거 기록은 유지됩니다."
+    );
+  }
+
+  function setRecommendationApplyBusy(
+    isBusy
+  ) {
+    recommendationApplyInProgress =
+      isBusy;
+
+    if (!applyRecommendationBtn) {
+      return;
+    }
+
+    applyRecommendationBtn.disabled =
+      isBusy;
+
+    applyRecommendationBtn.setAttribute(
+      "aria-busy",
+      String(isBusy)
+    );
+
+    if (isBusy) {
+      applyRecommendationBtn.textContent =
+        "추천 중량 적용 중...";
+    }
+  }
+
+  async function applyProgressionRecommendation() {
+    if (
+      recommendationApplyInProgress
+    ) {
+      return;
+    }
+
+    const recommendation =
+      latestRecommendation;
+
+    if (
+      recommendation?.action !==
+        "increase" ||
+      !recommendation
+        .currentSessionSaved
+    ) {
+      setRecommendationApplyMessage(
+        "적용할 수 있는 증량 추천이 없습니다.",
+        true
+      );
+      return;
+    }
+
+    const exerciseIndex =
+      Number(
+        recommendation.exerciseIndex
+      );
+
+    const exercise =
+      exercises[exerciseIndex];
+
+    if (
+      !Number.isInteger(
+        exerciseIndex
+      ) ||
+      !isSameRecommendedExercise(
+        exercise,
+        recommendation
+      )
+    ) {
+      setRecommendationApplyMessage(
+        "추천 대상 운동을 현재 루틴에서 찾을 수 없습니다.",
+        true
+      );
+      return;
+    }
+
+    if (
+      areWeightsEqual(
+        exercise.weight,
+        recommendation.nextWeight
+      )
+    ) {
+      renderRecommendationAction(
+        recommendation,
+        exercise,
+        exerciseIndex
+      );
+      return;
+    }
+
+    if (
+      !areWeightsEqual(
+        exercise.weight,
+        recommendation.currentWeight
+      )
+    ) {
+      renderRecommendationAction(
+        recommendation,
+        exercise,
+        exerciseIndex
+      );
+      return;
+    }
+
+    const routineApi =
+      window.JYMLog.routines;
+
+    if (
+      !routineApi
+        ?.updateActiveRoutineExercise
+    ) {
+      setRecommendationApplyMessage(
+        "루틴 저장 기능을 불러오지 못했습니다.",
+        true
+      );
+      return;
+    }
+
+    const currentWeightText =
+      formatWeight(
+        recommendation.currentWeight
+      );
+
+    const nextWeightText =
+      formatWeight(
+        recommendation.nextWeight
+      );
+
+    const confirmed =
+      window.confirm(
+        `"${exercise.name}" 목표 중량을 ${currentWeightText}kg에서 ${nextWeightText}kg으로 변경할까요?\n\n다음 운동부터 적용되며 완료된 과거 기록은 변경되지 않습니다.`
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setRecommendationApplyBusy(true);
+
+    setRecommendationApplyMessage(
+      `${nextWeightText}kg 목표를 루틴에 저장하고 있습니다.`
+    );
+
+    try {
+      await routineApi
+        .updateActiveRoutineExercise(
+          exerciseIndex,
+          {
+            name: exercise.name,
+            type: exercise.type,
+            weight:
+              recommendation.nextWeight,
+            sets: Number(exercise.sets),
+            min: Number(exercise.min),
+            max: Number(exercise.max),
+            rest: Number(exercise.rest),
+            increment:
+              Number(exercise.increment)
+          }
+        );
+
+      window.JYMLog.routineUI
+        ?.refresh?.();
+
+      applyRecommendationBtn.disabled =
+        true;
+
+      applyRecommendationBtn.textContent =
+        "추천 중량 적용 완료";
+
+      applyRecommendationBtn.setAttribute(
+        "aria-busy",
+        "false"
+      );
+
+      setRecommendationApplyMessage(
+        `${nextWeightText}kg가 다음 ${exercise.name} 목표로 저장되었습니다.`
+      );
+
+      showToast(
+        `${exercise.name} 목표를 ${nextWeightText}kg로 변경했습니다.`
+      );
+    } catch (error) {
+      console.error(
+        "[JYM Log] 추천 중량 적용 실패",
+        error
+      );
+
+      setRecommendationApplyBusy(false);
+
+      applyRecommendationBtn.textContent =
+        `${nextWeightText}kg를 다음 목표로 적용`;
+
+      setRecommendationApplyMessage(
+        error.message ||
+        "추천 중량을 루틴에 저장하지 못했습니다.",
+        true
+      );
+    } finally {
+      recommendationApplyInProgress =
+        false;
+    }
+  }
+
   function renderRecommendationFallback(
     exercise
   ) {
+    resetRecommendationAction();
+
     if (recommendTitle) {
       recommendTitle.textContent =
         exercise
@@ -446,6 +881,8 @@
     const exerciseIndex = 0;
     const exercise =
       exercises[exerciseIndex];
+
+    resetRecommendationAction();
 
     if (!exercise) {
       renderRecommendationFallback(
@@ -513,6 +950,12 @@
       recommendReason2.textContent =
         recommendation
           .incrementReason;
+
+      renderRecommendationAction(
+        recommendation,
+        exercise,
+        exerciseIndex
+      );
     } catch (error) {
       console.error(
         "[JYM Log] 운동 증량 추천 표시 실패",
@@ -653,6 +1096,12 @@
         .saveCompletedWorkoutSession(
           state
         );
+
+      /*
+       * 완료 세션이 기록된 뒤 다시 계산해야
+       * 추천 적용 버튼을 안전하게 활성화할 수 있습니다.
+       */
+      await renderProgressionRecommendation();
 
       showToast(
         "완료한 운동 기록이 저장되었습니다."
@@ -1030,6 +1479,14 @@
         }
       }
     );
+
+    applyRecommendationBtn
+      ?.addEventListener(
+        "click",
+        () => {
+          void applyProgressionRecommendation();
+        }
+      );
 
     add30Btn?.addEventListener(
       "click",

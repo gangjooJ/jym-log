@@ -488,19 +488,39 @@
     exerciseIndex = 0,
     state,
     sessions = [],
-    historyAvailable = true
+    historyAvailable = true,
+    currentExerciseResult = null,
+    currentSessionSaved = false
   }) {
-    const prescription =
+    const exercisePrescription =
       getExercisePrescription(
         exercise
       );
 
+    /*
+     * 완료 세션이 저장된 뒤 루틴 중량이
+     * 변경되어도, 완료 당시 목표를 기준으로
+     * 추천 결과를 다시 계산합니다.
+     */
+    const prescription =
+      currentExerciseResult
+        ? {
+            ...getSessionPrescription(
+              currentExerciseResult
+            ),
+            increment:
+              exercisePrescription.increment
+          }
+        : exercisePrescription;
+
     const currentSets =
-      getCurrentExerciseSets(
-        state,
-        exerciseIndex,
-        prescription.sets
-      );
+      currentExerciseResult
+        ? currentExerciseResult.sets
+        : getCurrentExerciseSets(
+            state,
+            exerciseIndex,
+            prescription.sets
+          );
 
     const currentEvaluation =
       evaluateSets(
@@ -560,6 +580,13 @@
       return {
         action: "increase",
         success: true,
+        exerciseIndex,
+        exerciseId:
+          prescription.exerciseId,
+        exerciseName:
+          prescription.name,
+        currentSessionSaved:
+          Boolean(currentSessionSaved),
         successStreak,
         requiredSuccesses:
           REQUIRED_CONSECUTIVE_SUCCESSES,
@@ -586,6 +613,13 @@
       return {
         action: "repeat",
         success: true,
+        exerciseIndex,
+        exerciseId:
+          prescription.exerciseId,
+        exerciseName:
+          prescription.name,
+        currentSessionSaved:
+          Boolean(currentSessionSaved),
         successStreak,
         requiredSuccesses:
           REQUIRED_CONSECUTIVE_SUCCESSES,
@@ -609,6 +643,13 @@
     return {
       action: "maintain",
       success: false,
+      exerciseIndex,
+      exerciseId:
+        prescription.exerciseId,
+      exerciseName:
+        prescription.name,
+      currentSessionSaved:
+        Boolean(currentSessionSaved),
       successStreak: 0,
       requiredSuccesses:
         REQUIRED_CONSECUTIVE_SUCCESSES,
@@ -658,12 +699,37 @@
             maxSessions
           );
 
+      const currentSession =
+        sessions.find(
+          (session) =>
+            toFiniteNumber(
+              session?.startedAtMillis
+            ) ===
+            toFiniteNumber(
+              state?.startedAt
+            )
+        ) || null;
+
+      const currentExerciseResult =
+        currentSession
+          ? findSessionExercise(
+              currentSession,
+              exercise,
+              exerciseIndex
+            )
+          : null;
+
       return buildRecommendation({
         exercise,
         exerciseIndex,
         state,
         sessions,
-        historyAvailable: true
+        historyAvailable: true,
+        currentExerciseResult,
+        currentSessionSaved:
+          Boolean(
+            currentExerciseResult
+          )
       });
     } catch (error) {
       console.warn(
