@@ -30,6 +30,8 @@
 ```text
 users/user-a
 users/user-a/appData/currentWorkout
+users/user-a/appData/routinePreferences
+users/user-a/appData/routineSchedule
 users/user-a/routines/main
 users/user-a/workoutSessions/session-test-001
 ```
@@ -105,7 +107,34 @@ users/{userId}/appData/currentWorkout
 
 ---
 
-## 6. 루틴 테스트
+## 6. 활성 루틴 설정과 주간 일정 테스트
+
+대상 경로:
+
+```text
+users/{userId}/appData/routinePreferences
+users/{userId}/appData/routineSchedule
+```
+
+두 문서는 모두 경로의 사용자 UID와 같은 `userId`, 그리고 `schemaVersion: 1`을 저장해야 한다.
+
+| ID | 인증 UID | 요청 | 경로 | 조건 | 예상 |
+|---|---|---|---|---|---|
+| SCHEDULE-001 | 로그아웃 | read | 본인 설정 경로 | 없음 | DENY |
+| SCHEDULE-002 | `user-a` | read | `users/user-a/appData/routinePreferences` | 없음 | ALLOW |
+| SCHEDULE-003 | `user-a` | read | `users/user-a/appData/routineSchedule` | 없음 | ALLOW |
+| SCHEDULE-004 | `user-a` | read | `users/user-b/appData/routineSchedule` | 없음 | DENY |
+| SCHEDULE-005 | `user-a` | create | 본인 설정 경로 | 본인 `userId`, 버전 1 | ALLOW |
+| SCHEDULE-006 | `user-a` | create | 본인 설정 경로 | 다른 `userId` | DENY |
+| SCHEDULE-007 | `user-a` | create | 본인 설정 경로 | 버전 2 또는 버전 누락 | DENY |
+| SCHEDULE-008 | `user-a` | update | 본인 설정 경로 | UID와 버전 유지 | ALLOW |
+| SCHEDULE-009 | `user-a` | update | 본인 설정 경로 | `userId` 변경 | DENY |
+| SCHEDULE-010 | `user-a` | delete | 본인 설정 경로 | 없음 | ALLOW |
+| SCHEDULE-011 | `user-a` | delete | 다른 사용자 설정 경로 | 없음 | DENY |
+
+---
+
+## 7. 루틴 테스트
 
 대상 경로:
 
@@ -143,7 +172,7 @@ users/{userId}/routines/{routineId}
 
 ---
 
-## 7. 완료 운동 세션 테스트
+## 8. 완료 운동 세션 테스트
 
 대상 경로:
 
@@ -184,7 +213,7 @@ users/{userId}/workoutSessions/{sessionId}
 
 ---
 
-## 8. 정의되지 않은 경로 테스트
+## 9. 정의되지 않은 경로 테스트
 
 | ID | 인증 UID | 요청 | 경로 | 예상 |
 |---|---|---|---|---|
@@ -197,7 +226,7 @@ users/{userId}/workoutSessions/{sessionId}
 
 ---
 
-## 9. Firebase Rules Playground 검사 절차
+## 10. Firebase Rules Playground 검사 절차
 
 ```text
 Firebase Console
@@ -229,7 +258,7 @@ Firebase Console
 
 ---
 
-## 10. 핵심 수동 테스트 실행 기록
+## 11. 핵심 수동 테스트 실행 기록
 
 | 날짜 | 환경 | 테스트 범위 | 결과 | 담당 |
 |---|---|---|---|---|
@@ -237,12 +266,13 @@ Firebase Console
 | 미실행 | Rules Playground | 다른 사용자 접근 차단 | 대기 |  |
 | 미실행 | Rules Playground | 잘못된 `userId` 차단 | 대기 |  |
 | 미실행 | Rules Playground | 잘못된 스키마 차단 | 대기 |  |
+| 미실행 | Rules Playground | 활성 루틴 설정·주간 일정 허용 및 사용자 분리 | 대기 |  |
 | 미실행 | 실제 앱 | Google 로그인 후 정상 사용 | 대기 |  |
 | 미실행 | 실제 앱 | 로그아웃 후 접근 차단 | 대기 |  |
 
 ---
 
-## 11. 자동 테스트 전환 계획
+## 12. 자동 테스트 전환 계획
 
 Rules Playground는 빠른 수동 확인에 사용한다.
 
@@ -273,7 +303,7 @@ unauthenticatedContext(...)
 
 ---
 
-## 12. 테스트 완료 조건
+## 13. 테스트 완료 조건
 
 다음 조건을 만족하면 Firestore 보안 규칙 검토를 완료한 것으로 판단한다.
 

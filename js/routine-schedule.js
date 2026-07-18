@@ -228,6 +228,37 @@ function getAvailableRoutines() {
 function getTodayDayKey(
   date = new Date()
 ) {
+  try {
+    const dayKey =
+      new Intl.DateTimeFormat(
+        "en-US",
+        {
+          timeZone:
+            window.JYMLog.config
+              ?.timezone ||
+            "Asia/Seoul",
+          weekday: "long"
+        }
+      )
+        .format(date)
+        .toLocaleLowerCase(
+          "en-US"
+        );
+
+    if (
+      DATE_DAY_KEYS.includes(
+        dayKey
+      )
+    ) {
+      return dayKey;
+    }
+  } catch (error) {
+    console.warn(
+      "[JYM Log] 앱 기준 시간대의 요일 계산에 실패해 기기 시간대를 사용합니다.",
+      error
+    );
+  }
+
   return (
     DATE_DAY_KEYS[
       date.getDay()

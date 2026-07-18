@@ -823,6 +823,8 @@ async function savePreferredRoutineId(
       ),
       {
         userId,
+        schemaVersion:
+          ROUTINE_SCHEMA_VERSION,
         activeRoutineId:
           routineId,
         updatedAt:

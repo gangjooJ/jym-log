@@ -8,7 +8,7 @@ https://gangjooj.github.io/jym-log/
 
 ## 현재 개발 상태
 
-- 버전: `v0.2.0-dev`
+- 버전: `v0.2.0-dev-47`
 - 앱 형태: 모바일 중심 PWA
 - 프런트엔드 배포: GitHub Pages
 - 인증: Firebase Authentication
@@ -101,6 +101,11 @@ https://gangjooj.github.io/jym-log/
 - 위·아래 버튼을 이용한 순서 변경
 - 마우스 및 터치 드래그 순서 변경
 - PC와 모바일에서 동일한 루틴 사용
+- 복수 루틴 생성·복제·전환·삭제
+- 주간 요일별 루틴·휴식·직접 선택 일정
+- 오늘 루틴 자동 선택
+- 오늘만 루틴 변경
+- 완료 기록의 예정 루틴과 실제 수행 비교
 
 ### PWA
 
@@ -118,7 +123,11 @@ https://gangjooj.github.io/jym-log/
 jym-log/
 ├─ index.html
 ├─ css/
-│  └─ style.css
+│  ├─ style.css
+│  ├─ progression.css
+│  ├─ progression-history.css
+│  ├─ progression-editor.css
+│  └─ routine-schedule.css
 ├─ js/
 │  ├─ config.js
 │  ├─ firebase-client.js
@@ -128,9 +137,19 @@ jym-log/
 │  ├─ workout.js
 │  ├─ sync.js
 │  ├─ routines.js
+│  ├─ routine-ui.js
+│  ├─ routine-schedule.js
+│  ├─ routine-override.js
 │  ├─ sessions.js
 │  ├─ history.js
+│  ├─ history-ui.js
 │  ├─ analysis.js
+│  ├─ analysis-ui.js
+│  ├─ progression-policy.js
+│  ├─ progression-engine.js
+│  ├─ progression-history.js
+│  ├─ workout-ui.js
+│  ├─ sync-conflict-ui.js
 │  └─ app.js
 ├─ docs/
 │  ├─ firebase-data-model.md
@@ -160,6 +179,8 @@ jym-log/
 | `js/workout.js` | 운동 상태, 세트 입력, 타이머, 계산 로직 |
 | `js/sync.js` | 진행 중 운동 상태의 Firestore 동기화 |
 | `js/routines.js` | 사용자별 루틴 생성·수정·추가·삭제·정렬 |
+| `js/routine-schedule.js` | 주간 루틴 일정 저장과 오늘 루틴 자동 선택 |
+| `js/routine-override.js` | 오늘만 루틴 변경과 일정 스냅샷 생성 |
 | `js/sessions.js` | 완료한 운동 세션 저장 |
 | `js/history.js` | 완료 운동 목록과 상세 기록 조회 |
 | `js/analysis.js` | 완료 기록 기반 주간 운동 분석 |
@@ -182,6 +203,8 @@ users/{uid}
 ├─ 사용자 프로필
 ├─ appData/currentWorkout
 │  └─ 진행 중인 운동 상태
+├─ appData/routineSchedule
+│  └─ 주간 일정과 날짜별 오늘만 변경
 ├─ routines/{routineId}
 │  └─ 사용자 운동 루틴
 └─ workoutSessions/{sessionId}
@@ -206,12 +229,9 @@ Cloud Firestore
 
 ## 현재 제한 사항
 
-- 현재 활성 루틴은 사용자당 하나를 기본으로 사용
-- 주간 요일별 운동 일정은 아직 미구현
 - 두 기기에서 동시에 수정할 경우 마지막 저장 데이터가 우선될 수 있음
 - 오프라인 상태에서 앱을 완전히 종료한 경우 미전송 변경 보호 보완 필요
 - 벤치프레스 분석이 운동 이름에 일부 의존
-- 다중 루틴 선택·복제·삭제 기능 미구현
 - 자동 증량·유지·디로드 추천 엔진 미구현
 - iPhone Safari와 iOS 홈 화면 PWA 실기기 테스트 미완료
 
@@ -250,13 +270,13 @@ chore: 설정과 개발 환경 변경
 - Android 전체 회귀 테스트
 - iOS 호환성 사전 점검
 
-### v0.3.0 운동 계획
+### v0.3.0 운동 계획 안정화
 
-- 다중 루틴 생성 및 선택
-- 루틴 복제와 삭제
-- 요일별 운동 루틴 배치
-- 휴식일과 기타 스포츠 설정
-- 오늘의 운동 자동 선택
+- 복수 루틴과 주간 일정 전체 회귀 테스트
+- 날짜 경계와 기기 시간대 변경 테스트
+- 오늘만 변경과 완료 세션 스냅샷 검증
+- 이전 버전 데이터 호환성 검증
+- Android 설치형 PWA 실기기 안정화
 
 ### 후속 버전
 

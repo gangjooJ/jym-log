@@ -60,6 +60,48 @@ service cloud.firestore {
       }
 
       /**
+       * 활성 루틴 선택
+       *
+       * 경로:
+       * users/{userId}/appData/routinePreferences
+       */
+      match /appData/routinePreferences {
+        allow read: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.schemaVersion == 1;
+
+        allow update: if isOwner(userId)
+          && resource.data.userId == userId
+          && request.resource.data.userId == userId
+          && request.resource.data.schemaVersion == 1;
+
+        allow delete: if isOwner(userId);
+      }
+
+      /**
+       * 주간 루틴 일정과 오늘만 변경
+       *
+       * 경로:
+       * users/{userId}/appData/routineSchedule
+       */
+      match /appData/routineSchedule {
+        allow read: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.schemaVersion == 1;
+
+        allow update: if isOwner(userId)
+          && resource.data.userId == userId
+          && request.resource.data.userId == userId
+          && request.resource.data.schemaVersion == 1;
+
+        allow delete: if isOwner(userId);
+      }
+
+      /**
        * 사용자 운동 루틴
        *
        * 경로:

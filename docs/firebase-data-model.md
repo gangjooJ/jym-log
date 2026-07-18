@@ -25,12 +25,16 @@ users/{uid}
 ├─ 사용자 프로필 필드
 │
 ├─ appData
-│  └─ currentWorkout
-│     └─ 진행 중인 운동 상태
+│  ├─ currentWorkout
+│  │  └─ 진행 중인 운동 상태
+│  ├─ routinePreferences
+│  │  └─ 활성 루틴 ID
+│  └─ routineSchedule
+│     └─ 주간 일정과 날짜별 오늘만 변경
 │
 ├─ routines
-│  └─ main
-│     └─ 현재 사용자 운동 루틴
+│  └─ {routineId}
+│     └─ 사용자 운동 루틴
 │
 └─ workoutSessions
    ├─ session-{startedAtMillis}
@@ -127,6 +131,13 @@ users/{uid}/appData/currentWorkout
 | `fatigue` | number | 사용자가 선택한 피로도 1~5 |
 | `completed` | boolean | 운동 완료 여부 |
 | `updatedAt` | number | 로컬 운동 상태가 마지막으로 변경된 시각의 밀리초 값 |
+| `scheduledDate` | string 또는 null | 운동 시작 시점의 앱 기준 날짜 `YYYY-MM-DD` |
+| `scheduleSource` | string | `weekly`, `override`, `rest`, `manual` 중 일정 출처 |
+| `scheduledType` | string | 주간 일정 항목의 종류 |
+| `scheduledRoutineId` | string 또는 null | 주간 일정에 지정된 루틴 ID |
+| `scheduledRoutineName` | string 또는 null | 주간 일정에 지정된 루틴 이름 |
+| `overrideRoutineId` | string 또는 null | 오늘만 변경한 루틴 ID |
+| `overrideRoutineName` | string 또는 null | 오늘만 변경한 루틴 이름 |
 
 ### 세트 키 형식
 
@@ -196,25 +207,16 @@ users/{uid}/appData/currentWorkout
 → 미전송 동기화 큐 별도 저장
 → 온라인이면 Firestore 업로드
 → 성공하면 미전송 큐 삭제
+```
 
 ---
 
 ## 5. 사용자 운동 루틴
 
-### 현재 경로
+### 경로
 
 ```text
-users/{uid}/routines/main
-```
-
-현재는 사용자당 하나의 기본 활성 루틴을 사용한다.
-
-향후 다중 루틴을 구현하면 다음과 같이 확장한다.
-
-```text
-users/{uid}/routines/chest-arms
-users/{uid}/routines/back-shoulders
-users/{uid}/routines/shoulders-arms
+users/{uid}/routines/{routineId}
 ```
 
 ### 루틴 필드
@@ -294,6 +296,35 @@ users/{uid}/routines/shoulders-arms
 
 화살표 또는 드래그 순서 변경이 끝난 후 Firestore에는 재정렬된 배열 전체를 저장한다.
 
+### 활성 루틴 설정
+
+```text
+users/{uid}/appData/routinePreferences
+```
+
+| 필드 | 형식 | 설명 |
+|---|---|---|
+| `userId` | string | 사용자 UID |
+| `schemaVersion` | number | 현재 스키마 버전. 현재 `1` |
+| `activeRoutineId` | string | 마지막으로 선택한 활성 루틴 ID |
+| `updatedAt` | timestamp | 최근 변경 시각 |
+
+### 주간 일정과 오늘만 변경
+
+```text
+users/{uid}/appData/routineSchedule
+```
+
+| 필드 | 형식 | 설명 |
+|---|---|---|
+| `userId` | string | 사용자 UID |
+| `schemaVersion` | number | 현재 스키마 버전. 현재 `1` |
+| `week` | map | 월요일부터 일요일까지의 루틴·휴식·직접 선택 설정 |
+| `overrides` | map | `YYYY-MM-DD` 키로 저장한 오늘만 루틴 변경 |
+| `updatedAt` | timestamp | 최근 변경 시각 |
+
+주간 일정과 오늘만 변경은 운동 시작 시 현재 운동 상태에 복사된다. 이후 일정이나 루틴 이름을 바꿔도 완료 세션의 당시 계획을 유지한다.
+
 ---
 
 ## 6. 완료 운동 세션
@@ -329,6 +360,13 @@ session-1784012400000
 | `routineId` | string | 운동에 사용한 루틴 ID |
 | `routineName` | string | 완료 당시 루틴 이름 |
 | `routineCode` | string | 완료 당시 루틴 코드 |
+| `scheduledDate` | string 또는 null | 운동 시작 당시 앱 기준 날짜 |
+| `scheduleSource` | string | 일정 출처 |
+| `scheduledType` | string | 주간 일정 항목 종류 |
+| `scheduledRoutineId` | string 또는 null | 예정 루틴 ID |
+| `scheduledRoutineName` | string 또는 null | 예정 루틴 이름 |
+| `overrideRoutineId` | string 또는 null | 오늘만 변경 루틴 ID |
+| `overrideRoutineName` | string 또는 null | 오늘만 변경 루틴 이름 |
 | `startedAt` | timestamp | 운동 시작 시각 |
 | `completedAt` | timestamp | 운동 완료 시각 |
 | `startedAtMillis` | number | 시작 시각 밀리초 |
@@ -468,6 +506,8 @@ firestore.rules
 
 ```text
 appData/currentWorkout
+appData/routinePreferences
+appData/routineSchedule
 routines/{routineId}
 workoutSessions/{sessionId}
 ```
@@ -490,66 +530,15 @@ workoutSessions/{sessionId}
 
 ## 10. 현재 알려진 제한 사항
 
-- 활성 루틴이 현재 `main` 하나로 고정돼 있다.
-- `currentWorkout`은 로컬·클라우드 수정 시각 비교가 없다.
-- 오프라인 업로드 대기 상태가 메모리에만 존재한다.
-- PC와 모바일 동시 수정은 revision 불일치로 감지하고 양쪽 상태를 보관하지만, 사용자가 어느 상태를 유지할지 선택하는 화면은 아직 없다.
 - 벤치프레스 분석이 일부 운동 이름과 첫 번째 운동 위치에 의존한다.
 - 계정 삭제 시 하위 컬렉션 자동 삭제 기능이 없다.
 - iOS 실기기 동기화 검증이 완료되지 않았다.
 
 ---
 
-## 11. 향후 확장 구조
+## 11. 추가 확장 후보
 
-### 다중 루틴
-
-```text
-users/{uid}/routines/{routineId}
-```
-
-별도 사용자 설정 문서에 활성 루틴 ID를 저장한다.
-
-```text
-users/{uid}/appData/preferences
-└─ activeRoutineId
-```
-
-### 주간 일정
-
-```text
-users/{uid}/appData/weeklySchedule
-```
-
-예시:
-
-```javascript
-{
-  monday: {
-    type: "routine",
-    routineId: "chest-arms"
-  },
-
-  tuesday: {
-    type: "rest"
-  },
-
-  wednesday: {
-    type: "routine",
-    routineId: "back-shoulders"
-  }
-}
-```
-
-### 동기화 메타데이터
-
-```javascript
-{
-  revision: 12,
-  localUpdatedAt: 1784012400000,
-  updatedAt: Timestamp,
-  deviceId: "device-id"
-}
-```
-
-이를 이용해 로컬·클라우드 최신 상태와 기기 간 충돌을 판단한다.
+- Firebase Emulator 기반 보안 규칙 자동 테스트
+- 계정 삭제 시 하위 컬렉션 일괄 삭제
+- 스키마 버전별 자동 마이그레이션
+- 오래된 날짜별 오늘만 변경 데이터 정리 정책
