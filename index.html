@@ -528,6 +528,66 @@
         </div>
       </div>
 
+      <section
+        class="card session-schedule-card hidden"
+        id="sessionScheduleCard"
+        data-status="legacy"
+        aria-labelledby="sessionScheduleTitle"
+      >
+        <div class="session-schedule-head">
+          <div>
+            <span class="session-schedule-eyebrow">
+              일정과 실제 수행
+            </span>
+
+            <strong id="sessionScheduleTitle">
+              일정 정보를 불러오고 있습니다.
+            </strong>
+          </div>
+
+          <span
+            class="session-schedule-badge"
+            id="sessionScheduleBadge"
+          >
+            확인 중
+          </span>
+        </div>
+
+        <p
+          class="session-schedule-description"
+          id="sessionScheduleDescription"
+        ></p>
+
+        <div class="session-schedule-grid">
+          <div class="session-schedule-item">
+            <span>실제 수행</span>
+
+            <strong id="sessionActualRoutine">
+              —
+            </strong>
+          </div>
+
+          <div class="session-schedule-item">
+            <span>원래 일정</span>
+
+            <strong id="sessionScheduledRoutine">
+              —
+            </strong>
+          </div>
+
+          <div
+            class="session-schedule-item hidden"
+            id="sessionOverrideRoutineRow"
+          >
+            <span>오늘만 변경</span>
+
+            <strong id="sessionOverrideRoutine">
+              —
+            </strong>
+          </div>
+        </div>
+      </section>
+
       <div class="section-title">
         <h2>운동별 세트</h2>
 

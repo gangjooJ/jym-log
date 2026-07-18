@@ -2616,3 +2616,339 @@ textarea:focus-visible {
       1ms !important;
   }
 }
+
+/* =========================================================
+   JYM Log dev-46
+   Scheduled vs Actual Workout
+   ========================================================= */
+
+.history-schedule-line {
+  margin-top: 12px;
+  padding: 10px 11px;
+  border: 1px solid
+    var(--line);
+  border-radius: 14px;
+  display: grid;
+  grid-template-columns:
+    auto
+    minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  background: #f8fafc;
+  text-align: left;
+}
+
+.history-schedule-line p {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-schedule-badge,
+.session-schedule-badge {
+  min-height: 27px;
+  padding: 0 9px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 10px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.history-schedule-line[
+  data-status="planned"
+] {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.history-schedule-line[
+  data-status="planned"
+]
+.history-schedule-badge {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.history-schedule-line[
+  data-status="override"
+] {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+}
+
+.history-schedule-line[
+  data-status="override"
+]
+.history-schedule-badge {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.history-schedule-line[
+  data-status="different"
+] {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.history-schedule-line[
+  data-status="different"
+]
+.history-schedule-badge {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.history-schedule-line[
+  data-status="rest"
+] {
+  border-color: #bae6fd;
+  background: #f0f9ff;
+}
+
+.history-schedule-line[
+  data-status="rest"
+]
+.history-schedule-badge {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.history-schedule-line[
+  data-status="manual"
+] {
+  border-color: #e5e7eb;
+  background: #f8fafc;
+}
+
+.history-schedule-line[
+  data-status="legacy"
+] {
+  border-style: dashed;
+  background: #f9fafb;
+}
+
+/* 상세 화면 */
+
+.session-schedule-card {
+  position: relative;
+  overflow: hidden;
+  margin-top: 14px;
+  border-color: #e5e7eb;
+}
+
+.session-schedule-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background: #9ca3af;
+}
+
+.session-schedule-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.session-schedule-head > div {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.session-schedule-eyebrow {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.session-schedule-head strong {
+  font-size: 16px;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.session-schedule-description {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.65;
+  word-break: keep-all;
+}
+
+.session-schedule-grid {
+  margin-top: 15px;
+  display: grid;
+  gap: 8px;
+}
+
+.session-schedule-item {
+  min-width: 0;
+  padding: 11px 12px;
+  border-radius: 14px;
+  display: grid;
+  grid-template-columns:
+    86px
+    minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  background: #f8fafc;
+}
+
+.session-schedule-item span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.session-schedule-item strong {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 상세 카드 상태색 */
+
+.session-schedule-card[
+  data-status="planned"
+] {
+  border-color: #bbf7d0;
+  background: #f7fff9;
+}
+
+.session-schedule-card[
+  data-status="planned"
+]::before {
+  background: var(--good);
+}
+
+.session-schedule-card[
+  data-status="planned"
+]
+.session-schedule-badge {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.session-schedule-card[
+  data-status="override"
+] {
+  border-color: #c7d2fe;
+  background: #fafaff;
+}
+
+.session-schedule-card[
+  data-status="override"
+]::before {
+  background: var(--accent);
+}
+
+.session-schedule-card[
+  data-status="override"
+]
+.session-schedule-badge {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.session-schedule-card[
+  data-status="different"
+] {
+  border-color: #fed7aa;
+  background: #fffdfa;
+}
+
+.session-schedule-card[
+  data-status="different"
+]::before {
+  background: var(--warn);
+}
+
+.session-schedule-card[
+  data-status="different"
+]
+.session-schedule-badge {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.session-schedule-card[
+  data-status="rest"
+] {
+  border-color: #bae6fd;
+  background: #f8fdff;
+}
+
+.session-schedule-card[
+  data-status="rest"
+]::before {
+  background: #0284c7;
+}
+
+.session-schedule-card[
+  data-status="rest"
+]
+.session-schedule-badge {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.session-schedule-card[
+  data-status="manual"
+]::before {
+  background: #64748b;
+}
+
+.session-schedule-card[
+  data-status="legacy"
+] {
+  border-style: dashed;
+}
+
+@media (max-width: 390px) {
+  .history-schedule-line {
+    grid-template-columns:
+      1fr;
+    gap: 7px;
+  }
+
+  .history-schedule-line
+  .history-schedule-badge {
+    justify-self: start;
+  }
+
+  .history-schedule-line p {
+    white-space: normal;
+  }
+
+  .session-schedule-head {
+    display: grid;
+  }
+
+  .session-schedule-badge {
+    justify-self: start;
+  }
+
+  .session-schedule-item {
+    grid-template-columns:
+      74px
+      minmax(0, 1fr);
+  }
+}

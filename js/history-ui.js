@@ -107,6 +107,46 @@
       "sessionDetailBackBtn"
     );
 
+  const detailScheduleCard =
+    document.getElementById(
+      "sessionScheduleCard"
+    );
+
+  const detailScheduleTitle =
+    document.getElementById(
+      "sessionScheduleTitle"
+    );
+
+  const detailScheduleBadge =
+    document.getElementById(
+      "sessionScheduleBadge"
+    );
+
+  const detailScheduleDescription =
+    document.getElementById(
+      "sessionScheduleDescription"
+    );
+
+  const detailActualRoutine =
+    document.getElementById(
+      "sessionActualRoutine"
+    );
+
+  const detailScheduledRoutine =
+    document.getElementById(
+      "sessionScheduledRoutine"
+    );
+
+  const detailOverrideRoutineRow =
+    document.getElementById(
+      "sessionOverrideRoutineRow"
+    );
+
+  const detailOverrideRoutine =
+    document.getElementById(
+      "sessionOverrideRoutine"
+    );
+
   function escapeHtml(value) {
     return String(value)
       .replaceAll("&", "&amp;")
@@ -387,64 +427,573 @@
     sessionList.innerHTML =
       recentSessions
         .map(
-          (session) => `
-            <button
-              class="card history-card history-card-button"
-              type="button"
-              data-session-id="${escapeHtml(
-                session.id
-              )}"
-              aria-label="${escapeHtml(
-                session.routineName
-              )} 운동 기록 상세 보기"
-            >
-              <div class="history-head">
-                <div>
-                  <h3>
-                    ${escapeHtml(
-                      session.routineName
-                    )}
-                  </h3>
+          (session) => {
+            const scheduleContext =
+              getSessionScheduleContext(
+                session
+              );
 
-                  <p class="history-date">
-                    ${formatHistoryDate(
-                      session.completedAtMillis
+            return `
+              <button
+                class="card history-card history-card-button"
+                type="button"
+                data-session-id="${escapeHtml(
+                  session.id
+                )}"
+                aria-label="${escapeHtml(
+                  session.routineName
+                )} 운동 기록 상세 보기"
+              >
+                <div class="history-head">
+                  <div>
+                    <h3>
+                      ${escapeHtml(
+                        session.routineName
+                      )}
+                    </h3>
+
+                    <p class="history-date">
+                      ${formatHistoryDate(
+                        session
+                          .completedAtMillis
+                      )}
+                    </p>
+                  </div>
+
+                  <span class="tag">
+                    완료
+                  </span>
+                </div>
+
+                <div
+                  class="history-schedule-line"
+                  data-status="${escapeHtml(
+                    scheduleContext
+                      .status
+                  )}"
+                >
+                  <span class="history-schedule-badge">
+                    ${escapeHtml(
+                      scheduleContext
+                        .label
+                    )}
+                  </span>
+
+                  <p>
+                    ${escapeHtml(
+                      scheduleContext
+                        .summary
                     )}
                   </p>
                 </div>
 
-                <span class="tag">
-                  완료
-                </span>
-              </div>
+                <div class="history-meta">
+                  <span>
+                    ⏱ ${formatSessionDuration(
+                      session
+                        .durationSeconds
+                    )}
+                  </span>
 
-              <div class="history-meta">
-                <span>
-                  ⏱ ${formatSessionDuration(
-                    session.durationSeconds
-                  )}
-                </span>
+                  <span>
+                    ▦ ${Number(
+                      session.completedSets
+                    ).toLocaleString()}세트
+                  </span>
 
-                <span>
-                  ▦ ${Number(
-                    session.completedSets
-                  ).toLocaleString()}세트
-                </span>
+                  <span>
+                    ◈ ${Number(
+                      session.totalVolume
+                    ).toLocaleString()}kg
+                  </span>
+                </div>
 
-                <span>
-                  ◈ ${Number(
-                    session.totalVolume
-                  ).toLocaleString()}kg
-                </span>
-              </div>
-
-              <div class="history-card-action">
-                상세 보기 ›
-              </div>
-            </button>
-          `
+                <div class="history-card-action">
+                  상세 보기 ›
+                </div>
+              </button>
+            `;
+          }
         )
         .join("");
+  }
+
+  function normalizeRoutineValue(
+    value
+  ) {
+    return String(value || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLocaleLowerCase(
+        "ko-KR"
+      );
+  }
+
+  function routinesMatch(
+    actualId,
+    actualName,
+    targetId,
+    targetName
+  ) {
+    const normalizedActualId =
+      normalizeRoutineValue(
+        actualId
+      );
+
+    const normalizedTargetId =
+      normalizeRoutineValue(
+        targetId
+      );
+
+    /*
+    * 양쪽에 ID가 있으면
+    * 이름보다 ID를 우선 비교합니다.
+    */
+    if (
+      normalizedActualId &&
+      normalizedTargetId
+    ) {
+      return (
+        normalizedActualId ===
+        normalizedTargetId
+      );
+    }
+
+    const normalizedActualName =
+      normalizeRoutineValue(
+        actualName
+      );
+
+    const normalizedTargetName =
+      normalizeRoutineValue(
+        targetName
+      );
+
+    return Boolean(
+      normalizedActualName &&
+      normalizedTargetName &&
+      normalizedActualName ===
+        normalizedTargetName
+    );
+  }
+
+  function hasScheduleSnapshot(
+    session
+  ) {
+    return [
+      "scheduledDate",
+      "scheduleSource",
+      "scheduledType",
+      "scheduledRoutineId",
+      "scheduledRoutineName",
+      "overrideRoutineId",
+      "overrideRoutineName"
+    ].some(
+      (key) =>
+        Object.prototype
+          .hasOwnProperty.call(
+            session || {},
+            key
+          )
+    );
+  }
+
+  function getOriginalScheduleLabel(
+    session
+  ) {
+    const scheduledType =
+      String(
+        session?.scheduledType ||
+        ""
+      );
+
+    if (
+      scheduledType ===
+        "routine" ||
+      session?.scheduledRoutineId ||
+      session?.scheduledRoutineName
+    ) {
+      return (
+        session
+          ?.scheduledRoutineName ||
+        "지정 루틴"
+      );
+    }
+
+    if (
+      scheduledType === "rest" ||
+      session?.scheduleSource ===
+        "rest"
+    ) {
+      return "휴식";
+    }
+
+    return "직접 선택";
+  }
+
+  function getSessionScheduleContext(
+    session
+  ) {
+    const actualRoutineName =
+      String(
+        session?.routineName ||
+        "운동 루틴"
+      );
+
+    const originalScheduleLabel =
+      getOriginalScheduleLabel(
+        session
+      );
+
+    const overrideRoutineName =
+      String(
+        session
+          ?.overrideRoutineName ||
+        ""
+      ).trim();
+
+    /*
+    * dev-44 이전 기록은
+    * 일정 관련 필드가 존재하지 않습니다.
+    */
+    if (
+      !hasScheduleSnapshot(
+        session
+      )
+    ) {
+      return {
+        status: "legacy",
+        label: "기존 기록",
+        title: "일정 정보 없음",
+
+        summary:
+          "일정 비교 기능 적용 전에 저장된 운동입니다.",
+
+        description:
+          "실제 수행 기록은 정상적으로 확인할 수 있지만 당시의 주간 일정은 저장되어 있지 않습니다.",
+
+        actualRoutineName,
+
+        originalScheduleLabel:
+          "정보 없음",
+
+        overrideRoutineName: "",
+
+        showOverride: false
+      };
+    }
+
+    const source =
+      String(
+        session?.scheduleSource ||
+        "manual"
+      );
+
+    const matchesScheduled =
+      routinesMatch(
+        session?.routineId,
+        actualRoutineName,
+        session
+          ?.scheduledRoutineId,
+        session
+          ?.scheduledRoutineName
+      );
+
+    const matchesOverride =
+      routinesMatch(
+        session?.routineId,
+        actualRoutineName,
+        session
+          ?.overrideRoutineId,
+        session
+          ?.overrideRoutineName
+      );
+
+    /*
+    * 오늘만 변경
+    */
+    if (source === "override") {
+      /*
+      * 오늘 변경한 루틴과 실제 수행 루틴이
+      * 다시 다른 예외 상황입니다.
+      */
+      if (
+        (
+          session
+            ?.overrideRoutineId ||
+          overrideRoutineName
+        ) &&
+        !matchesOverride
+      ) {
+        return {
+          status: "different",
+          label:
+            "변경과 다르게 수행",
+
+          title:
+            "오늘 변경한 루틴과 다른 루틴을 수행했습니다.",
+
+          summary:
+            `변경 ${
+              overrideRoutineName ||
+              "지정 루틴"
+            } · 실제 ${actualRoutineName}`,
+
+          description:
+            `원래 일정은 ${originalScheduleLabel}이었고, 오늘만 변경한 루틴과 실제 수행 루틴도 서로 달랐습니다.`,
+
+          actualRoutineName,
+          originalScheduleLabel,
+
+          overrideRoutineName:
+            overrideRoutineName ||
+            "지정 루틴",
+
+          showOverride: true
+        };
+      }
+
+      return {
+        status: "override",
+        label: "오늘만 변경",
+
+        title:
+          "오늘만 다른 루틴으로 변경해 수행했습니다.",
+
+        summary:
+          `원래 ${originalScheduleLabel} → 실제 ${actualRoutineName}`,
+
+        description:
+          `주간 일정은 유지하고 오늘 날짜에만 ${actualRoutineName} 루틴을 적용했습니다.`,
+
+        actualRoutineName,
+        originalScheduleLabel,
+
+        overrideRoutineName:
+          overrideRoutineName ||
+          actualRoutineName,
+
+        showOverride: true
+      };
+    }
+
+    /*
+    * 주간 일정
+    */
+    if (source === "weekly") {
+      if (matchesScheduled) {
+        return {
+          status: "planned",
+          label: "예정대로 수행",
+
+          title:
+            "주간 일정과 동일한 루틴을 수행했습니다.",
+
+          summary:
+            `${originalScheduleLabel} · 예정대로 완료`,
+
+          description:
+            `주간 일정에 지정된 ${originalScheduleLabel} 루틴을 계획대로 수행했습니다.`,
+
+          actualRoutineName,
+          originalScheduleLabel,
+          overrideRoutineName: "",
+          showOverride: false
+        };
+      }
+
+      return {
+        status: "different",
+        label: "다른 루틴 수행",
+
+        title:
+          "예정된 루틴과 다른 루틴을 수행했습니다.",
+
+        summary:
+          `예정 ${originalScheduleLabel} · 실제 ${actualRoutineName}`,
+
+        description:
+          `주간 일정에는 ${originalScheduleLabel}이 지정되어 있었지만 실제로는 ${actualRoutineName} 루틴을 수행했습니다.`,
+
+        actualRoutineName,
+        originalScheduleLabel,
+        overrideRoutineName: "",
+        showOverride: false
+      };
+    }
+
+    /*
+    * 휴식일
+    */
+    if (
+      source === "rest" ||
+      session?.scheduledType ===
+        "rest"
+    ) {
+      return {
+        status: "rest",
+        label: "휴식일 운동",
+
+        title:
+          "휴식일에 운동을 수행했습니다.",
+
+        summary:
+          `휴식 예정 · 실제 ${actualRoutineName}`,
+
+        description:
+          `주간 일정은 휴식이었지만 ${actualRoutineName} 루틴을 수행했습니다.`,
+
+        actualRoutineName,
+
+        originalScheduleLabel:
+          "휴식",
+
+        overrideRoutineName: "",
+        showOverride: false
+      };
+    }
+
+    /*
+    * 직접 선택
+    */
+    return {
+      status: "manual",
+      label: "직접 선택",
+
+      title:
+        "일정 자동 선택 없이 직접 수행했습니다.",
+
+      summary:
+        `${actualRoutineName} · 직접 선택`,
+
+      description:
+        "주간 일정에서 루틴을 지정하지 않고 현재 선택한 루틴으로 운동했습니다.",
+
+      actualRoutineName,
+
+      originalScheduleLabel:
+        "직접 선택",
+
+      overrideRoutineName: "",
+      showOverride: false
+    };
+  }
+
+  function resetScheduleDetail() {
+    detailScheduleCard
+      ?.classList.add(
+        "hidden"
+      );
+
+    if (detailScheduleCard) {
+      detailScheduleCard
+        .dataset.status =
+          "legacy";
+    }
+
+    if (detailScheduleTitle) {
+      detailScheduleTitle
+        .textContent =
+          "일정 정보를 불러오고 있습니다.";
+    }
+
+    if (detailScheduleBadge) {
+      detailScheduleBadge
+        .textContent =
+          "확인 중";
+    }
+
+    if (
+      detailScheduleDescription
+    ) {
+      detailScheduleDescription
+        .textContent = "";
+    }
+
+    if (detailActualRoutine) {
+      detailActualRoutine
+        .textContent = "—";
+    }
+
+    if (
+      detailScheduledRoutine
+    ) {
+      detailScheduledRoutine
+        .textContent = "—";
+    }
+
+    detailOverrideRoutineRow
+      ?.classList.add(
+        "hidden"
+      );
+
+    if (detailOverrideRoutine) {
+      detailOverrideRoutine
+        .textContent = "—";
+    }
+  }
+
+  function renderScheduleDetail(
+    session
+  ) {
+    if (
+      !detailScheduleCard ||
+      !detailScheduleTitle ||
+      !detailScheduleBadge ||
+      !detailScheduleDescription ||
+      !detailActualRoutine ||
+      !detailScheduledRoutine
+    ) {
+      return;
+    }
+
+    const context =
+      getSessionScheduleContext(
+        session
+      );
+
+    detailScheduleCard
+      .dataset.status =
+        context.status;
+
+    detailScheduleCard
+      .classList.remove(
+        "hidden"
+      );
+
+    detailScheduleTitle
+      .textContent =
+        context.title;
+
+    detailScheduleBadge
+      .textContent =
+        context.label;
+
+    detailScheduleDescription
+      .textContent =
+        context.description;
+
+    detailActualRoutine
+      .textContent =
+        context.actualRoutineName;
+
+    detailScheduledRoutine
+      .textContent =
+        context.originalScheduleLabel;
+
+    detailOverrideRoutineRow
+      ?.classList.toggle(
+        "hidden",
+        !context.showOverride
+      );
+
+    if (detailOverrideRoutine) {
+      detailOverrideRoutine
+        .textContent =
+          context
+            .overrideRoutineName ||
+          "—";
+    }
   }
 
   function formatProgressionChangeDate(
@@ -979,6 +1528,10 @@
         ? `${session.fatigue} / 5`
         : "미입력";
 
+    renderScheduleDetail(
+      session
+    );    
+
     const recordedExercises =
       Array.isArray(
         session.exercises
@@ -1139,6 +1692,8 @@
 
     detailFatigue.textContent =
       "—";
+
+    resetScheduleDetail();
 
     detailExerciseCount.textContent =
       "불러오는 중";
