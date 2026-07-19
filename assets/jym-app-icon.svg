@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">JYM Log 앱 아이콘</title>
+  <rect width="512" height="512" rx="112" fill="#2563eb"/>
+  <g transform="translate(63 155) scale(2.45) skewX(-9)" fill="#fff">
+    <path d="M18 8h38l-3 11H40l-6 27c-2 8-8 12-18 12H4l3-11h8c4 0 6-2 7-6l5-22H15z"/>
+    <path d="M57 8h13l8 16L94 6h-7l16-6-4 17-3-7-14 22-6 26H63l6-26z"/>
+    <path d="M103 8h14l7 26 19-26h13l-11 50h-12l6-28-17 23h-7l-7-23-6 28H90z"/>
+  </g>
+  <g fill="#fff" opacity=".92">
+    <rect x="153" y="349" width="206" height="9" rx="4.5"/>
+    <rect x="125" y="329" width="14" height="49" rx="7"/>
+    <rect x="99" y="337" width="14" height="33" rx="7"/>
+    <rect x="373" y="329" width="14" height="49" rx="7"/>
+    <rect x="399" y="337" width="14" height="33" rx="7"/>
+  </g>
+</svg>

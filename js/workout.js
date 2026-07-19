@@ -690,3 +690,4 @@ window.JYMLog.workout = (() => {
     resetWorkout
   };
 })();
+

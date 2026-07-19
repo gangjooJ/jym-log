@@ -373,3 +373,4 @@ window.JYMLog.sessions =
 export {
   saveCompletedWorkoutSession
 };
+

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 116" role="img" aria-labelledby="title">
+  <title id="title">JYM Log</title>
+  <g fill="#fff">
+    <g transform="translate(70 4) skewX(-9)">
+      <path d="M18 8h38l-3 11H40l-6 27c-2 8-8 12-18 12H4l3-11h8c4 0 6-2 7-6l5-22H15z"/>
+      <path d="M57 8h13l8 16L94 6h-7l16-6-4 17-3-7-14 22-6 26H63l6-26z"/>
+      <path d="M103 8h14l7 26 19-26h13l-11 50h-12l6-28-17 23h-7l-7-23-6 28H90z"/>
+    </g>
+    <rect x="67" y="85" width="54" height="3" rx="1.5"/><rect x="60" y="79" width="5" height="15" rx="2"/><rect x="52" y="81" width="5" height="11" rx="2"/>
+    <text x="132" y="96" font-family="Arial Black,Arial,sans-serif" font-size="27" font-style="italic" font-weight="900" letter-spacing="1">LOG</text>
+    <rect x="204" y="85" width="36" height="3" rx="1.5"/><rect x="242" y="79" width="5" height="15" rx="2"/><rect x="250" y="81" width="5" height="11" rx="2"/>
+  </g>
+</svg>

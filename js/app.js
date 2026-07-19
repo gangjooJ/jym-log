@@ -1691,3 +1691,4 @@ window.JYMLog.navigation =
       return currentNavigationDepth;
     }
   });
+
