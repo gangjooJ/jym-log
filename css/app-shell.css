@@ -255,3 +255,144 @@ html[data-theme="dark"] .bottom-nav {
       );
   }
 }
+
+/*
+ * =========================================================
+ * JYM Log dev-53
+ * Mobile viewport and keyboard stabilization
+ * =========================================================
+ */
+
+:root {
+  --visual-viewport-height:
+    100dvh;
+}
+
+/*
+ * 구형 브라우저부터 최신 동적 뷰포트까지
+ * 순차적으로 적용합니다.
+ */
+body,
+.app-shell,
+.auth-screen {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+
+@media (
+  max-width: 699px
+) {
+  /*
+   * 키보드가 닫힐 때 하단 내비가
+   * 자연스럽게 원래 위치로 복귀하도록 합니다.
+   */
+  .bottom-nav {
+    opacity: 1;
+
+    transition:
+      opacity
+      140ms
+      ease,
+      transform
+      180ms
+      ease;
+  }
+
+  /*
+   * 포커스된 입력 요소가 상단 헤더나
+   * 키보드 바로 아래에 붙지 않도록 합니다.
+   */
+  main :is(
+    input,
+    select,
+    textarea,
+    [contenteditable="true"]
+  ) {
+    scroll-margin-top:
+      96px;
+
+    scroll-margin-bottom:
+      32px;
+  }
+
+  /*
+   * 키보드가 표시됐을 때 모달 시트가
+   * 실제로 보이는 화면 높이를 넘지 않도록 합니다.
+   */
+  .sheet,
+  .exercise-editor-sheet,
+  .sync-conflict-sheet,
+  .navigation-sheet {
+    max-height:
+      calc(
+        var(
+          --visual-viewport-height
+        ) -
+        env(
+          safe-area-inset-top,
+          0px
+        )
+      );
+
+    overflow-y: auto;
+
+    overscroll-behavior:
+      contain;
+  }
+
+  /*
+   * 입력 중에는 하단 내비를 숨겨
+   * 키보드와 내비가 동시에 입력칸을
+   * 가리지 않도록 합니다.
+   */
+  html[
+    data-keyboard-open="true"
+  ]
+  .bottom-nav {
+    opacity: 0;
+
+    pointer-events:
+      none;
+
+    transform:
+      translateY(
+        calc(
+          100% +
+          var(
+            --bottom-safe-area
+          )
+        )
+      );
+  }
+
+  /*
+   * 하단 내비가 숨겨진 동안에는
+   * 본문의 내비 전용 여백도 줄입니다.
+   */
+  html[
+    data-keyboard-open="true"
+  ]
+  main {
+    padding-bottom:
+      calc(
+        24px +
+        var(
+          --bottom-safe-area
+        )
+      );
+  }
+
+  /*
+   * 운동 입력 중에는 휴식 타이머가
+   * 키보드 위에 고정되지 않도록 합니다.
+   */
+  html[
+    data-keyboard-open="true"
+  ]
+  .timer-card {
+    position: static;
+
+    bottom: auto;
+  }
+}

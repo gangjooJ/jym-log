@@ -13,14 +13,14 @@
       stylesheet = document.createElement("link");
       stylesheet.id = APP_SHELL_STYLESHEET_ID;
       stylesheet.rel = "stylesheet";
-      stylesheet.href = "./css/app-shell.css?v=dev49";
+      stylesheet.href = "./css/app-shell.css?v=dev53";
       document.head.appendChild(stylesheet);
       return;
     }
 
     /*
      * 기존 CSS보다 뒤에 오도록 다시 배치합니다.
-     * 동일한 선택자라면 dev49 보정값이 마지막에 적용됩니다.
+     * 동일한 선택자라면 앱 셸 보정값이 마지막에 적용됩니다.
      */
     document.head.appendChild(stylesheet);
   }
