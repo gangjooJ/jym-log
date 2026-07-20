@@ -312,8 +312,14 @@ function cleanupScreenMotion(
 function commitScreenChange(
   targetScreen,
   direction,
-  useFallbackAnimation
+  shouldAnimate
 ) {
+  /*
+   * 모든 화면을 먼저 비활성화합니다.
+   *
+   * 이전 화면과 새 화면이 동시에
+   * 렌더링되는 상황을 방지합니다.
+   */
   document
     .querySelectorAll(
       ".screen"
@@ -330,31 +336,71 @@ function commitScreenChange(
       }
     );
 
+  /*
+   * 이전 View Transition 실행 중
+   * 남았을 수 있는 방향 표시를
+   * 항상 제거합니다.
+   */
+  delete document
+    .documentElement
+    .dataset
+    .navDirection;
+
+  /*
+   * 새 화면을 표시하기 전에
+   * 스크롤을 먼저 초기화합니다.
+   *
+   * 긴 기록 화면이 보이는 상태에서
+   * 스크롤 위치가 이동하는 장면이
+   * 사용자에게 노출되지 않도록 합니다.
+   */
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: "auto"
+  });
+
+  /*
+   * 스크롤 정리가 끝난 뒤
+   * 새 화면 하나만 활성화합니다.
+   */
   targetScreen.classList.add(
     "active"
   );
 
   if (
-    useFallbackAnimation &&
-    direction !== "none"
+    !shouldAnimate ||
+    direction === "none"
   ) {
-    targetScreen.classList.add(
-        direction === "tab"
-        ? "screen-enter-tab"
-        : direction === "back"
-          ? "screen-enter-back"
-          : "screen-enter-forward"
-    );
-
-    window.setTimeout(
-      () => {
-        cleanupScreenMotion(
-          targetScreen
-        );
-      },
-      360
-    );
+    return;
   }
+
+  const motionClass =
+    direction === "tab"
+      ? "screen-enter-tab"
+      : direction === "back"
+        ? "screen-enter-back"
+        : "screen-enter-forward";
+
+  targetScreen.classList.add(
+    motionClass
+  );
+
+  /*
+   * CSS 애니메이션이 끝난 뒤
+   * 임시 클래스를 제거합니다.
+   *
+   * 현재 가장 긴 화면 전환이
+   * 220ms이므로 320ms면 충분합니다.
+   */
+  window.setTimeout(
+    () => {
+      cleanupScreenMotion(
+        targetScreen
+      );
+    },
+    320
+  );
 }
 
 function renderScreen(
@@ -394,66 +440,26 @@ function renderScreen(
     direction !== "none" &&
     !prefersReducedMotion();
 
-  const supportsViewTransition =
-    shouldAnimate &&
-    direction !== "forward" &&
-      typeof document
-        .startViewTransition ===
-          "function";
+  /*
+   * dev51부터 앱 내부 화면 이동은
+   * View Transition API를 사용하지 않습니다.
+   *
+   * 화면 복제본을 만들지 않고
+   * 새 화면 하나에만 CSS 애니메이션을
+   * 적용합니다.
+   */
+  commitScreenChange(
+    targetScreen,
+    direction,
+    shouldAnimate
+  );
 
-  const swap = (
-    useFallbackAnimation
-  ) => {
-    commitScreenChange(
-      targetScreen,
-      direction,
-      useFallbackAnimation
-    );
+  currentScreen =
+    normalizedName;
 
-    currentScreen =
-      normalizedName;
-
-    updateScreenChrome(
-      normalizedName
-    );
-  };
-
-  if (
-    supportsViewTransition
-  ) {
-    document.documentElement
-      .dataset.navDirection =
-        direction;
-
-    try {
-      const transition =
-        document
-          .startViewTransition(
-            () => {
-              swap(false);
-            }
-          );
-
-      transition.finished
-        .finally(
-          () => {
-            delete document
-              .documentElement
-              .dataset
-              .navDirection;
-          }
-        );
-    } catch (error) {
-      console.warn(
-        "[JYM Log] View Transition 폴백을 사용합니다.",
-        error
-      );
-
-      swap(true);
-    }
-  } else {
-    swap(shouldAnimate);
-  }
+  updateScreenChrome(
+    normalizedName
+  );
 
   if (
     normalizedName ===
@@ -468,12 +474,6 @@ function renderScreen(
   ) {
     void analysisUI?.load();
   }
-
-  window.scrollTo({
-    top: 0,
-    left: 0,
-    behavior: "auto"
-  });
 
   return true;
 }

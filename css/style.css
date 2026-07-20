@@ -1802,6 +1802,13 @@ body.modal-open {
 
 main {
   min-width: 0;
+
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden;
+  overflow-x: clip;
+  background: var(--bg);
+
   padding:
     2px
     max(
@@ -1825,17 +1832,22 @@ main {
 }
 
 .screen {
-  display: none;
+  position: relative;
+  z-index: 0;
   min-width: 0;
+  display: none;
   animation: none;
   transform-origin:
     50% 20%;
+  backface-visibility:
+    hidden;
+  -webkit-backface-visibility:
+    hidden;
 }
 
 .screen.active {
   display: block;
-  view-transition-name:
-    app-screen;
+  background: var(--bg);
 }
 
 .screen-enter-forward {
@@ -1864,177 +1876,61 @@ main {
 
 @keyframes screen-enter-forward {
   from {
-    opacity: 0;
     transform:
       translate3d(
-        18px,
+        8px,
         0,
         0
-      )
-      scale(0.992);
+      );
   }
 
   to {
-    opacity: 1;
     transform:
       translate3d(
         0,
         0,
         0
-      )
-      scale(1);
+      );
   }
 }
 
 @keyframes screen-enter-back {
   from {
-    opacity: 0;
     transform:
       translate3d(
-        -14px,
+        -8px,
         0,
         0
-      )
-      scale(0.995);
+      );
   }
 
   to {
-    opacity: 1;
     transform:
       translate3d(
         0,
         0,
         0
-      )
-      scale(1);
+      );
   }
 }
 
 @keyframes screen-enter-tab {
   from {
-    opacity: 0.58;
     transform:
       translate3d(
         0,
-        5px,
+        4px,
         0
       );
   }
 
   to {
-    opacity: 1;
     transform:
       translate3d(
         0,
         0,
         0
       );
-  }
-}
-
-/* View Transition 지원 브라우저 */
-
-::view-transition-old(
-  app-screen
-),
-::view-transition-new(
-  app-screen
-) {
-  animation-duration:
-    var(--motion-standard);
-  animation-timing-function:
-    var(--ease-standard);
-}
-
-html[
-  data-nav-direction="forward"
-]
-::view-transition-old(
-  app-screen
-) {
-  animation-name:
-    view-old-forward;
-}
-
-html[
-  data-nav-direction="forward"
-]
-::view-transition-new(
-  app-screen
-) {
-  animation-name:
-    view-new-forward;
-}
-
-html[
-  data-nav-direction="back"
-]
-::view-transition-old(
-  app-screen
-) {
-  animation-name:
-    view-old-back;
-}
-
-html[
-  data-nav-direction="back"
-]
-::view-transition-new(
-  app-screen
-) {
-  animation-name:
-    view-new-back;
-}
-
-@keyframes view-old-forward {
-  to {
-    opacity: 0.28;
-    transform:
-      translate3d(
-        -10px,
-        0,
-        0
-      )
-      scale(0.994);
-  }
-}
-
-@keyframes view-new-forward {
-  from {
-    opacity: 0;
-    transform:
-      translate3d(
-        18px,
-        0,
-        0
-      )
-      scale(0.992);
-  }
-}
-
-@keyframes view-old-back {
-  to {
-    opacity: 0.25;
-    transform:
-      translate3d(
-        12px,
-        0,
-        0
-      )
-      scale(0.995);
-  }
-}
-
-@keyframes view-new-back {
-  from {
-    opacity: 0;
-    transform:
-      translate3d(
-        -14px,
-        0,
-        0
-      )
-      scale(0.995);
   }
 }
 
