@@ -2337,6 +2337,10 @@
   }
 
   function openFatigueModal() {
+    if (!fatigueModal) {
+      return false;
+    }
+
     if (layerManager) {
       const opened =
         layerManager.open(
@@ -2352,7 +2356,18 @@
       return opened;
     }
 
-    openFatigueModal();
+    /*
+    * 레이어 관리자를 불러오지 못한 경우에도
+    * 모달이 클릭 가능한 상태로 열리게 합니다.
+    */
+    fatigueModal.classList.add(
+      "show"
+    );
+
+    fatigueModal.setAttribute(
+      "aria-hidden",
+      "false"
+    );
 
     return true;
   }
@@ -2360,6 +2375,10 @@
   function closeFatigueModal(
     options = {}
   ) {
+    if (!fatigueModal) {
+      return false;
+    }
+
     if (
       layerManager?.isOpen(
         "fatigue"
@@ -2371,10 +2390,14 @@
       );
     }
 
-    fatigueModal
-      ?.classList.remove(
-        "show"
-      );
+    fatigueModal.classList.remove(
+      "show"
+    );
+
+    fatigueModal.setAttribute(
+      "aria-hidden",
+      "true"
+    );
 
     return true;
   }
@@ -2482,10 +2505,7 @@
             return;
           }
 
-          fatigueModal
-            ?.classList.add(
-              "show"
-            );
+          openFatigueModal();
         }
       );
 

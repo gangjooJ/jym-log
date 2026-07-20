@@ -1,4 +1,4 @@
-const CACHE_NAME = "jym-log-v0.2.0-dev-56";
+const CACHE_NAME = "jym-log-v0.2.0-dev-56-1";
 
 const APP_SHELL = [
   "./",
@@ -31,7 +31,7 @@ const APP_SHELL = [
   "./js/progression-policy.js",
   "./js/workout.js?v=dev55-1",
   "./js/progression-engine.js",
-  "./js/workout-ui.js?v=dev56",
+  "./js/workout-ui.js?v=dev56-1",
   "./js/routine-ui.js?v=dev56",
   "./js/routine-schedule.js",
   "./js/routine-override.js",
