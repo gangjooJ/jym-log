@@ -1365,21 +1365,48 @@
       return;
     }
 
-    setProgressionHistoryLoading();
+    const preserveContent =
+      options.preserveContent ===
+        true &&
+      sessionsCache.length > 0;
 
-    sessionCount.textContent =
-      "불러오는 중";
+    if (preserveContent) {
+      /*
+      * 상세 화면에서 돌아온 경우에는
+      * 기존 목록을 그대로 보여주면서
+      * 백그라운드에서 데이터를 갱신합니다.
+      */
+      sessionList.setAttribute(
+        "aria-busy",
+        "true"
+      );
 
-    sessionList.setAttribute(
-      "aria-busy",
-      "true"
-    );
+      progressionHistoryList
+        ?.setAttribute(
+          "aria-busy",
+          "true"
+        );
+    } else {
+      /*
+      * 최초 진입이나 캐시가 없는 경우에는
+      * 기존 로딩 화면을 표시합니다.
+      */
+      setProgressionHistoryLoading();
 
-    sessionList.innerHTML = `
-      <div class="card history-state">
-        운동 기록을 불러오고 있습니다.
-      </div>
-    `;
+      sessionCount.textContent =
+        "불러오는 중";
+
+      sessionList.setAttribute(
+        "aria-busy",
+        "true"
+      );
+
+      sessionList.innerHTML = `
+        <div class="card history-state">
+          운동 기록을 불러오고 있습니다.
+        </div>
+      `;
+    }
 
     try {
       const historyApi =

@@ -137,6 +137,153 @@ let pendingLeaveAction = null;
 
 let swipeBackState = null;
 
+/*
+ * 화면별 마지막 스크롤 위치를
+ * 현재 앱 실행 중에 보관합니다.
+ */
+const screenScrollPositions =
+  new Map();
+
+function normalizeScrollPosition(
+  value
+) {
+  const numericValue =
+    Number(value);
+
+  return Number.isFinite(
+    numericValue
+  )
+    ? Math.max(
+        0,
+        numericValue
+      )
+    : 0;
+}
+
+function readCurrentScrollPosition() {
+  return normalizeScrollPosition(
+    window.scrollY ??
+      document
+        .documentElement
+        .scrollTop ??
+      0
+  );
+}
+
+function rememberScreenScrollPosition(
+  name = currentScreen
+) {
+  const normalizedName =
+    normalizeScreenName(name);
+
+  screenScrollPositions.set(
+    normalizedName,
+    readCurrentScrollPosition()
+  );
+}
+
+function getScreenScrollPosition(
+  name
+) {
+  const normalizedName =
+    normalizeScreenName(name);
+
+  return normalizeScrollPosition(
+    screenScrollPositions.get(
+      normalizedName
+    ) ?? 0
+  );
+}
+
+function setScreenScrollPosition(
+  name,
+  position
+) {
+  const normalizedName =
+    normalizeScreenName(name);
+
+  screenScrollPositions.set(
+    normalizedName,
+    normalizeScrollPosition(
+      position
+    )
+  );
+}
+
+function scrollWindowTo(
+  position,
+  behavior = "auto"
+) {
+  window.scrollTo({
+    top:
+      normalizeScrollPosition(
+        position
+      ),
+    left: 0,
+    behavior
+  });
+}
+
+/*
+ * 기록이나 분석 화면처럼
+ * 비동기 데이터가 다시 그려지는 화면은
+ * 로딩이 끝난 뒤 스크롤 위치를 한 번 더 맞춥니다.
+ */
+function restoreScrollAfterLoad(
+  screenName,
+  position,
+  loadTask
+) {
+  if (
+    !loadTask ||
+    typeof loadTask.then !==
+      "function"
+  ) {
+    return;
+  }
+
+  const normalizedName =
+    normalizeScreenName(
+      screenName
+    );
+
+  const targetPosition =
+    normalizeScrollPosition(
+      position
+    );
+
+  const restore = () => {
+    if (
+      currentScreen !==
+        normalizedName
+    ) {
+      return;
+    }
+
+    window.requestAnimationFrame(
+      () => {
+        if (
+          currentScreen !==
+            normalizedName
+        ) {
+          return;
+        }
+
+        scrollWindowTo(
+          targetPosition
+        );
+      }
+    );
+  };
+
+  void Promise
+    .resolve(loadTask)
+    .then(
+      restore,
+      restore
+    );
+}
+
 function normalizeScreenName(
   name
 ) {
@@ -312,13 +459,12 @@ function cleanupScreenMotion(
 function commitScreenChange(
   targetScreen,
   direction,
-  shouldAnimate
+  shouldAnimate,
+  targetScrollTop = 0
 ) {
   /*
-   * 모든 화면을 먼저 비활성화합니다.
-   *
-   * 이전 화면과 새 화면이 동시에
-   * 렌더링되는 상황을 방지합니다.
+   * 기존 활성 화면을 먼저 숨기고
+   * 전환용 클래스를 모두 정리합니다.
    */
   document
     .querySelectorAll(
@@ -336,36 +482,40 @@ function commitScreenChange(
       }
     );
 
-  /*
-   * 이전 View Transition 실행 중
-   * 남았을 수 있는 방향 표시를
-   * 항상 제거합니다.
-   */
   delete document
     .documentElement
     .dataset
     .navDirection;
 
   /*
-   * 새 화면을 표시하기 전에
-   * 스크롤을 먼저 초기화합니다.
-   *
-   * 긴 기록 화면이 보이는 상태에서
-   * 스크롤 위치가 이동하는 장면이
-   * 사용자에게 노출되지 않도록 합니다.
-   */
-  window.scrollTo({
-    top: 0,
-    left: 0,
-    behavior: "auto"
-  });
-
-  /*
-   * 스크롤 정리가 끝난 뒤
-   * 새 화면 하나만 활성화합니다.
+   * 대상 화면을 먼저 표시해야
+   * 브라우저가 그 화면의 실제 높이를
+   * 기준으로 스크롤할 수 있습니다.
    */
   targetScreen.classList.add(
     "active"
+  );
+
+  scrollWindowTo(
+    targetScrollTop
+  );
+
+  /*
+   * display:none에서 block으로 변경된 직후
+   * 레이아웃 계산이 늦게 반영되는 브라우저를 위해
+   * 다음 프레임에 한 번 더 위치를 맞춥니다.
+   */
+  window.requestAnimationFrame(
+    () => {
+      if (
+        targetScreen.classList
+          .contains("active")
+      ) {
+        scrollWindowTo(
+          targetScrollTop
+        );
+      }
+    }
   );
 
   if (
@@ -386,13 +536,6 @@ function commitScreenChange(
     motionClass
   );
 
-  /*
-   * CSS 애니메이션이 끝난 뒤
-   * 임시 클래스를 제거합니다.
-   *
-   * 현재 가장 긴 화면 전환이
-   * 220ms이므로 320ms면 충분합니다.
-   */
   window.setTimeout(
     () => {
       cleanupScreenMotion(
@@ -435,23 +578,60 @@ function renderScreen(
         : "forward"
     );
 
+  /*
+   * scrollMode
+   *
+   * top:
+   * 새 화면을 맨 위에서 시작
+   *
+   * restore:
+   * 이전에 저장한 위치로 복귀
+   */
+  const scrollMode =
+    options.scrollMode ===
+      "restore"
+      ? "restore"
+      : "top";
+
+  /*
+   * 현재 화면을 떠나기 전에
+   * 마지막 위치를 저장합니다.
+   */
+  if (
+    previousScreen !==
+      normalizedName
+  ) {
+    rememberScreenScrollPosition(
+      previousScreen
+    );
+  }
+
+  const targetScrollTop =
+    scrollMode === "restore"
+      ? getScreenScrollPosition(
+          normalizedName
+        )
+      : 0;
+
+  if (
+    scrollMode === "top"
+  ) {
+    setScreenScrollPosition(
+      normalizedName,
+      0
+    );
+  }
+
   const shouldAnimate =
     options.animate !== false &&
     direction !== "none" &&
     !prefersReducedMotion();
 
-  /*
-   * dev51부터 앱 내부 화면 이동은
-   * View Transition API를 사용하지 않습니다.
-   *
-   * 화면 복제본을 만들지 않고
-   * 새 화면 하나에만 CSS 애니메이션을
-   * 적용합니다.
-   */
   commitScreenChange(
     targetScreen,
     direction,
-    shouldAnimate
+    shouldAnimate,
+    targetScrollTop
   );
 
   currentScreen =
@@ -461,18 +641,45 @@ function renderScreen(
     normalizedName
   );
 
+  let contentLoadTask = null;
+
   if (
     normalizedName ===
       "history"
   ) {
-    void historyUI?.load();
+    contentLoadTask =
+      historyUI?.load({
+        /*
+         * 뒤로 돌아온 경우에는
+         * 기존 기록 목록을 유지하면서
+         * 데이터를 갱신합니다.
+         */
+        preserveContent:
+          scrollMode ===
+            "restore"
+      });
   }
 
   if (
     normalizedName ===
       "analysis"
   ) {
-    void analysisUI?.load();
+    contentLoadTask =
+      analysisUI?.load();
+  }
+
+  /*
+   * 비동기 로딩으로 화면 높이가 바뀌는 경우
+   * 데이터 렌더링 후 저장 위치를 다시 적용합니다.
+   */
+  if (
+    scrollMode === "restore"
+  ) {
+    restoreScrollAfterLoad(
+      normalizedName,
+      targetScrollTop,
+      contentLoadTask
+    );
   }
 
   return true;
@@ -739,11 +946,15 @@ function navigate(
       normalizedName
     );
 
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: "smooth"
-    });
+    setScreenScrollPosition(
+      normalizedName,
+      0
+    );
+
+    scrollWindowTo(
+      0,
+      "smooth"
+    );
 
     return true;
   }
@@ -810,8 +1021,12 @@ function navigate(
     normalizedName,
     {
       direction,
+
       animate:
-        options.animate
+        options.animate,
+
+      scrollMode:
+        options.scrollMode
     }
   );
 }
@@ -863,6 +1078,8 @@ function requestBack(
           "replace",
         direction:
           "back",
+        scrollMode:
+          "restore",
         force: true
       }
     );
@@ -870,6 +1087,20 @@ function requestBack(
 }
 
 function initializeNavigation() {
+    /*
+    * 브라우저와 앱이 동시에 스크롤을
+    * 복원하면 위치가 두 번 바뀔 수 있으므로
+    * 앱에서 직접 관리합니다.
+    */
+    if (
+      "scrollRestoration" in
+        window.history
+    ) {
+      window.history
+        .scrollRestoration =
+          "manual";
+    }
+
   const existingState =
     window.history.state;
 
@@ -1006,6 +1237,7 @@ document.addEventListener(
         targetScreen,
         {
           direction: "tab"
+          scrollMode: "top"
         }
       );
 
@@ -1225,7 +1457,8 @@ window.addEventListener(
       targetScreen,
       {
         direction,
-        animate: true
+        animate: true,
+        scrollMode: "restore"
       }
     );
   }
