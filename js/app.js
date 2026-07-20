@@ -299,6 +299,7 @@ function cleanupScreenMotion(
   screen.classList.remove(
     "screen-enter-forward",
     "screen-enter-back",
+    "screen-enter-tab",
     "is-swipe-back",
     "is-swipe-canceling"
   );
@@ -338,9 +339,11 @@ function commitScreenChange(
     direction !== "none"
   ) {
     targetScreen.classList.add(
-      direction === "back"
-        ? "screen-enter-back"
-        : "screen-enter-forward"
+        direction === "tab"
+        ? "screen-enter-tab"
+        : direction === "back"
+          ? "screen-enter-back"
+          : "screen-enter-forward"
     );
 
     window.setTimeout(
@@ -393,9 +396,10 @@ function renderScreen(
 
   const supportsViewTransition =
     shouldAnimate &&
-    typeof document
-      .startViewTransition ===
-        "function";
+    direction !== "tab" &&
+      typeof document
+        .startViewTransition ===
+          "function";
 
   const swap = (
     useFallbackAnimation
@@ -999,7 +1003,10 @@ document.addEventListener(
       }
 
       navigate(
-        targetScreen
+        targetScreen,
+        {
+          direction: "tab"
+        }
       );
 
       return;

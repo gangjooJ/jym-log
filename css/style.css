@@ -1854,6 +1854,14 @@ main {
     both;
 }
 
+.screen-enter-tab {
+  animation:
+    screen-enter-tab
+    var(--motion-fast)
+    var(--ease-enter)
+    both;
+}
+
 @keyframes screen-enter-forward {
   from {
     opacity: 0;
@@ -1899,6 +1907,28 @@ main {
         0
       )
       scale(1);
+  }
+}
+
+@keyframes screen-enter-tab {
+  from {
+    opacity: 0.58;
+    transform:
+      translate3d(
+        0,
+        5px,
+        0
+      );
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      translate3d(
+        0,
+        0,
+        0
+      );
   }
 }
 
