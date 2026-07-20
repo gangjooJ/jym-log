@@ -70,13 +70,13 @@
       "useLocalConflictBtn"
     );
 
+  const layerManager =
+    window.JYMLog.layerManager;
+
   let initialized = false;
 
   let resolutionInProgress =
     false;
-
-  let previousFocus =
-    null;
 
   let showToast =
     () => {};
@@ -564,12 +564,6 @@
       return;
     }
 
-    previousFocus =
-      document.activeElement instanceof
-        HTMLElement
-        ? document.activeElement
-        : null;
-
     renderConflict(
       resolvedConflict
     );
@@ -578,58 +572,65 @@
       "기록을 선택하기 전까지 양쪽 데이터는 모두 보관됩니다."
     );
 
-    syncConflictModal.classList.remove(
-      "hidden"
-    );
+    const opened =
+      layerManager
+        ? layerManager.open(
+            "sync-conflict"
+          )
+        : false;
 
-    document.body.style.overflow =
-      "hidden";
+    if (
+      layerManager &&
+      !opened
+    ) {
+      showToast(
+        "열려 있는 창을 닫은 뒤 동기화 충돌을 확인해 주세요."
+      );
 
-    window.setTimeout(
-      () => {
-        closeSyncConflictBtn.focus();
-      },
-      50
-    );
+      return;
+    }
+
+    if (!layerManager) {
+      syncConflictModal
+        .classList.remove(
+          "hidden"
+        );
+
+      closeSyncConflictBtn
+        .focus();
+    }
   }
 
   function close(
     restoreFocus = true
   ) {
     if (resolutionInProgress) {
-      return;
+      return false;
     }
 
     if (!syncConflictModal) {
-      return;
+      return false;
     }
-
-    const focusTarget =
-      previousFocus;
-
-    syncConflictModal.classList.add(
-      "hidden"
-    );
-
-    document.body.style.overflow =
-      "";
-
-    previousFocus =
-      null;
 
     if (
-      restoreFocus &&
-      focusTarget?.isConnected &&
-      typeof focusTarget.focus ===
-        "function"
+      layerManager?.isOpen(
+        "sync-conflict"
+      )
     ) {
-      window.setTimeout(
-        () => {
-          focusTarget.focus();
-        },
-        0
+      return layerManager.close(
+        "sync-conflict",
+        {
+          restoreFocus
+        }
       );
     }
+
+    syncConflictModal
+      .classList.add(
+        "hidden"
+      );
+
+    return true;
   }
 
   function setBusy(
@@ -812,25 +813,6 @@
         }
       );
 
-    document.addEventListener(
-      "keydown",
-      (event) => {
-        if (
-          event.key !== "Escape" ||
-          !syncConflictModal ||
-          syncConflictModal.classList
-            .contains("hidden") ||
-          resolutionInProgress
-        ) {
-          return;
-        }
-
-        event.preventDefault();
-
-        close();
-      }
-    );
-
     window.addEventListener(
       "jym-log:sync-status",
       (event) => {
@@ -913,6 +895,35 @@
     }
 
     initialized = true;
+
+    layerManager?.register({
+      id: "sync-conflict",
+
+      element:
+        syncConflictModal,
+
+      hiddenClass:
+        "hidden",
+
+      initialFocus:
+        "#closeSyncConflictBtn",
+
+      /*
+      * 중요한 선택창이므로
+      * 배경 터치로는 닫지 않습니다.
+      */
+      closeOnBackdrop:
+        false,
+
+      canClose:
+        () =>
+          !resolutionInProgress,
+
+      onRequestClose:
+        () => {
+          close();
+        }
+    });
 
     attachEventHandlers();
   }

@@ -215,6 +215,8 @@ const addExerciseBtn =
     "addExerciseBtn"
   );
 
+const layerManager =
+  window.JYMLog.layerManager;  
 
 let editingExerciseIndex = null;
 let exerciseEditorMode = "edit";
@@ -235,6 +237,51 @@ let showToast = (message) => {
 };
 
 let onRoutineChanged = () => {};
+
+let exerciseEditorBusy =
+  false;
+
+function setExerciseEditorBusy(
+  isBusy
+) {
+  exerciseEditorBusy =
+    Boolean(isBusy);
+
+  exerciseEditorModal
+    ?.setAttribute(
+      "aria-busy",
+      String(
+        exerciseEditorBusy
+      )
+    );
+}
+
+function showExerciseEditorLayer() {
+  if (layerManager) {
+    const opened =
+      layerManager.open(
+        "exercise-editor"
+      );
+
+    if (!opened) {
+      toast(
+        "열려 있는 창을 닫은 뒤 다시 시도해 주세요."
+      );
+    }
+
+    return opened;
+  }
+
+  exerciseEditorModal
+    ?.classList.remove(
+      "hidden"
+    );
+
+  exerciseNameInput
+    ?.focus();
+
+  return true;
+}
 
 function toast(message) {
   showToast(message);
@@ -1806,19 +1853,7 @@ function openExerciseEditor(
 
   syncExerciseTypeFields();
 
-  exerciseEditorModal.classList.remove(
-    "hidden"
-  );
-
-  document.body.style.overflow =
-    "hidden";
-
-  window.setTimeout(
-    () => {
-      exerciseNameInput.focus();
-    },
-    50
-  );
+  showExerciseEditorLayer();
 }
 
 function openExerciseCreator() {
@@ -1888,38 +1923,59 @@ function openExerciseCreator() {
 
   syncExerciseTypeFields();
 
-  exerciseEditorModal.classList.remove(
-    "hidden"
-  );
-
-  document.body.style.overflow =
-    "hidden";
-
-  window.setTimeout(
-    () => {
-      exerciseNameInput.focus();
-    },
-    50
-  );
+  showExerciseEditorLayer();
 }
 
-function closeExerciseEditor() {
-  exerciseEditorModal.classList.add(
-    "hidden"
-  );
+function closeExerciseEditor(
+  options = {}
+) {
+  if (
+    layerManager?.isOpen(
+      "exercise-editor"
+    )
+  ) {
+    layerManager.close(
+      "exercise-editor",
+      options
+    );
+  } else {
+    exerciseEditorModal
+      ?.classList.add(
+        "hidden"
+      );
+  }
 
-  document.body.style.overflow = "";
+  editingExerciseIndex =
+    null;
 
-  editingExerciseIndex = null;
-  exerciseEditorMode = "edit";
-  exerciseStageDrafts = [];
+  exerciseEditorMode =
+    "edit";
 
-  deleteExerciseEditorBtn.classList.add(
-    "hidden"
-  );
+  exerciseStageDrafts =
+    [];
 
-  saveExerciseEditorBtn.textContent =
-    "운동 설정 저장";
+  deleteExerciseEditorBtn
+    ?.classList.add(
+      "hidden"
+    );
+
+  if (
+    saveExerciseEditorBtn
+  ) {
+    saveExerciseEditorBtn
+      .textContent =
+        "운동 설정 저장";
+  }
+}
+
+function requestCloseExerciseEditor() {
+  if (exerciseEditorBusy) {
+    return false;
+  }
+
+  closeExerciseEditor();
+
+  return true;
 }
 
 async function saveExerciseEditor(
@@ -2014,6 +2070,10 @@ async function saveExerciseEditor(
       exerciseIncrementInput.value
   };
 
+  setExerciseEditorBusy(
+    true
+  );
+
   saveExerciseEditorBtn.disabled =
     true;
 
@@ -2067,6 +2127,11 @@ async function saveExerciseEditor(
       "운동 설정을 처리하지 못했습니다.",
       true
     );
+
+  setExerciseEditorBusy(
+    false
+  );
+
   } finally {
     saveExerciseEditorBtn.disabled =
       false;
@@ -2127,6 +2192,10 @@ async function deleteExerciseFromRoutine() {
     return;
   }
 
+  setExerciseEditorBusy(
+    true
+  );
+
   deleteExerciseEditorBtn.disabled =
     true;
 
@@ -2162,6 +2231,11 @@ async function deleteExerciseFromRoutine() {
       "운동을 삭제하지 못했습니다.",
       true
     );
+
+    setExerciseEditorBusy(
+      false
+    );
+
   } finally {
     deleteExerciseEditorBtn.disabled =
       false;
@@ -2401,6 +2475,29 @@ function initialize(options = {}) {
       }
     );
 
+    layerManager?.register({
+      id: "exercise-editor",
+
+      element:
+        exerciseEditorModal,
+
+      hiddenClass:
+        "hidden",
+
+      initialFocus:
+        "#exerciseNameInput",
+
+      closeOnBackdrop:
+        true,
+
+      canClose:
+        () =>
+          !exerciseEditorBusy,
+
+      onRequestClose:
+        requestCloseExerciseEditor
+    });
+
     exerciseStageList.addEventListener(
       "click",
       (event) => {
@@ -2509,28 +2606,14 @@ function initialize(options = {}) {
   if (cancelExerciseEditorBtn) {
     cancelExerciseEditorBtn.addEventListener(
       "click",
-      closeExerciseEditor
+      requestCloseExerciseEditor
     );
   }
 
   if (closeExerciseEditorBtn) {
     closeExerciseEditorBtn.addEventListener(
       "click",
-      closeExerciseEditor
-    );
-  }
-
-  if (exerciseEditorModal) {
-    exerciseEditorModal.addEventListener(
-      "click",
-      (event) => {
-        if (
-          event.target ===
-          exerciseEditorModal
-        ) {
-          closeExerciseEditor();
-        }
-      }
+      requestCloseExerciseEditor
     );
   }
 

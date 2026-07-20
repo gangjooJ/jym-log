@@ -1030,3 +1030,176 @@ small {
     bottom: 36px;
   }
 }
+
+/*
+ * =========================================================
+ * JYM Log dev-56
+ * Unified modal and bottom-sheet layer system
+ * =========================================================
+ */
+
+:root {
+  --z-bottom-nav:
+    40;
+
+  --z-rest-timer:
+    50;
+
+  --z-layer:
+    100;
+
+  --z-layer-critical:
+    120;
+
+  --z-toast:
+    140;
+
+  --layer-backdrop:
+    rgba(
+      15,
+      23,
+      42,
+      0.54
+    );
+}
+
+.bottom-nav {
+  z-index:
+    var(
+      --z-bottom-nav
+    );
+}
+
+.timer-card {
+  z-index:
+    var(
+      --z-rest-timer
+    );
+}
+
+.toast {
+  z-index:
+    var(
+      --z-toast
+    );
+}
+
+.navigation-modal,
+.modal,
+.exercise-editor-modal {
+  z-index:
+    var(
+      --z-layer
+    );
+}
+
+.sync-conflict-modal {
+  z-index:
+    var(
+      --z-layer-critical
+    );
+}
+
+/*
+ * 레이어가 열린 동안 본문은
+ * layer-manager가 현재 스크롤 위치에 고정합니다.
+ */
+body.layer-open {
+  overflow: hidden;
+
+  overscroll-behavior:
+    none;
+}
+
+body.layer-open
+.bottom-nav {
+  pointer-events:
+    none;
+}
+
+/*
+ * 운동 타이머가 모달 위로 나타나는 것을 방지합니다.
+ * 타이머 계산 자체는 계속 진행됩니다.
+ */
+body.layer-open
+.timer-card {
+  opacity: 0;
+  visibility: hidden;
+
+  pointer-events:
+    none;
+
+  animation:
+    none;
+}
+
+/*
+ * 공통 배경
+ */
+.modal,
+.exercise-editor-modal,
+.sync-conflict-modal,
+.navigation-modal-backdrop {
+  background:
+    var(
+      --layer-backdrop
+    );
+
+  backdrop-filter:
+    blur(4px);
+
+  -webkit-backdrop-filter:
+    blur(4px);
+}
+
+/*
+ * 각 시트는 실제 가시 영역을 넘지 않고
+ * 시트 내부에서만 스크롤됩니다.
+ */
+:where(
+  .sheet,
+  .navigation-sheet,
+  .exercise-editor-sheet,
+  .sync-conflict-sheet
+) {
+  max-height:
+    calc(
+      var(
+        --visual-viewport-height,
+        100dvh
+      ) -
+      max(
+        12px,
+        env(
+          safe-area-inset-top,
+          0px
+        )
+      )
+    );
+
+  overflow-y:
+    auto;
+
+  overscroll-behavior:
+    contain;
+
+  touch-action:
+    pan-y;
+
+  -webkit-overflow-scrolling:
+    touch;
+}
+
+[data-layer][
+  aria-hidden="true"
+] {
+  pointer-events:
+    none;
+}
+
+[data-layer][
+  aria-hidden="false"
+] {
+  isolation:
+    isolate;
+}

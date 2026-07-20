@@ -16,6 +16,9 @@ const analysisUI =
 const routineUI =
   window.JYMLog.routineUI;
 
+const layerManager =
+  window.JYMLog.layerManager;
+
 function applyAppMetadata() {
   const config =
     window.JYMLog.config;
@@ -685,46 +688,6 @@ function renderScreen(
   return true;
 }
 
-function isElementVisible(
-  element
-) {
-  if (!element) {
-    return false;
-  }
-
-  if (
-    element.classList.contains(
-      "hidden"
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    element.classList.contains(
-      "modal"
-    )
-  ) {
-    return element
-      .classList.contains(
-        "show"
-      );
-  }
-
-  if (
-    element.classList.contains(
-      "navigation-modal"
-    )
-  ) {
-    return element
-      .classList.contains(
-        "show"
-      );
-  }
-
-  return true;
-}
-
 function closeLeaveWorkoutModal() {
   const modal =
     document.getElementById(
@@ -732,9 +695,26 @@ function closeLeaveWorkoutModal() {
     );
 
   if (!modal) {
-    return;
+    return false;
   }
 
+  pendingLeaveAction =
+    null;
+
+  if (
+    layerManager?.isOpen(
+      "leave-workout"
+    )
+  ) {
+    return layerManager.close(
+      "leave-workout"
+    );
+  }
+
+  /*
+   * 레이어 관리자를 불러오지 못한 경우의
+   * 최소 안전 처리입니다.
+   */
   modal.classList.remove(
     "show"
   );
@@ -744,13 +724,7 @@ function closeLeaveWorkoutModal() {
     "true"
   );
 
-  document.body
-    .classList.remove(
-      "modal-open"
-    );
-
-  pendingLeaveAction =
-    null;
+  return true;
 }
 
 function openLeaveWorkoutModal(
@@ -769,7 +743,7 @@ function openLeaveWorkoutModal(
       onConfirm();
     }
 
-    return;
+    return false;
   }
 
   pendingLeaveAction =
@@ -777,6 +751,20 @@ function openLeaveWorkoutModal(
       "function"
       ? onConfirm
       : null;
+
+  if (layerManager) {
+    const opened =
+      layerManager.open(
+        "leave-workout"
+      );
+
+    if (!opened) {
+      pendingLeaveAction =
+        null;
+    }
+
+    return opened;
+  }
 
   modal.classList.add(
     "show"
@@ -787,101 +775,21 @@ function openLeaveWorkoutModal(
     "false"
   );
 
-  document.body.classList.add(
-    "modal-open"
-  );
+  document
+    .getElementById(
+      "stayWorkoutBtn"
+    )
+    ?.focus();
 
-  window.setTimeout(
-    () => {
-      document
-        .getElementById(
-          "stayWorkoutBtn"
-        )
-        ?.focus();
-    },
-    40
-  );
+  return true;
 }
 
 function closeTopLayer() {
-  const leaveWorkoutModal =
-    document.getElementById(
-      "leaveWorkoutModal"
-    );
-
-  if (
-    isElementVisible(
-      leaveWorkoutModal
+  return Boolean(
+    layerManager?.closeTop(
+      "navigation"
     )
-  ) {
-    closeLeaveWorkoutModal();
-    return true;
-  }
-
-  const exerciseEditorModal =
-    document.getElementById(
-      "exerciseEditorModal"
-    );
-
-  if (
-    isElementVisible(
-      exerciseEditorModal
-    )
-  ) {
-    document
-      .getElementById(
-        "closeExerciseEditorBtn"
-      )
-      ?.click();
-
-    return true;
-  }
-
-  const syncConflictModal =
-    document.getElementById(
-      "syncConflictModal"
-    );
-
-  if (
-    isElementVisible(
-      syncConflictModal
-    )
-  ) {
-    if (
-      syncConflictModal
-        .getAttribute(
-          "aria-busy"
-        ) !== "true"
-    ) {
-      document
-        .getElementById(
-          "closeSyncConflictBtn"
-        )
-        ?.click();
-    }
-
-    return true;
-  }
-
-  const fatigueModal =
-    document.getElementById(
-      "fatigueModal"
-    );
-
-  if (
-    isElementVisible(
-      fatigueModal
-    )
-  ) {
-    fatigueModal
-      .classList.remove(
-        "show"
-      );
-
-    return true;
-  }
-
-  return false;
+  );
 }
 
 function restoreCurrentHistoryEntry() {
@@ -1310,6 +1218,30 @@ const leaveWorkoutModal =
     "leaveWorkoutModal"
   );
 
+layerManager?.register({
+  id: "leave-workout",
+
+  element:
+    leaveWorkoutModal,
+
+  showClass:
+    "show",
+
+  initialFocus:
+    "#stayWorkoutBtn",
+
+  closeOnBackdrop:
+    true,
+
+  canClose:
+    () => true,
+
+  onRequestClose:
+    () => {
+      closeLeaveWorkoutModal();
+    }
+});
+
 const sessionDetailBackBtn =
   document.getElementById(
     "sessionDetailBackBtn"
@@ -1349,17 +1281,6 @@ leaveWorkoutBtn?.addEventListener(
     }
   }
 );
-
-leaveWorkoutModal
-  ?.querySelector(
-    ".navigation-modal-backdrop"
-  )
-  ?.addEventListener(
-    "click",
-    () => {
-      closeLeaveWorkoutModal();
-    }
-  );
 
 /*
  * history-ui.js에 기존 클릭 이벤트가
@@ -1469,23 +1390,22 @@ document.addEventListener(
   (event) => {
     if (
       event.key !==
-      "Escape"
+        "Escape" ||
+      event.defaultPrevented
     ) {
       return;
     }
 
-    if (
-      closeTopLayer()
-    ) {
-      event.preventDefault();
-      return;
-    }
-
+    /*
+     * 레이어가 열려 있으면
+     * layer-manager가 먼저 Escape를 처리합니다.
+     */
     if (
       currentScreen !==
       ROOT_SCREEN
     ) {
       event.preventDefault();
+
       requestBack();
     }
   },

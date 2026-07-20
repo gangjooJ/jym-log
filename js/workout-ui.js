@@ -200,6 +200,9 @@
       "recommendationBatchMessage"
     );
 
+  const layerManager =
+    window.JYMLog.layerManager;
+
   function showToast(message) {
     if (
       typeof toast === "function"
@@ -1983,9 +1986,9 @@
 
     setFinishBusy(true);
 
-    fatigueModal?.classList.remove(
-      "show"
-    );
+    closeFatigueModal({
+      restoreFocus: false
+    });
 
     try {
       syncState();
@@ -2333,6 +2336,49 @@
     }
   }
 
+  function openFatigueModal() {
+    if (layerManager) {
+      const opened =
+        layerManager.open(
+          "fatigue"
+        );
+
+      if (!opened) {
+        showToast(
+          "열려 있는 창을 닫은 뒤 다시 시도해 주세요."
+        );
+      }
+
+      return opened;
+    }
+
+    openFatigueModal();
+
+    return true;
+  }
+
+  function closeFatigueModal(
+    options = {}
+  ) {
+    if (
+      layerManager?.isOpen(
+        "fatigue"
+      )
+    ) {
+      return layerManager.close(
+        "fatigue",
+        options
+      );
+    }
+
+    fatigueModal
+      ?.classList.remove(
+        "show"
+      );
+
+    return true;
+  }
+
   function initialize(options = {}) {
     if (initialized) {
       return;
@@ -2357,6 +2403,35 @@
         "[JYM Log] 운동 진행 UI 요소를 모두 찾지 못했습니다."
       );
     }
+
+    layerManager?.register({
+      id: "fatigue",
+
+      element:
+        fatigueModal,
+
+      showClass:
+        "show",
+
+      initialFocus:
+        () =>
+          scoreRow?.querySelector(
+            ".score-btn.selected"
+          ) ||
+          confirmFinishBtn,
+
+      closeOnBackdrop:
+        true,
+
+      canClose:
+        () =>
+          !finishInProgress,
+
+      onRequestClose:
+        () => {
+          closeFatigueModal();
+        }
+    });
 
     startWorkoutBtn?.addEventListener(
       "click",
@@ -2419,21 +2494,6 @@
         "click",
         confirmWorkoutFinish
       );
-
-    fatigueModal?.addEventListener(
-      "click",
-      (event) => {
-        if (
-          event.target ===
-            fatigueModal &&
-          !finishInProgress
-        ) {
-          fatigueModal.classList.remove(
-            "show"
-          );
-        }
-      }
-    );
 
     scoreRow?.addEventListener(
       "click",

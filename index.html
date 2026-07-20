@@ -1098,12 +1098,15 @@
 <div
   class="navigation-modal"
   id="leaveWorkoutModal"
+  data-layer="leave-workout"
   role="dialog"
   aria-modal="true"
   aria-labelledby="leaveWorkoutTitle"
   aria-hidden="true"
 >
-  <div class="navigation-modal-backdrop"></div>
+  <div class="navigation-modal-backdrop"
+      data-layer-backdrop
+  ></div>
 
   <section class="navigation-sheet">
     <div class="navigation-sheet-icon">
@@ -1148,9 +1151,12 @@
 <div
   class="exercise-editor-modal hidden"
   id="exerciseEditorModal"
+  data-layer="exercise-editor"
+  data-layer-backdrop
   role="dialog"
   aria-modal="true"
   aria-labelledby="exerciseEditorTitle"
+  aria-hidden="true"
 >
   <div class="exercise-editor-sheet">
     <div class="exercise-editor-head">
@@ -1414,9 +1420,11 @@
 <div
   class="sync-conflict-modal hidden"
   id="syncConflictModal"
+  data-layer="sync-conflict"
   role="dialog"
   aria-modal="true"
   aria-labelledby="syncConflictTitle"
+  aria-hidden="true"
 >
   <section class="sync-conflict-sheet">
     <div class="sync-conflict-header">
@@ -1528,20 +1536,89 @@
   </section>
 </div>
 
-<div class="modal" id="fatigueModal">
+<div
+  class="modal"
+  id="fatigueModal"
+  data-layer="fatigue"
+  data-layer-backdrop
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="fatigueModalTitle"
+  aria-hidden="true"
+>
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <div class="eyebrow">운동 마무리</div>
-    <h2>오늘의 전체 피로도는?</h2>
-    <p style="font-size:13px;color:var(--muted);margin-top:7px">추천 강도 조정에 사용되는 최소 입력입니다.</p>
-    <div class="score-row" id="scoreRow">
-      <button class="score-btn">1</button><button class="score-btn">2</button><button class="score-btn selected">3</button><button class="score-btn">4</button><button class="score-btn">5</button>
+
+    <div class="eyebrow">
+      운동 마무리
     </div>
-    <button class="primary-btn full" id="confirmFinishBtn">기록 저장하고 완료</button>
+
+    <h2 id="fatigueModalTitle">
+      오늘의 전체 피로도는?
+    </h2>
+
+    <p
+      style="
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 7px;
+      "
+    >
+      추천 강도 조정에 사용되는 최소 입력입니다.
+    </p>
+
+    <div
+      class="score-row"
+      id="scoreRow"
+    >
+      <button
+        class="score-btn"
+        type="button"
+      >
+        1
+      </button>
+
+      <button
+        class="score-btn"
+        type="button"
+      >
+        2
+      </button>
+
+      <button
+        class="score-btn selected"
+        type="button"
+      >
+        3
+      </button>
+
+      <button
+        class="score-btn"
+        type="button"
+      >
+        4
+      </button>
+
+      <button
+        class="score-btn"
+        type="button"
+      >
+        5
+      </button>
+    </div>
+
+    <button
+      class="primary-btn full"
+      id="confirmFinishBtn"
+      type="button"
+    >
+      기록 저장하고 완료
+    </button>
   </div>
 </div>
 
 <script src="./js/config.js"></script>
+<script src="./js/layer-manager.js?v=dev56"></script>
 <script
   type="module"
   src="./js/firebase-client.js"
@@ -1550,8 +1627,8 @@
 <script src="./js/progression-policy.js"></script>
 <script src="./js/workout.js?v=dev55-1"></script>
 <script src="./js/progression-engine.js"></script>
-<script src="./js/workout-ui.js?v=dev55-1"></script>
-<script src="./js/routine-ui.js"></script>
+<script src="./js/workout-ui.js?v=dev56"></script>
+<script src="./js/routine-ui.js?v=dev56"></script>
 <script src="./js/progression-history.js"></script>
 <script src="./js/history-ui.js"></script>
 <script src="./js/analysis-ui.js"></script>

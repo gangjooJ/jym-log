@@ -1,17 +1,18 @@
-const CACHE_NAME = "jym-log-v0.2.0-dev-55-1";
+const CACHE_NAME = "jym-log-v0.2.0-dev-56";
 
 const APP_SHELL = [
   "./",
   "./index.html",
 
   "./css/style.css",
-  "./css/app-shell.css?v=dev55",
+  "./css/app-shell.css?v=dev56",
   "./css/progression.css",
   "./css/progression-history.css",
   "./css/progression-editor.css",
   "./css/routine-schedule.css",
 
   "./js/config.js",
+  "./js/layer-manager.js?v=dev56",
   "./js/theme.js",
   "./js/viewport.js?v=dev54-1",
   "./js/firebase-client.js",
@@ -21,7 +22,7 @@ const APP_SHELL = [
   "./js/progression-history.js",
   "./js/history-ui.js",
   "./js/analysis-ui.js",
-  "./js/sync-conflict-ui.js",
+  "./js/sync-conflict-ui.js?v=dev56",
   "./js/sessions.js",
   "./js/history.js",
   "./js/analysis.js",
@@ -30,11 +31,11 @@ const APP_SHELL = [
   "./js/progression-policy.js",
   "./js/workout.js?v=dev55-1",
   "./js/progression-engine.js",
-  "./js/workout-ui.js?v=dev55-1",
-  "./js/routine-ui.js",
+  "./js/workout-ui.js?v=dev56",
+  "./js/routine-ui.js?v=dev56",
   "./js/routine-schedule.js",
   "./js/routine-override.js",
-  "./js/app.js",
+  "./js/app.js?v=dev56",
 
   "./manifest.webmanifest",
 
