@@ -1236,7 +1236,7 @@ document.addEventListener(
       navigate(
         targetScreen,
         {
-          direction: "tab"
+          direction: "tab",
           scrollMode: "top"
         }
       );

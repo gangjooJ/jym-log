@@ -1357,7 +1357,9 @@
     );
   }
 
-  async function load() {
+  async function load(
+    options ={}
+  ) {
     if (
       !sessionList ||
       !sessionCount
