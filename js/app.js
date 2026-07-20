@@ -396,7 +396,7 @@ function renderScreen(
 
   const supportsViewTransition =
     shouldAnimate &&
-    direction !== "tab" &&
+    direction !== "forward" &&
       typeof document
         .startViewTransition ===
           "function";
