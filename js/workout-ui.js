@@ -15,6 +15,7 @@
   let navigate = null;
   let toast = null;
   let finishInProgress = false;
+  let doneActionLocked = false;
   let recommendationRequestId = 0;
   let latestRecommendations = [];
   let recommendationApplyInProgress =
@@ -84,7 +85,12 @@
       "elapsed"
     );
 
-  const timerCard =
+  const workoutScreen =
+    document.getElementById(
+      "screen-workout"
+    );
+  
+    const timerCard =
     document.getElementById(
       "timerCard"
     );
@@ -367,34 +373,115 @@
       rows.join("");
   }
 
-  function startRest(seconds) {
-    if (
-      !timerCard ||
-      !timerTime
-    ) {
-      return;
+  function setRestTimerVisible(
+    isVisible
+  ) {
+    const visible =
+      Boolean(isVisible);
+
+    timerCard?.classList.toggle(
+      "hidden",
+      !visible
+    );
+
+    timerCard?.setAttribute(
+      "aria-hidden",
+      String(!visible)
+    );
+
+    workoutScreen
+      ?.classList.toggle(
+        "has-rest-timer",
+        visible
+      );
+
+    if (!visible) {
+      timerCard?.classList.remove(
+        "is-ending"
+      );
+    }
+  }
+
+  function renderRestTimer(
+    remainingSeconds
+  ) {
+    const safeRemaining =
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            remainingSeconds
+          ) || 0
+        )
+      );
+
+    if (timerTime) {
+      timerTime.textContent =
+        workout.formatTime(
+          safeRemaining
+        );
     }
 
-    timerCard.classList.remove(
-      "hidden"
+    timerCard?.classList.toggle(
+      "is-ending",
+      safeRemaining > 0 &&
+      safeRemaining <= 10
     );
 
-    workout.startRestTimer(
-      seconds,
+    if (add30Btn) {
+      add30Btn.disabled =
+        safeRemaining <= 0;
+    }
 
-      (remainingSeconds) => {
-        timerTime.textContent =
-          workout.formatTime(
-            remainingSeconds
-          );
-      },
+    if (stopTimerBtn) {
+      stopTimerBtn.disabled =
+        safeRemaining <= 0;
+    }
+  }
 
-      () => {
-        showToast(
-          "휴식 시간이 끝났습니다."
-        );
-      }
+  function handleRestTimerFinish() {
+    renderRestTimer(0);
+
+    setRestTimerVisible(
+      false
     );
+
+    showToast(
+      "휴식 시간이 끝났습니다."
+    );
+  }
+
+  function startRest(seconds) {
+    setRestTimerVisible(
+      true
+    );
+
+    const started =
+      workout.startRestTimer(
+        seconds,
+        renderRestTimer,
+        handleRestTimerFinish
+      );
+
+    if (!started) {
+      setRestTimerVisible(
+        false
+      );
+    }
+  }
+
+  function restoreRestTimer() {
+    const resumed =
+      workout.resumeRestTimer(
+        renderRestTimer,
+        handleRestTimerFinish
+      );
+
+    setRestTimerVisible(
+      resumed
+    );
+
+    return resumed;
   }
 
   function startElapsed() {
@@ -437,6 +524,7 @@
     setFinishBusy(false);
     renderWorkout();
     startElapsed();
+    restoreRestTimer();
 
     if (
       typeof navigate === "function"
@@ -1904,10 +1992,12 @@
 
       if (!state.completed) {
         workout.finishWorkout();
-        workout.stopRestTimer();
-        workout.stopElapsedTimer();
         syncState();
       }
+
+      setRestTimerVisible(
+        false
+      );
 
       renderSummary();
 
@@ -1965,6 +2055,28 @@
 
     if (!action) {
       return;
+    }
+
+    if (
+      action === "done" &&
+      doneActionLocked
+    ) {
+      return;
+    }
+
+    if (action === "done") {
+      doneActionLocked = true;
+
+      actionButton.disabled =
+        true;
+
+      window.setTimeout(
+        () => {
+          doneActionLocked =
+            false;
+        },
+        240
+      );
     }
 
     syncState();
@@ -2183,6 +2295,13 @@
     ) {
       renderWorkout();
       startElapsed();
+      restoreRestTimer();
+    } else {
+      workout.stopElapsedTimer();
+
+      setRestTimerVisible(
+        false
+      );
     }
 
     if (state.completed) {
@@ -2193,6 +2312,21 @@
   function refreshAfterSync() {
     syncState();
     renderWorkout();
+
+    if (
+      state.started &&
+      !state.completed
+    ) {
+      startElapsed();
+      restoreRestTimer();
+    } else {
+      workout.stopRestTimer();
+      workout.stopElapsedTimer();
+
+      setRestTimerVisible(
+        false
+      );
+    }
 
     if (state.completed) {
       renderSummary();
@@ -2426,17 +2560,17 @@
     add30Btn?.addEventListener(
       "click",
       () => {
-        workout.addRestTime(
-          30,
-          (remainingSeconds) => {
-            if (timerTime) {
-              timerTime.textContent =
-                workout.formatTime(
-                  remainingSeconds
-                );
-            }
-          }
-        );
+        const remaining =
+          workout.addRestTime(
+            30,
+            renderRestTimer
+          );
+
+        if (remaining <= 0) {
+          setRestTimerVisible(
+            false
+          );
+        }
       }
     );
 
@@ -2445,9 +2579,30 @@
       () => {
         workout.stopRestTimer();
 
-        timerCard?.classList.add(
-          "hidden"
+        renderRestTimer(0);
+
+        setRestTimerVisible(
+          false
         );
+      }
+    );
+
+    document.addEventListener(
+      "visibilitychange",
+      () => {
+        if (document.hidden) {
+          return;
+        }
+
+        syncState();
+
+        if (
+          state.started &&
+          !state.completed
+        ) {
+          startElapsed();
+          restoreRestTimer();
+        }
       }
     );
 
@@ -2481,6 +2636,11 @@
     ) {
       renderWorkout();
       startElapsed();
+      restoreRestTimer();
+    } else {
+      setRestTimerVisible(
+        false
+      );
     }
 
     if (state.completed) {

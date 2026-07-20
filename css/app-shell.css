@@ -774,7 +774,7 @@ small {
 
 /*
  * =========================================================
- * JYM Log dev-53.1
+ * JYM Log dev-54.1
  * Keyboard opening navigation flash prevention
  * =========================================================
  */
@@ -807,5 +807,226 @@ small {
 
     transition:
       none;
+  }
+}
+
+/*
+ * =========================================================
+ * JYM Log dev-55
+ * Workout rest timer and bottom action stabilization
+ * =========================================================
+ */
+
+#screen-workout.has-rest-timer {
+  padding-bottom:
+    calc(
+      98px +
+      var(
+        --bottom-safe-area
+      )
+    );
+}
+
+/*
+ * 타이머를 운동 화면 콘텐츠의 마지막 위치가 아니라
+ * 앱 화면 하단에 고정해 어느 세트에서든 즉시 보이게 합니다.
+ */
+.timer-card {
+  position: fixed;
+  z-index: 35;
+
+  right: auto;
+  bottom:
+    calc(
+      12px +
+      var(
+        --bottom-safe-area
+      )
+    );
+  left: 50%;
+
+  width:
+    min(
+      calc(
+        100% -
+        32px
+      ),
+      calc(
+        var(
+          --app-max-width
+        ) -
+        32px
+      )
+    );
+
+  min-height: 72px;
+  margin: 0;
+
+  transform:
+    translateX(-50%);
+
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.08
+    );
+
+  box-shadow:
+    0
+    16px
+    36px
+    rgba(
+      15,
+      23,
+      42,
+      0.26
+    );
+}
+
+.timer-card:not(
+  .hidden
+) {
+  animation:
+    rest-timer-enter
+    180ms
+    ease
+    both;
+}
+
+.timer-card.is-ending
+.timer-time {
+  color:
+    var(
+      --warn
+    );
+}
+
+.timer-actions button {
+  min-width: 58px;
+  min-height: 42px;
+
+  touch-action:
+    manipulation;
+
+  -webkit-tap-highlight-color:
+    transparent;
+
+  transition:
+    opacity
+      140ms
+      ease,
+    transform
+      120ms
+      ease;
+}
+
+.timer-actions button:active {
+  transform:
+    scale(0.96);
+}
+
+.timer-actions button:disabled {
+  opacity: 0.45;
+
+  pointer-events:
+    none;
+}
+
+@keyframes rest-timer-enter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (
+  max-width: 699px
+) {
+  .timer-card {
+    right: 16px;
+    left: 16px;
+
+    width: auto;
+
+    transform: none;
+  }
+
+  /*
+   * 입력 중에도 타이머 계산은 계속하지만
+   * 입력칸을 가리지 않도록 화면에서는 숨깁니다.
+   */
+  html[
+    data-keyboard-open="true"
+  ]
+  .timer-card,
+  html[
+    data-keyboard-pending="true"
+  ]
+  .timer-card {
+    position: fixed;
+
+    opacity: 0;
+    visibility: hidden;
+
+    pointer-events:
+      none;
+
+    animation: none;
+    transition: none;
+  }
+
+  html[
+    data-keyboard-open="true"
+  ]
+  #screen-workout.has-rest-timer,
+  html[
+    data-keyboard-pending="true"
+  ]
+  #screen-workout.has-rest-timer {
+    padding-bottom: 0;
+  }
+}
+
+@media (
+  max-width: 360px
+) {
+  .timer-card {
+    right: 12px;
+    left: 12px;
+
+    min-height: 68px;
+
+    padding:
+      11px
+      12px;
+  }
+
+  .timer-time {
+    font-size: 22px;
+  }
+
+  .timer-actions {
+    gap: 5px;
+  }
+
+  .timer-actions button {
+    min-width: 52px;
+    padding:
+      8px
+      7px;
+  }
+}
+
+@media (
+  min-width: 700px
+) {
+  .timer-card {
+    bottom: 36px;
   }
 }

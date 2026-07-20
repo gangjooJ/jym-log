@@ -288,9 +288,43 @@
       </div>
       <button class="primary-btn full" style="margin-top:10px" id="finishWorkoutBtn">운동 완료하기</button>
 
-      <div class="timer-card hidden" id="timerCard">
-        <div><div class="timer-title">휴식 중</div><div class="timer-time" id="timerTime">03:00</div></div>
-        <div class="timer-actions"><button id="add30Btn">+30초</button><button id="stopTimerBtn">종료</button></div>
+      <div
+        class="timer-card hidden"
+        id="timerCard"
+        aria-label="휴식 타이머"
+        aria-hidden="true"
+      >
+        <div>
+          <div class="timer-title">
+            휴식 중
+          </div>
+
+          <div
+            class="timer-time"
+            id="timerTime"
+            role="timer"
+            aria-live="off"
+            aria-atomic="true"
+          >
+            03:00
+          </div>
+        </div>
+
+        <div class="timer-actions">
+          <button
+            id="add30Btn"
+            type="button"
+          >
+            +30초
+          </button>
+
+          <button
+            id="stopTimerBtn"
+            type="button"
+          >
+            종료
+          </button>
+        </div>
       </div>
     </section>
 
@@ -1516,6 +1550,7 @@
 <script src="./js/progression-policy.js"></script>
 <script src="./js/workout.js"></script>
 <script src="./js/progression-engine.js"></script>
+<script src="./js/workout-ui.js?v=dev55"></script>
 <script src="./js/workout-ui.js"></script>
 <script src="./js/routine-ui.js"></script>
 <script src="./js/progression-history.js"></script>

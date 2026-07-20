@@ -130,9 +130,191 @@ window.JYMLog.workout = (() => {
       createDefaultState()
     );
 
+  const REST_TIMER_SCHEMA_VERSION =
+  1;
+
   let restTimerId = null;
   let elapsedTimerId = null;
-  let restRemaining = 0;
+  let restTimerEndsAt = 0;
+
+  function getRestTimerStorageKey() {
+    const baseKey =
+      window.JYMLog.config
+        ?.storageKey ||
+      "jym-log";
+
+    const userId =
+      window.JYMLog.storage
+        ?.activeUserId ||
+      "anonymous";
+
+    return [
+      baseKey,
+      "rest-timer",
+      userId
+    ].join(":");
+  }
+
+  function readRestTimerSnapshot() {
+    try {
+      const savedValue =
+        window.localStorage
+          .getItem(
+            getRestTimerStorageKey()
+          );
+
+      if (!savedValue) {
+        return null;
+      }
+
+      const snapshot =
+        JSON.parse(savedValue);
+
+      if (
+        snapshot?.schemaVersion !==
+          REST_TIMER_SCHEMA_VERSION
+      ) {
+        return null;
+      }
+
+      return snapshot;
+    } catch (error) {
+      console.warn(
+        "[JYM Log] 휴식 타이머를 불러오지 못했습니다.",
+        error
+      );
+
+      return null;
+    }
+  }
+
+  function writeRestTimerSnapshot(
+    endsAt
+  ) {
+    const safeEndsAt =
+      Number(endsAt) || 0;
+
+    const workoutStartedAt =
+      Number(state.startedAt) || 0;
+
+    if (
+      !state.started ||
+      state.completed ||
+      !workoutStartedAt ||
+      safeEndsAt <= Date.now()
+    ) {
+      clearRestTimerSnapshot();
+      return false;
+    }
+
+    try {
+      window.localStorage
+        .setItem(
+          getRestTimerStorageKey(),
+          JSON.stringify({
+            schemaVersion:
+              REST_TIMER_SCHEMA_VERSION,
+
+            endsAt:
+              safeEndsAt,
+
+            workoutStartedAt,
+
+            updatedAt:
+              Date.now()
+          })
+        );
+
+      return true;
+    } catch (error) {
+      console.warn(
+        "[JYM Log] 휴식 타이머를 저장하지 못했습니다.",
+        error
+      );
+
+      return false;
+    }
+  }
+
+  function clearRestTimerSnapshot() {
+    try {
+      window.localStorage
+        .removeItem(
+          getRestTimerStorageKey()
+        );
+    } catch (error) {
+      console.warn(
+        "[JYM Log] 휴식 타이머 저장값을 삭제하지 못했습니다.",
+        error
+      );
+    }
+  }
+
+  function isRestTimerSnapshotValid(
+    snapshot
+  ) {
+    if (
+      !snapshot ||
+      !state.started ||
+      state.completed
+    ) {
+      return false;
+    }
+
+    const snapshotStartedAt =
+      Number(
+        snapshot.workoutStartedAt
+      ) || 0;
+
+    const currentStartedAt =
+      Number(state.startedAt) || 0;
+
+    const snapshotEndsAt =
+      Number(snapshot.endsAt) || 0;
+
+    return (
+      snapshotStartedAt > 0 &&
+      snapshotStartedAt ===
+        currentStartedAt &&
+      snapshotEndsAt >
+        Date.now()
+    );
+  }
+
+  function clearRestTimerInterval() {
+    if (restTimerId === null) {
+      return;
+    }
+
+    window.clearInterval(
+      restTimerId
+    );
+
+    restTimerId = null;
+  }
+
+  function getRestTimerRemaining() {
+    if (!restTimerEndsAt) {
+      return 0;
+    }
+
+    return Math.max(
+      0,
+      Math.ceil(
+        (
+          restTimerEndsAt -
+          Date.now()
+        ) / 1000
+      )
+    );
+  }
+
+  function hasActiveRestTimer() {
+    return (
+      getRestTimerRemaining() >
+      0
+    );
+  }
 
   function saveState(options = {}) {
     const touchUpdatedAt =
@@ -252,6 +434,11 @@ window.JYMLog.workout = (() => {
   }
 
   function activateUser(userId) {
+      clearRestTimerInterval();
+      stopElapsedTimer();
+
+      restTimerEndsAt = 0;
+
     const userState =
       window.JYMLog.storage
         .activateUser(
@@ -268,6 +455,11 @@ window.JYMLog.workout = (() => {
   }
 
   function deactivateUser() {
+    clearRestTimerInterval();
+    stopElapsedTimer();
+
+    restTimerEndsAt = 0;
+
     window.JYMLog.storage
       .deactivateUser();
   }
@@ -389,6 +581,16 @@ window.JYMLog.workout = (() => {
       return state;
     }
 
+    if (
+      state.started &&
+      !state.completed
+    ) {
+      return state;
+    }
+
+    stopRestTimer();
+    stopElapsedTimer();
+
     if (state.completed) {
       replaceState(
         createDefaultState(),
@@ -480,6 +682,9 @@ window.JYMLog.workout = (() => {
         Date.now();
     }
 
+    stopRestTimer();
+    stopElapsedTimer();
+
     saveState();
   }
 
@@ -555,62 +760,238 @@ window.JYMLog.workout = (() => {
       ).success;
   }
 
+  function runRestTimer(
+    onTick,
+    onFinish
+  ) {
+    clearRestTimerInterval();
+
+    let previousRemaining =
+      null;
+
+    const tick = () => {
+      const remaining =
+        getRestTimerRemaining();
+
+      /*
+      * interval은 250ms마다 확인하지만,
+      * 표시되는 초가 바뀔 때만 UI를 갱신합니다.
+      */
+      if (
+        remaining !==
+          previousRemaining
+      ) {
+        previousRemaining =
+          remaining;
+
+        if (
+          typeof onTick ===
+            "function"
+        ) {
+          onTick(remaining);
+        }
+      }
+
+      if (remaining > 0) {
+        return;
+      }
+
+      const hadActiveTimer =
+        restTimerEndsAt > 0;
+
+      clearRestTimerInterval();
+
+      restTimerEndsAt = 0;
+
+      clearRestTimerSnapshot();
+
+      if (
+        hadActiveTimer &&
+        typeof onFinish ===
+          "function"
+      ) {
+        onFinish();
+      }
+    };
+
+    tick();
+
+    if (
+      getRestTimerRemaining() >
+        0
+    ) {
+      restTimerId =
+        window.setInterval(
+          tick,
+          250
+        );
+    }
+  }
+
   function startRestTimer(
     seconds,
     onTick,
     onFinish
   ) {
-    stopRestTimer();
-
-    restRemaining =
-      Number(seconds) || 0;
-
-    onTick(restRemaining);
-
-    restTimerId =
-      window.setInterval(
-        () => {
-          restRemaining -= 1;
-          onTick(restRemaining);
-
-          if (restRemaining <= 0) {
-            stopRestTimer();
-
-            if (
-              typeof onFinish ===
-              "function"
-            ) {
-              onFinish();
-            }
-          }
-        },
-        1000
+    const safeSeconds =
+      Math.max(
+        0,
+        Math.floor(
+          Number(seconds) || 0
+        )
       );
+
+    clearRestTimerInterval();
+
+    if (
+      !state.started ||
+      state.completed ||
+      safeSeconds <= 0
+    ) {
+      restTimerEndsAt = 0;
+
+      clearRestTimerSnapshot();
+
+      if (
+        typeof onTick ===
+          "function"
+      ) {
+        onTick(0);
+      }
+
+      return false;
+    }
+
+    restTimerEndsAt =
+      Date.now() +
+      safeSeconds * 1000;
+
+    writeRestTimerSnapshot(
+      restTimerEndsAt
+    );
+
+    runRestTimer(
+      onTick,
+      onFinish
+    );
+
+    return true;
+  }
+
+  function resumeRestTimer(
+    onTick,
+    onFinish
+  ) {
+    clearRestTimerInterval();
+
+    const snapshot =
+      readRestTimerSnapshot();
+
+    if (
+      !isRestTimerSnapshotValid(
+        snapshot
+      )
+    ) {
+      restTimerEndsAt = 0;
+
+      clearRestTimerSnapshot();
+
+      if (
+        typeof onTick ===
+          "function"
+      ) {
+        onTick(0);
+      }
+
+      return false;
+    }
+
+    restTimerEndsAt =
+      Number(
+        snapshot.endsAt
+      ) || 0;
+
+    runRestTimer(
+      onTick,
+      onFinish
+    );
+
+    return true;
   }
 
   function addRestTime(
     seconds,
     onTick
   ) {
-    restRemaining +=
-      Number(seconds) || 0;
+    const addedSeconds =
+      Math.max(
+        0,
+        Math.floor(
+          Number(seconds) || 0
+        )
+      );
+
+    if (
+      addedSeconds <= 0 ||
+      !hasActiveRestTimer()
+    ) {
+      return 0;
+    }
+
+    restTimerEndsAt +=
+      addedSeconds * 1000;
+
+    writeRestTimerSnapshot(
+      restTimerEndsAt
+    );
+
+    const remaining =
+      getRestTimerRemaining();
 
     if (
       typeof onTick ===
-      "function"
+        "function"
     ) {
-      onTick(restRemaining);
+      onTick(remaining);
     }
+
+    return remaining;
   }
 
   function stopRestTimer() {
-    if (restTimerId !== null) {
-      window.clearInterval(
-        restTimerId
+    const hadActiveTimer =
+      Boolean(
+        restTimerId !== null ||
+        restTimerEndsAt > 0
       );
 
-      restTimerId = null;
+    clearRestTimerInterval();
+
+    restTimerEndsAt = 0;
+
+    clearRestTimerSnapshot();
+
+    return hadActiveTimer;
+  }
+
+  function getElapsedSeconds() {
+    if (!state.startedAt) {
+      return 0;
     }
+
+    const endAt =
+      state.completedAt ||
+      Date.now();
+
+    return Math.max(
+      0,
+      Math.floor(
+        (
+          endAt -
+          state.startedAt
+        ) / 1000
+      )
+    );
   }
 
   function startElapsedTimer(
@@ -618,35 +999,49 @@ window.JYMLog.workout = (() => {
   ) {
     stopElapsedTimer();
 
+    const tick = () => {
+      if (
+        typeof onTick ===
+          "function"
+      ) {
+        onTick(
+          getElapsedSeconds()
+        );
+      }
+    };
+
+    /*
+    * 화면 진입 직후에도 1초를 기다리지 않고
+    * 현재 운동 시간을 바로 표시합니다.
+    */
+    tick();
+
+    if (
+      !state.started ||
+      state.completed
+    ) {
+      return;
+    }
+
     elapsedTimerId =
       window.setInterval(
-        () => {
-          if (!state.startedAt) {
-            return;
-          }
-
-          const elapsedSeconds =
-            Math.floor(
-              (
-                Date.now() -
-                state.startedAt
-              ) / 1000
-            );
-
-          onTick(elapsedSeconds);
-        },
+        tick,
         1000
       );
   }
 
   function stopElapsedTimer() {
-    if (elapsedTimerId !== null) {
-      window.clearInterval(
-        elapsedTimerId
-      );
-
-      elapsedTimerId = null;
+    if (
+      elapsedTimerId === null
+    ) {
+      return;
     }
+
+    window.clearInterval(
+      elapsedTimerId
+    );
+
+    elapsedTimerId = null;
   }
 
   function resetWorkout() {
@@ -683,8 +1078,11 @@ window.JYMLog.workout = (() => {
     getTotalVolume,
     isBenchPressSuccess,
     startRestTimer,
+    resumeRestTimer,
     addRestTime,
     stopRestTimer,
+    getRestTimerRemaining,
+    hasActiveRestTimer,
     startElapsedTimer,
     stopElapsedTimer,
     resetWorkout
