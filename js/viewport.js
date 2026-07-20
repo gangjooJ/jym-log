@@ -35,6 +35,15 @@
   let frameId = 0;
   let focusTimer = 0;
 
+  function setKeyboardPending(
+    pending
+  ) {
+    root.dataset.keyboardPending =
+      pending
+      ? "true"
+      : "false";
+  }
+
   function isEditable(
     element
   ) {
@@ -183,9 +192,17 @@
         : "false";
 
     if (keyboardOpen) {
-      window
+    /*
+     * 실제 키보드 열림이 확인됐으므로
+     * 임시 대기 상태는 종료합니다.
+     */
+    setKeyboardPending(
+        false
+    );
+
+    window
         .requestAnimationFrame(
-          ensureFocusedElementVisible
+        ensureFocusedElementVisible
         );
     }
   }
@@ -207,18 +224,32 @@
 
   function scheduleFocusCheck() {
     window.clearTimeout(
-      focusTimer
+        focusTimer
     );
 
     /*
-     * 모바일 키보드가 완전히 열린 뒤
-     * 가시 영역과 입력 위치를 확인합니다.
-     */
+    * 키보드가 화면 크기를 변경하기 전에
+    * 하단 내비를 먼저 숨깁니다.
+    */
+    setKeyboardPending(
+        true
+    );
+
+    /*
+    * 키보드 애니메이션이 진행된 뒤
+    * 실제 화면 축소량으로 상태를 확정합니다.
+    */
     focusTimer =
-      window.setTimeout(
-        scheduleViewportUpdate,
-        FOCUS_SETTLE_DELAY
-      );
+       window.setTimeout(
+      () => {
+          setKeyboardPending(
+          false
+          );
+
+          scheduleViewportUpdate();
+      },
+      FOCUS_SETTLE_DELAY
+    );
   }
 
   function resetBaseline() {
@@ -275,15 +306,39 @@
   document.addEventListener(
     "focusout",
     () => {
-      window.clearTimeout(
+        window.clearTimeout(
         focusTimer
-      );
+        );
 
-      window.setTimeout(
-        scheduleViewportUpdate,
-        100
-      );
+        /*
+        * 입력칸 사이를 이동하는 경우와
+        * 키보드를 완전히 닫는 경우를 구분합니다.
+        */
+        focusTimer =
+        window.setTimeout(
+            () => {
+            if (
+                isEditable(
+                document.activeElement
+                )
+            ) {
+                scheduleFocusCheck();
+                return;
+            }
+
+            setKeyboardPending(
+                false
+            );
+
+            scheduleViewportUpdate();
+            },
+            120
+        );
     }
+  );
+
+  setKeyboardPending(
+    false
   );
 
   scheduleViewportUpdate();

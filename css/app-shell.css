@@ -771,3 +771,41 @@ small {
       );
   }
 }
+
+/*
+ * =========================================================
+ * JYM Log dev-53.1
+ * Keyboard opening navigation flash prevention
+ * =========================================================
+ */
+
+@media (
+  max-width: 699px
+) {
+  /*
+   * 입력 포커스 직후 키보드가 실제로 감지되기 전까지
+   * 하단 내비를 애니메이션 없이 선제적으로 숨깁니다.
+   */
+  html[
+    data-keyboard-pending="true"
+  ]
+  .bottom-nav {
+    opacity: 0;
+
+    pointer-events:
+      none;
+
+    transform:
+      translateY(
+        calc(
+          100% +
+          var(
+            --bottom-safe-area
+          )
+        )
+      );
+
+    transition:
+      none;
+  }
+}
