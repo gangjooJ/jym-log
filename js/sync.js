@@ -17,6 +17,49 @@ const storage =
 
 const SYNC_SCHEMA_VERSION = 1;
 
+const INITIAL_SYNC_TIMEOUT_MS =
+  12000;
+
+function withTimeout(
+  promise,
+  timeoutMs,
+  message
+) {
+  let timeoutId = null;
+
+  const timeoutPromise =
+    new Promise(
+      (_, reject) => {
+        timeoutId =
+          window.setTimeout(
+            () => {
+              const error =
+                new Error(message);
+
+              error.code =
+                "sync/timeout";
+
+              reject(error);
+            },
+            timeoutMs
+          );
+      }
+    );
+
+  return Promise.race([
+    promise,
+    timeoutPromise
+  ]).finally(
+    () => {
+      if (timeoutId !== null) {
+        window.clearTimeout(
+          timeoutId
+        );
+      }
+    }
+  );
+}
+
 let activeUserId = null;
 let stateSavedHandler = null;
 let pendingPayload = null;
@@ -1182,8 +1225,12 @@ async function initializeWorkoutSync(
 
   try {
     workoutSnapshot =
-      await getDoc(
-        workoutDocument
+      await withTimeout(
+        getDoc(
+          workoutDocument
+        ),
+        INITIAL_SYNC_TIMEOUT_MS,
+        "클라우드 확인 시간이 초과되었습니다."
       );
   } catch (error) {
     if (
@@ -1212,14 +1259,23 @@ async function initializeWorkoutSync(
         storedConflict
       );
     } else {
-      emitSyncStatus(
-        navigator.onLine
-          ? "error"
-          : "offline",
+      const isOffline =
+        !navigator.onLine;
 
-        navigator.onLine
-          ? "동기화 오류"
-          : "오프라인 저장"
+      const isTimeout =
+        error?.code ===
+          "sync/timeout";
+
+      emitSyncStatus(
+        isOffline
+          ? "offline"
+          : "error",
+
+        isOffline
+          ? "오프라인 저장"
+          : isTimeout
+            ? "동기화 지연"
+            : "동기화 오류"
       );
     }
 

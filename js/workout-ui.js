@@ -2611,11 +2611,6 @@
       handleSetChange
     );
 
-    setList?.addEventListener(
-      "change",
-      handleSetChange
-    );
-
     finishWorkoutBtn
       ?.addEventListener(
         "click",

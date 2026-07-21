@@ -19,7 +19,7 @@ import {
 import {
   initializeWorkoutSync,
   stopWorkoutSync
-} from "./sync.js";
+} from "./sync.js?v=rc1-3";
 
 import {
   ensureActiveRoutine
@@ -441,6 +441,31 @@ async function initializeAuth() {
       console.error(
         "[JYM Log] 운동 기록 동기화 초기화 실패",
         error
+      );
+
+      const isOffline =
+        !navigator.onLine;
+
+      window.dispatchEvent(
+        new CustomEvent(
+          "jym-log:sync-status",
+          {
+            detail: {
+              status:
+                isOffline
+                  ? "offline"
+                  : "error",
+
+              message:
+                isOffline
+                  ? "오프라인 저장"
+                  : "동기화 오류",
+
+              changedAt:
+                Date.now()
+            }
+          }
+        )
       );
     }
 
