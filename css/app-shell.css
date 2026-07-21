@@ -2801,3 +2801,406 @@ html[data-theme="dark"]
     gap: 12px;
   }
 }
+
+/*
+ * =========================================================
+ * JYM Log dev-59
+ * Mobile accessibility and touch feedback
+ * =========================================================
+ */
+
+:root {
+  --minimum-touch-target:
+    44px;
+}
+
+/*
+ * 주요 아이콘 버튼의 터치 영역을
+ * 최소 44px로 통일합니다.
+ */
+:where(
+  .icon-btn,
+  .app-back-btn,
+  .exercise-editor-close,
+  .sync-conflict-close-btn,
+  .routine-order-btn,
+  .progression-stage-action,
+  .calendar-nav button,
+  .set-done-btn,
+  .score-btn
+) {
+  min-width:
+    var(
+      --minimum-touch-target
+    );
+
+  min-height:
+    var(
+      --minimum-touch-target
+    );
+}
+
+/*
+ * 시각적 트랙은 56×32px로 유지하면서
+ * 실제 스위치 터치 영역을 64×44px로 확대합니다.
+ */
+.switch,
+.switch.on,
+html[data-theme="dark"]
+.switch,
+html[data-theme="dark"]
+.switch.on {
+  position:
+    relative;
+
+  width:
+    64px;
+
+  height:
+    44px;
+
+  margin:
+    -6px
+    -4px;
+
+  padding:
+    0;
+
+  overflow:
+    visible;
+
+  border:
+    0;
+
+  background:
+    transparent;
+
+  box-shadow:
+    none;
+
+  cursor:
+    pointer;
+
+  touch-action:
+    manipulation;
+
+  -webkit-tap-highlight-color:
+    transparent;
+}
+
+/*
+ * 스위치 트랙
+ */
+.switch::before {
+  content:
+    "";
+
+  position:
+    absolute;
+
+  top:
+    6px;
+
+  left:
+    4px;
+
+  width:
+    56px;
+
+  height:
+    32px;
+
+  border-radius:
+    999px;
+
+  background:
+    #cbd5e1;
+
+  box-shadow:
+    inset
+    0
+    0
+    0
+    1px
+    rgba(
+      15,
+      23,
+      42,
+      0.1
+    );
+
+  transition:
+    background-color
+    160ms
+    ease,
+    box-shadow
+    160ms
+    ease,
+    transform
+    120ms
+    ease;
+}
+
+/*
+ * 스위치 손잡이
+ */
+.switch::after {
+  top:
+    9px;
+
+  left:
+    7px;
+
+  width:
+    26px;
+
+  height:
+    26px;
+
+  transform:
+    translateX(0);
+}
+
+.switch.on::before {
+  background:
+    var(--accent);
+
+  box-shadow:
+    inset
+    0
+    0
+    0
+    1px
+    color-mix(
+      in srgb,
+      var(--accent) 75%,
+      #1d4ed8
+    );
+}
+
+.switch.on::after {
+  transform:
+    translateX(24px);
+}
+
+html[data-theme="dark"]
+.switch::before {
+  background:
+    #303946;
+
+  box-shadow:
+    inset
+    0
+    0
+    0
+    1px
+    rgba(
+      255,
+      255,
+      255,
+      0.08
+    );
+}
+
+html[data-theme="dark"]
+.switch.on::before {
+  background:
+    var(--accent);
+}
+
+/*
+ * 키보드 사용자가 스위치의
+ * 현재 포커스를 확인할 수 있게 합니다.
+ */
+.switch:focus-visible {
+  outline:
+    3px solid
+    var(--focus-ring);
+
+  outline-offset:
+    1px;
+
+  border-radius:
+    14px;
+}
+
+/*
+ * dev58.2에서 시각적 선택선을 정돈하면서
+ * 제거했던 테마 옵션의 키보드 포커스를 복원합니다.
+ */
+.theme-option:has(
+  input:focus-visible
+) {
+  outline:
+    none;
+
+  box-shadow:
+    inset
+    0
+    0
+    0
+    3px
+    var(--focus-ring);
+}
+
+.theme-option:has(
+  input:checked
+):has(
+  input:focus-visible
+) {
+  box-shadow:
+    inset
+    4px
+    0
+    0
+    var(--accent),
+    inset
+    0
+    0
+    0
+    3px
+    var(--focus-ring);
+}
+
+/*
+ * 클릭 가능한 동기화 상태
+ */
+.sync-status.is-actionable {
+  min-height:
+    40px;
+
+  cursor:
+    pointer;
+
+  touch-action:
+    manipulation;
+}
+
+.sync-status.is-actionable:focus-visible {
+  outline:
+    3px solid
+    var(--focus-ring);
+
+  outline-offset:
+    2px;
+}
+
+/*
+ * 터치 중 피드백
+ */
+@media (
+  hover:
+  none
+) and (
+  pointer:
+  coarse
+) {
+  :where(
+    button,
+    [role="button"],
+    [role="switch"],
+    .theme-option
+  ).is-touch-pressed,
+  :where(
+    button,
+    [role="button"],
+    [role="switch"],
+    .theme-option
+  ):active {
+    opacity:
+      0.86;
+  }
+
+  .switch.is-touch-pressed::before,
+  .switch:active::before {
+    transform:
+      scale(0.96);
+  }
+
+  .theme-option.is-touch-pressed,
+  .theme-option:active {
+    background:
+      color-mix(
+        in srgb,
+        var(--accent) 7%,
+        var(--surface)
+      );
+  }
+}
+
+/*
+ * 비활성 상태는 읽을 수 있으면서도
+ * 조작 불가능함을 명확히 표시합니다.
+ */
+:where(
+  button,
+  [role="button"],
+  [role="switch"]
+)[
+  aria-disabled="true"
+],
+button:disabled {
+  cursor:
+    default;
+
+  pointer-events:
+    none;
+
+  opacity:
+    0.52;
+}
+
+/*
+ * 고대비 설정 사용 시 경계선을 강화합니다.
+ */
+@media (
+  prefers-contrast:
+  more
+) {
+  :where(
+    .card,
+    .settings-list,
+    .theme-options,
+    .setting-row,
+    .exercise-row,
+    .set-row,
+    input,
+    select,
+    button
+  ) {
+    border-color:
+      color-mix(
+        in srgb,
+        var(--text) 42%,
+        var(--line)
+      );
+  }
+
+  :where(
+    button,
+    input,
+    select,
+    textarea,
+    [role="button"],
+    [role="switch"]
+  ):focus-visible {
+    outline-width:
+      4px;
+  }
+}
+
+/*
+ * 동작 줄이기 설정에서는 접근성 보정 요소도
+ * 즉시 상태를 변경합니다.
+ */
+@media (
+  prefers-reduced-motion:
+  reduce
+) {
+  .switch::before,
+  .switch::after,
+  .theme-option {
+    transition:
+      none;
+  }
+}
