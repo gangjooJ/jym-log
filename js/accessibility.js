@@ -60,10 +60,23 @@ window.JYMLog.accessibility =
         "switch"
       );
 
-      switchElement.setAttribute(
-        "tabindex",
-        "0"
-      );
+      const isNativeButton =
+        switchElement instanceof
+            HTMLButtonElement;
+
+      if (isNativeButton) {
+        switchElement.type =
+            "button";
+
+        switchElement.removeAttribute(
+            "tabindex"
+        );
+      } else {
+        switchElement.setAttribute(
+            "tabindex",
+            "0"
+        );
+      }
 
       const settingRow =
         switchElement.closest(
@@ -80,16 +93,10 @@ window.JYMLog.accessibility =
           settingTitle
         );
 
-      if (
-        label &&
-        !switchElement
-          .hasAttribute(
-            "aria-label"
-          )
-      ) {
+      if (label) {
         switchElement.setAttribute(
-          "aria-label",
-          label
+            "aria-label",
+            label
         );
       }
 
@@ -97,25 +104,30 @@ window.JYMLog.accessibility =
         switchElement
       );
 
-      switchElement.addEventListener(
-        "keydown",
-        (event) => {
-          if (
-            event.key !== " " &&
-            event.key !== "Enter"
-          ) {
-            return;
-          }
+      /*
+        * button이 아닌 사용자 정의 스위치에만
+        * 키보드 클릭을 추가합니다.
+        *
+        * 네이티브 button은 브라우저가
+        * Space와 Enter를 이미 처리합니다.
+        */
+      if (!isNativeButton) {
+        switchElement.addEventListener(
+            "keydown",
+            (event) => {
+            if (
+                event.key !== " " &&
+                event.key !== "Enter"
+            ) {
+                return;
+            }
 
-          event.preventDefault();
+            event.preventDefault();
 
-          /*
-           * 기존 click 리스너를 그대로 사용해
-           * 마우스와 키보드 동작을 일치시킵니다.
-           */
-          switchElement.click();
-        }
-      );
+            switchElement.click();
+            }
+        );
+      }
 
       const observer =
         new MutationObserver(

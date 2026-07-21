@@ -1,4 +1,4 @@
-const CACHE_NAME = "jym-log-v0.2.0-dev-59";
+const CACHE_NAME = "jym-log-v0.2.0-dev-59-1";
 
 const APP_SHELL = [
   "./",
@@ -11,7 +11,7 @@ const APP_SHELL = [
   "./css/progression-editor.css",
   "./css/routine-schedule.css",
 
-  "./js/config.js?v=dev59",
+  "./js/config.js?v=dev59-1",
   "./js/layer-manager.js?v=dev56",
   "./js/theme.js?v=dev59",
   "./js/viewport.js?v=dev54-1",
@@ -37,7 +37,7 @@ const APP_SHELL = [
   "./js/routine-override.js",
   "./js/app.js?v=dev57",
   "./js/pwa-update.js?v=dev57",
-  "./js/accessibility.js?v=dev59",
+  "./js/accessibility.js?v=dev59-1",
 
   "./manifest.webmanifest",
 
