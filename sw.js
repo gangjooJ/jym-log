@@ -1,19 +1,19 @@
-const CACHE_NAME = "jym-log-v0.2.0-dev-57";
+const CACHE_NAME = "jym-log-v0.2.0-dev-58";
 
 const APP_SHELL = [
   "./",
   "./index.html",
 
   "./css/style.css",
-  "./css/app-shell.css?v=dev57",
+  "./css/app-shell.css?v=dev58",
   "./css/progression.css",
   "./css/progression-history.css",
   "./css/progression-editor.css",
   "./css/routine-schedule.css",
 
-    "./js/config.js?v=dev57",
+    "./js/config.js?v=dev58",
     "./js/layer-manager.js?v=dev56",
-    "./js/theme.js?v=dev57",
+    "./js/theme.js?v=dev58",
     "./js/viewport.js?v=dev54-1",
     "./js/firebase-client.js",
     "./js/profile.js",

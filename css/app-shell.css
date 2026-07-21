@@ -1516,3 +1516,750 @@ html[
       none;
   }
 }
+
+/*
+ * =========================================================
+ * JYM Log dev-58
+ * Light and dark theme contrast refinement
+ * =========================================================
+ */
+
+:root,
+html[data-theme="light"] {
+  --page-frame-bg:
+    #dfe5ec;
+
+  --topbar-bg:
+    rgba(
+      244,
+      247,
+      251,
+      0.94
+    );
+
+  --surface-raised:
+    #ffffff;
+
+  --surface-inset:
+    #f8fafc;
+
+  --surface-hover:
+    #f1f5f9;
+
+  --control-bg:
+    #ffffff;
+
+  --focus-ring:
+    rgba(
+      37,
+      99,
+      235,
+      0.24
+    );
+
+  --state-info-bg:
+    #eef2ff;
+
+  --state-info-border:
+    #c7d2fe;
+
+  --state-info-text:
+    #3730a3;
+
+  --state-good-bg:
+    #f0fdf4;
+
+  --state-good-border:
+    #bbf7d0;
+
+  --state-good-text:
+    #047857;
+
+  --state-warn-bg:
+    #fffbeb;
+
+  --state-warn-border:
+    #fde68a;
+
+  --state-warn-text:
+    #b45309;
+
+  --state-danger-bg:
+    #fef2f2;
+
+  --state-danger-border:
+    #fecaca;
+
+  --state-danger-text:
+    #b91c1c;
+
+  --card-shadow-refined:
+    0
+    10px
+    28px
+    rgba(
+      15,
+      23,
+      42,
+      0.075
+    );
+
+  /*
+   * progression-editor.css에서 사용하는
+   * 이전 변수명도 현재 상태색과 연결합니다.
+   */
+  --success:
+    var(--good);
+}
+
+html[data-theme="dark"] {
+  --page-frame-bg:
+    #080b10;
+
+  --topbar-bg:
+    rgba(
+      13,
+      17,
+      23,
+      0.94
+    );
+
+  --surface-raised:
+    #161b22;
+
+  --surface-inset:
+    #1b222c;
+
+  --surface-hover:
+    #222b36;
+
+  --control-bg:
+    #111820;
+
+  --focus-ring:
+    rgba(
+      96,
+      165,
+      250,
+      0.38
+    );
+
+  --state-info-bg:
+    #17284a;
+
+  --state-info-border:
+    #294b80;
+
+  --state-info-text:
+    #bfdbfe;
+
+  --state-good-bg:
+    #10291f;
+
+  --state-good-border:
+    #245c48;
+
+  --state-good-text:
+    #6ee7b7;
+
+  --state-warn-bg:
+    #302310;
+
+  --state-warn-border:
+    #66501d;
+
+  --state-warn-text:
+    #fcd34d;
+
+  --state-danger-bg:
+    #32191d;
+
+  --state-danger-border:
+    #6f3038;
+
+  --state-danger-text:
+    #fca5a5;
+
+  --card-shadow-refined:
+    0
+    12px
+    32px
+    rgba(
+      0,
+      0,
+      0,
+      0.26
+    );
+
+  --success:
+    var(--good);
+}
+
+/*
+ * 데스크톱 바깥 프레임과 앱 본문을 분리합니다.
+ */
+html,
+body {
+  background:
+    var(
+      --page-frame-bg
+    );
+}
+
+.app-shell,
+main,
+.screen.active {
+  background:
+    var(--bg);
+}
+
+/*
+ * 상단바가 본문과 자연스럽게 이어지면서도
+ * 스크롤 중 경계가 사라지지 않게 합니다.
+ */
+.topbar {
+  border-bottom:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--line) 72%,
+      transparent
+    );
+
+  background:
+    var(
+      --topbar-bg
+    );
+
+  backdrop-filter:
+    blur(16px)
+    saturate(140%);
+
+  -webkit-backdrop-filter:
+    blur(16px)
+    saturate(140%);
+}
+
+/*
+ * 카드와 시트의 공통 표면
+ */
+:where(
+  .card,
+  .exercise-row,
+  .metric,
+  .setting-row,
+  .set-row,
+  .day,
+  .sheet,
+  .navigation-sheet,
+  .exercise-editor-sheet,
+  .sync-conflict-sheet,
+  .auth-card,
+  .theme-options,
+  .theme-option,
+  .pwa-update-banner
+) {
+  border-color:
+    var(--line);
+
+  background:
+    var(
+      --surface-raised
+    );
+
+  color:
+    var(--text);
+}
+
+:where(
+  .card,
+  .exercise-row,
+  .metric,
+  .auth-card,
+  .pwa-update-banner
+) {
+  box-shadow:
+    var(
+      --card-shadow-refined
+    );
+}
+
+/*
+ * 입력창과 일반 조작 버튼
+ */
+:where(
+  .nickname-input-row input,
+  .routine-editor-field input,
+  .exercise-editor-field input,
+  .exercise-editor-field select,
+  .routine-library-field select,
+  .stepper input,
+  .stepper button
+) {
+  border-color:
+    var(--line);
+
+  background:
+    var(--control-bg);
+
+  color:
+    var(--text);
+}
+
+:where(
+  input,
+  textarea
+)::placeholder {
+  color:
+    var(--muted);
+
+  opacity:
+    0.78;
+}
+
+:where(
+  button,
+  input,
+  select,
+  textarea
+):focus-visible {
+  outline:
+    3px solid
+    var(--focus-ring);
+
+  outline-offset:
+    2px;
+}
+
+/*
+ * 작은 보조 표면
+ */
+:where(
+  .previous,
+  .exercise-icon,
+  .set-number,
+  .session-set-row,
+  .session-schedule-item,
+  .sync-conflict-card,
+  .routine-drag-handle,
+  .progression-stage-editor,
+  .progression-history-goal,
+  .progression-history-metric,
+  .progression-batch
+) {
+  border-color:
+    var(--line);
+
+  background:
+    var(
+      --surface-inset
+    );
+
+  color:
+    var(--text);
+}
+
+/*
+ * 공통 아이콘·편집·닫기 버튼
+ */
+:where(
+  .icon-btn,
+  .app-back-btn,
+  .calendar-nav button,
+  .routine-edit-btn,
+  .routine-order-btn,
+  .exercise-editor-close,
+  .progression-stage-action,
+  .sync-conflict-close-btn,
+  .sync-conflict-cloud-btn,
+  .pwa-update-later
+) {
+  border-color:
+    var(--line);
+
+  background:
+    var(
+      --surface-raised
+    );
+
+  color:
+    var(--text);
+}
+
+/*
+ * 보조 버튼
+ */
+.secondary-btn {
+  border:
+    1px solid
+    var(
+      --state-info-border
+    );
+
+  background:
+    var(
+      --state-info-bg
+    );
+
+  color:
+    var(
+      --state-info-text
+    );
+}
+
+.ghost-btn {
+  border:
+    1px solid
+    var(--line);
+
+  background:
+    var(
+      --surface-hover
+    );
+
+  color:
+    var(--text);
+}
+
+/*
+ * 선택 상태
+ */
+.day.active,
+.score-btn.selected {
+  border-color:
+    var(--primary);
+
+  background:
+    var(--primary);
+
+  color:
+    #ffffff;
+}
+
+.set-done-btn {
+  background:
+    var(--primary);
+
+  color:
+    #ffffff;
+}
+
+/*
+ * 완료 상태
+ */
+.set-row.done,
+.history-schedule-line[
+  data-status="planned"
+],
+.session-schedule-card[
+  data-status="planned"
+] {
+  border-color:
+    var(
+      --state-good-border
+    );
+
+  background:
+    var(
+      --state-good-bg
+    );
+}
+
+.set-row.done
+.set-number {
+  background:
+    color-mix(
+      in srgb,
+      var(--good) 22%,
+      transparent
+    );
+
+  color:
+    var(
+      --state-good-text
+    );
+}
+
+.tag,
+.progression-badge.increase,
+.progression-history-card[
+  data-state="applied"
+]
+.progression-history-badge,
+.progression-history-card[
+  data-state="ready"
+]
+.progression-history-badge {
+  background:
+    var(
+      --state-good-bg
+    );
+
+  color:
+    var(
+      --state-good-text
+    );
+}
+
+/*
+ * 정보·추천 상태
+ */
+.target-box,
+.recommendation,
+.history-schedule-line[
+  data-status="override"
+],
+.session-schedule-card[
+  data-status="override"
+] {
+  border-color:
+    var(
+      --state-info-border
+    );
+
+  background:
+    var(
+      --state-info-bg
+    );
+
+  color:
+    var(--text);
+}
+
+.recommendation
+.reason div {
+  color:
+    var(
+      --state-info-text
+    );
+}
+
+/*
+ * 경고 상태
+ */
+.sync-status[
+  data-state="loading"
+],
+.sync-status[
+  data-state="saving"
+],
+.sync-status[
+  data-state="offline"
+],
+.sync-conflict-warning,
+.history-schedule-line[
+  data-status="different"
+],
+.session-schedule-card[
+  data-status="different"
+] {
+  border-color:
+    var(
+      --state-warn-border
+    );
+
+  background:
+    var(
+      --state-warn-bg
+    );
+
+  color:
+    var(
+      --state-warn-text
+    );
+}
+
+.sync-conflict-warning
+:where(
+  strong,
+  p
+) {
+  color:
+    var(
+      --state-warn-text
+    );
+}
+
+/*
+ * 오류·삭제 상태
+ */
+.sync-status[
+  data-state="error"
+],
+.sync-status[
+  data-state="conflict"
+],
+.history-state.error {
+  border-color:
+    var(
+      --state-danger-border
+    );
+
+  background:
+    var(
+      --state-danger-bg
+    );
+
+  color:
+    var(
+      --state-danger-text
+    );
+}
+
+.exercise-delete-btn,
+.routine-delete-btn {
+  border-color:
+    var(
+      --state-danger-border
+    );
+
+  background:
+    var(
+      --state-danger-bg
+    );
+
+  color:
+    var(
+      --state-danger-text
+    );
+}
+
+/*
+ * 동기화 정상 상태
+ */
+.sync-status[
+  data-state="synced"
+] {
+  border-color:
+    var(
+      --state-good-border
+    );
+
+  background:
+    var(
+      --state-good-bg
+    );
+
+  color:
+    var(
+      --state-good-text
+    );
+}
+
+/*
+ * 기본 동기화 상태도 다크 모드에서
+ * 흰색으로 튀지 않도록 공통 표면을 사용합니다.
+ */
+.sync-status {
+  border-color:
+    var(--line);
+
+  background:
+    var(
+      --surface-raised
+    );
+
+  color:
+    var(--muted);
+}
+
+/*
+ * 휴식 타이머와 토스트는 배경에서 분리된
+ * 고대비 레이어로 유지합니다.
+ */
+.timer-card,
+.toast {
+  border:
+    1px solid
+    rgba(
+      255,
+      255,
+      255,
+      0.1
+    );
+
+  background:
+    #111827;
+
+  color:
+    #ffffff;
+}
+
+html[data-theme="dark"]
+.timer-card,
+html[data-theme="dark"]
+.toast {
+  background:
+    #0b1220;
+
+  box-shadow:
+    0
+    16px
+    38px
+    rgba(
+      0,
+      0,
+      0,
+      0.46
+    );
+}
+
+/*
+ * 비활성 상태의 문자는 읽을 수 있게 유지하되
+ * 활성 요소와 명확히 구분합니다.
+ */
+:where(
+  button,
+  input,
+  select,
+  textarea
+):disabled {
+  cursor:
+    default;
+
+  opacity:
+    0.52;
+}
+
+html[data-theme="dark"]
+:where(
+  button,
+  input,
+  select,
+  textarea
+):disabled {
+  opacity:
+    0.58;
+}
+
+/*
+ * 로그인 화면의 바깥 배경과 카드 대비
+ */
+.auth-screen {
+  background:
+    radial-gradient(
+      circle at top right,
+      color-mix(
+        in srgb,
+        var(--accent) 19%,
+        transparent
+      ),
+      transparent 40%
+    ),
+    var(--bg);
+}
+
+/*
+ * 모바일에서는 바깥 프레임 색 대신
+ * 앱 배경을 화면 전체에 사용합니다.
+ */
+@media (
+  max-width:
+  699px
+) {
+  html,
+  body {
+    background:
+      var(--bg);
+  }
+}
