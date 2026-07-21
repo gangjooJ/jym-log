@@ -1099,6 +1099,41 @@
           ></button>
         </div>
       </div>
+
+      <div class="section-title">
+        <h2>데이터 관리</h2>
+        <small>JSON 백업</small>
+      </div>
+
+      <div class="settings-list">
+        <div class="setting-row">
+          <div>
+            <p>내 운동 기록 백업</p>
+            <span>
+              루틴, 진행 상태, 완료 기록을 파일로 저장
+            </span>
+          </div>
+
+          <button
+            class="ghost-btn"
+            id="exportBackupBtn"
+            type="button"
+            aria-describedby="backupMessage"
+          >
+            내보내기
+          </button>
+        </div>
+      </div>
+
+      <p
+        class="nickname-message"
+        id="backupMessage"
+        role="status"
+        aria-live="polite"
+      >
+        백업 파일은 현재 기기에 JSON 형식으로 저장됩니다.
+      </p>
+
       <div class="section-title">
         <h2>앱 정보</h2>
       </div>
@@ -1666,7 +1701,7 @@
   </div>
 </div>
 
-<script src="./js/config.js?v=dev0211"></script>
+<script src="./js/config.js?v=dev0212"></script>
 <script src="./js/layer-manager.js?v=dev56"></script>
 <script
   type="module"
@@ -1698,6 +1733,11 @@
 <script
   type="module"
   src="./js/auth.js?v=rc1-6"
+></script>
+
+<script
+  type="module"
+  src="./js/backup.js?v=dev0212"
 ></script>
 
 </body>
