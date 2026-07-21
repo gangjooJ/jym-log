@@ -1122,6 +1122,52 @@
           >
             내보내기
           </button>
+          <div class="setting-row">
+            <div>
+              <p>백업 파일 검사</p>
+              <span>
+                복원 전에 파일 형식과 계정을 확인
+              </span>
+            </div>
+
+            <button
+              class="ghost-btn"
+              id="selectBackupFileBtn"
+              type="button"
+              aria-describedby="backupMessage"
+            >
+              파일 선택
+            </button>
+
+            <input
+              id="backupFileInput"
+              type="file"
+              accept=".json,application/json"
+              hidden
+            >
+          </div>
+
+          <div
+            class="setting-row"
+            id="backupInspection"
+            role="status"
+            aria-live="polite"
+            hidden
+          >
+            <div>
+              <p id="backupInspectionTitle">
+                선택된 백업 파일
+              </p>
+
+              <span id="backupInspectionMeta">
+                파일을 검사하고 있습니다.
+              </span>
+            </div>
+
+            <strong id="backupInspectionStatus">
+              검사 중
+            </strong>
+          </div>
         </div>
       </div>
 
@@ -1701,7 +1747,7 @@
   </div>
 </div>
 
-<script src="./js/config.js?v=dev0212"></script>
+<script src="./js/config.js?v=dev0213"></script>
 <script src="./js/layer-manager.js?v=dev56"></script>
 <script
   type="module"
@@ -1737,7 +1783,7 @@
 
 <script
   type="module"
-  src="./js/backup.js?v=dev0212"
+  src="./js/backup.js?v=dev0213"
 ></script>
 
 </body>
