@@ -294,6 +294,9 @@
           setIndex
         );
 
+      const setValidation =
+        workout.validateSet(set);
+
       rows.push(`
         <div
           class="set-row ${set.done ? "done" : ""}"
@@ -2123,10 +2126,7 @@
       workout.getSet(
         exerciseIndex,
         setIndex
-      );
-
-    const setValidation =
-      workout.validateSet(set);  
+      ); 
 
     if (action === "weight-down") {
       workout.updateSet(
