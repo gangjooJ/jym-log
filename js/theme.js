@@ -13,7 +13,7 @@
       stylesheet = document.createElement("link");
       stylesheet.id = APP_SHELL_STYLESHEET_ID;
       stylesheet.rel = "stylesheet";
-      stylesheet.href = "./css/app-shell.css?v=dev58-1";
+      stylesheet.href = "./css/app-shell.css?v=dev58-2";
       document.head.appendChild(stylesheet);
       return;
     }

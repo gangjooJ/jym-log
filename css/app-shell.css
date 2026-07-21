@@ -2423,42 +2423,6 @@ html[data-theme="dark"] .app-back-btn span {
  * 선택 강조선을 row 바깥으로 튀게 하지 말고
  * row 내부 inset border 방식으로 처리
  */
-.theme-option::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border: 1.5px solid transparent;
-  border-radius: 0;
-}
-
-.theme-option:first-child::after {
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-}
-
-.theme-option:last-child::after {
-  border-bottom-left-radius: 24px;
-  border-bottom-right-radius: 24px;
-}
-
-.theme-option:has(input:checked) {
-  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
-}
-
-.theme-option:has(input:checked)::after {
-  inset: 0;
-  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
-}
-
-.theme-option:has(input:checked) .theme-option-icon {
-  background: color-mix(in srgb, var(--accent) 16%, var(--soft-bg));
-  color: var(--accent);
-}
-
-.theme-option:has(input:checked) .theme-option-check {
-  border: 6px solid var(--accent);
-}
 
 .theme-option:focus-within {
   outline: none;
@@ -2466,48 +2430,8 @@ html[data-theme="dark"] .app-back-btn span {
 
 /* ---------------------------------
  * 4) 토글 스위치 정렬 통일
+ * 58.2 확인
  * --------------------------------- */
-.switch {
-  width: 56px;
-  height: 32px;
-  padding: 3px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  background: #cbd5e1;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
-  transition:
-    background-color 160ms ease,
-    box-shadow 160ms ease;
-}
-
-.switch::after {
-  content: "";
-  display: block;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
-  transition: transform 180ms ease;
-}
-
-.switch.on {
-  background: var(--accent);
-}
-
-.switch.on::after {
-  transform: translateX(24px);
-}
-
-html[data-theme="dark"] .switch {
-  background: #2b3441;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-}
-
-html[data-theme="dark"] .switch.on {
-  background: color-mix(in srgb, var(--accent) 78%, #312e81 22%);
-}
 
 /* ---------------------------------
  * 5) 설정 화면 내부 리듬 정리
@@ -2540,19 +2464,340 @@ html[data-theme="dark"] .switch.on {
     padding: 16px 16px;
     gap: 12px;
   }
+}
 
-  .switch {
-    width: 54px;
-    height: 30px;
-    padding: 2px;
+/*
+ * =========================================================
+ * JYM Log dev-58.2
+ * Settings alignment refinement
+ * =========================================================
+ */
+
+/* ---------------------------------
+ * 화면 테마 선택
+ * 전체 외곽선 대신 배경 + 왼쪽 표시선 사용
+ * --------------------------------- */
+
+.theme-options {
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.theme-option {
+  min-height: 88px;
+  padding: 17px 20px;
+  grid-template-columns:
+    52px
+    minmax(0, 1fr)
+    28px;
+  gap: 14px;
+
+  /*
+   * 선택 상태가 바뀌어도
+   * 행 크기가 달라지지 않게 합니다.
+   */
+  border: 0;
+  box-shadow: none;
+}
+
+/*
+ * 이전 dev58.1 선택 외곽선 제거
+ */
+.theme-option::after {
+  display: none;
+}
+
+.theme-option:has(
+  input:checked
+) {
+  background:
+    color-mix(
+      in srgb,
+      var(--accent) 8%,
+      var(--surface)
+    );
+
+  box-shadow:
+    inset
+    4px
+    0
+    0
+    var(--accent);
+}
+
+/*
+ * 선택 행 아래 구분선도 다른 행과 동일한
+ * 중립색으로 유지합니다.
+ */
+.theme-option +
+.theme-option {
+  border-top:
+    1px solid
+    var(--line);
+}
+
+.theme-option-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 17px;
+}
+
+.theme-option-check {
+  width: 23px;
+  height: 23px;
+  justify-self: end;
+  margin: 0;
+
+  border:
+    2px solid
+    var(--line);
+
+  background:
+    transparent;
+}
+
+.theme-option:has(
+  input:checked
+)
+.theme-option-check {
+  border:
+    6px solid
+    var(--accent);
+
+  background:
+    var(--surface);
+}
+
+/* ---------------------------------
+ * 운동 환경 행
+ * 우측 컨트롤 기준선 통일
+ * --------------------------------- */
+
+.setting-row {
+  min-height: 96px;
+  padding:
+    18px
+    22px;
+
+  /*
+   * flex 대신 고정된 우측 컨트롤 열 사용
+   */
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    72px;
+  align-items: center;
+  gap: 16px;
+}
+
+.setting-row > :first-child {
+  min-width: 0;
+}
+
+.setting-row > :last-child {
+  min-width: 0;
+  margin: 0;
+  justify-self: end;
+  align-self: center;
+}
+
+/*
+ * 기존 .setting-row span의 margin-top이
+ * 우측 kg 값에도 적용되지 않게 합니다.
+ */
+.setting-row >
+span:last-child {
+  margin-top: 0;
+
+  color:
+    var(--text);
+
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 900;
+  text-align: right;
+}
+
+/*
+ * 왼쪽 설명 내부의 보조 문구에만 여백 적용
+ */
+.setting-row >
+div >
+span {
+  margin-top: 6px;
+}
+
+/* ---------------------------------
+ * 토글 스위치
+ * 손잡이를 absolute로 배치해 돌출 방지
+ * --------------------------------- */
+
+.switch {
+  position: relative;
+
+  width: 56px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+
+  border: 0;
+  outline: 0;
+  border-radius: 999px;
+
+  display: block;
+
+  background:
+    #cbd5e1;
+
+  box-shadow:
+    inset
+    0
+    0
+    0
+    1px
+    rgba(
+      15,
+      23,
+      42,
+      0.1
+    );
+
+  overflow: hidden;
+
+  transition:
+    background-color
+    160ms
+    ease,
+    box-shadow
+    160ms
+    ease;
+}
+
+.switch::after {
+  content: "";
+
+  position: absolute;
+  top: 3px;
+  left: 3px;
+
+  width: 26px;
+  height: 26px;
+
+  margin: 0;
+
+  border-radius: 50%;
+
+  background:
+    #ffffff;
+
+  box-shadow:
+    0
+    2px
+    7px
+    rgba(
+      15,
+      23,
+      42,
+      0.2
+    );
+
+  transform:
+    translateX(0);
+
+  transition:
+    transform
+    180ms
+    ease;
+}
+
+.switch.on {
+  background:
+    var(--accent);
+
+  box-shadow:
+    inset
+    0
+    0
+    0
+    1px
+    color-mix(
+      in srgb,
+      var(--accent) 75%,
+      #1d4ed8
+    );
+}
+
+.switch.on::after {
+  /*
+   * 56 - 좌우 3 - 손잡이 26 = 24px
+   */
+  transform:
+    translateX(24px);
+}
+
+html[data-theme="dark"]
+.switch {
+  background:
+    #303946;
+
+  box-shadow:
+    inset
+    0
+    0
+    0
+    1px
+    rgba(
+      255,
+      255,
+      255,
+      0.08
+    );
+}
+
+html[data-theme="dark"]
+.switch.on {
+  background:
+    var(--accent);
+}
+
+/* ---------------------------------
+ * 모바일 간격 보정
+ * --------------------------------- */
+
+@media (
+  max-width:
+  390px
+) {
+  .theme-option {
+    min-height: 84px;
+    padding:
+      15px
+      16px;
+
+    grid-template-columns:
+      46px
+      minmax(0, 1fr)
+      24px;
+
+    gap: 12px;
   }
 
-  .switch::after {
-    width: 26px;
-    height: 26px;
+  .theme-option-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
   }
 
-  .switch.on::after {
-    transform: translateX(22px);
+  .setting-row {
+    min-height: 92px;
+    padding:
+      17px
+      18px;
+
+    grid-template-columns:
+      minmax(0, 1fr)
+      64px;
+
+    gap: 12px;
   }
 }
