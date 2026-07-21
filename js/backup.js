@@ -681,6 +681,14 @@ async function inspectBackupFile(
   };
 }
 
+function getSelectedBackup() {
+  return selectedBackup
+    ? cloneValue(
+        selectedBackup
+      )
+    : null;
+}
+
 async function buildUserBackup() {
   const user =
     auth.currentUser;
@@ -927,6 +935,11 @@ function initializeBackupUI() {
       "backupInspectionStatus"
     );
 
+  const restoreButton =
+    document.getElementById(
+      "restoreBackupBtn"
+    );  
+
   function showInspection(
     title,
     meta,
@@ -1036,6 +1049,20 @@ function initializeBackupUI() {
           return;
         }
 
+        selectedBackup =
+          null;
+
+        if (restoreButton) {
+          restoreButton.disabled =
+            true;
+        }
+
+        window.dispatchEvent(
+          new CustomEvent(
+            "jym-log:backup-cleared"
+          )
+        );
+
         /*
          * 같은 파일도 연속해서 다시
          * 선택할 수 있도록 값을 비웁니다.
@@ -1065,6 +1092,17 @@ function initializeBackupUI() {
 
         selectedBackup =
           null;
+
+        if (restoreButton) {
+          restoreButton.disabled =
+            true;
+        }
+
+        window.dispatchEvent(
+          new CustomEvent(
+            "jym-log:backup-cleared"
+          )
+        );  
 
         if (selectButton) {
           selectButton.disabled =
@@ -1097,6 +1135,26 @@ function initializeBackupUI() {
 
           selectedBackup =
             result.backup;
+
+          if (restoreButton) {
+            restoreButton.disabled =
+              false;
+          }
+
+          window.dispatchEvent(
+            new CustomEvent(
+              "jym-log:backup-selected",
+              {
+                detail: {
+                  summary:
+                    result.summary,
+
+                  file:
+                    result.file
+                }
+              }
+            )
+          );
 
           const stateLabel =
             result.summary
@@ -1178,6 +1236,7 @@ window.JYMLog.backup =
     exportUserBackup,
     validateBackupData,
     inspectBackupFile,
+    getSelectedBackup,
 
     get hasSelectedBackup() {
       return Boolean(
@@ -1190,5 +1249,6 @@ export {
   buildUserBackup,
   exportUserBackup,
   validateBackupData,
-  inspectBackupFile
+  inspectBackupFile,
+  getSelectedBackup
 };
