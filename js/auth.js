@@ -22,7 +22,7 @@ import {
 } from "./sync.js?v=rc1-3";
 
 import {
-  ensureActiveRoutine
+  ensureActiveRoutine,
   alignRoutineWithWorkoutState
 } from "./routines.js?v=rc1-4";
 
