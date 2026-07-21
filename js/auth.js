@@ -23,7 +23,7 @@ import {
 
 import {
   ensureActiveRoutine
-} from "./routines.js";
+} from "./routines.js?v=rc1-1";
 
 import "./sessions.js";
 import "./history.js";

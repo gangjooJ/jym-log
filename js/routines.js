@@ -1959,6 +1959,15 @@ window.JYMLog.routines =
       return cloneData(
         availableRoutines
       );
+    },
+
+    get canDeleteActiveRoutine() {
+      return Boolean(
+        activeRoutine &&
+        activeRoutine.id !==
+          DEFAULT_ROUTINE_ID &&
+        availableRoutines.length > 1
+      );
     }
   });
 
