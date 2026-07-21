@@ -314,7 +314,12 @@
             </button>
 
             <input
+              type="number"
               inputmode="decimal"
+              min="0"
+              max="1000"
+              step="any"
+              required
               value="${set.weight}"
               data-field="weight"
               data-set="${setIndex}"
@@ -342,7 +347,12 @@
             </button>
 
             <input
+              type="number"
               inputmode="numeric"
+              min="0"
+              max="100"
+              step="1"
+              required
               value="${set.reps}"
               data-field="reps"
               data-set="${setIndex}"
@@ -365,6 +375,12 @@
             data-set="${setIndex}"
             type="button"
             aria-pressed="${String(Boolean(set.done))}"
+            ${
+              !set.done &&
+              !setValidation.valid
+                ? "disabled"
+                : ""
+            }
           >
             ${set.done ? "✓" : "완료"}
           </button>
@@ -2109,6 +2125,9 @@
         setIndex
       );
 
+    const setValidation =
+      workout.validateSet(set);  
+
     if (action === "weight-down") {
       workout.updateSet(
         exerciseIndex,
@@ -2154,21 +2173,104 @@
     }
 
     if (action === "done") {
-      const isDone =
-        workout.toggleSetDone(
-          exerciseIndex,
-          setIndex
-        );
+      try {
+        const isDone =
+          workout.toggleSetDone(
+            exerciseIndex,
+            setIndex
+          );
 
-      if (isDone) {
-        startRest(
-          exercise.rest
+        if (isDone) {
+          startRest(
+            exercise.rest
+          );
+        }
+      } catch (error) {
+        showToast(
+          error.message ||
+          "세트 입력값을 확인해 주세요."
         );
       }
     }
 
     syncState();
     renderWorkout();
+  }
+
+  function handleSetInput(event) {
+    const input =
+      event.target.closest(
+        "[data-field]"
+      );
+
+    if (!input) {
+      return;
+    }
+
+    const setRow =
+      input.closest(
+        ".set-row"
+      );
+
+    if (!setRow) {
+      return;
+    }
+
+    const weightInput =
+      setRow.querySelector(
+        '[data-field="weight"]'
+      );
+
+    const repsInput =
+      setRow.querySelector(
+        '[data-field="reps"]'
+      );
+
+    const doneButton =
+      setRow.querySelector(
+        '[data-action="done"]'
+      );
+
+    if (
+      !weightInput ||
+      !repsInput ||
+      !doneButton
+    ) {
+      return;
+    }
+
+    const weightValid =
+      weightInput.checkValidity();
+
+    const repsValid =
+      repsInput.checkValidity() &&
+      Number(repsInput.value) >= 1;
+
+    weightInput.setAttribute(
+      "aria-invalid",
+      String(!weightValid)
+    );
+
+    repsInput.setAttribute(
+      "aria-invalid",
+      String(!repsValid)
+    );
+
+    /*
+    * 완료된 세트는 완료 취소를 위해
+    * 버튼을 비활성화하지 않습니다.
+    */
+    const isAlreadyDone =
+      setRow.classList.contains(
+        "done"
+      );
+
+    doneButton.disabled =
+      !isAlreadyDone &&
+      (
+        !weightValid ||
+        !repsValid
+      );
   }
 
   function handleSetChange(event) {
@@ -2184,10 +2286,14 @@
     syncState();
 
     const exerciseIndex =
-      Number(state.activeExercise) || 0;
+      Number(
+        state.activeExercise
+      ) || 0;
 
     const setIndex =
-      Number(input.dataset.set);
+      Number(
+        input.dataset.set
+      );
 
     const field =
       input.dataset.field;
@@ -2203,14 +2309,22 @@
       return;
     }
 
-    workout.updateSet(
-      exerciseIndex,
-      setIndex,
-      field,
-      Number(input.value) || 0
-    );
+    try {
+      workout.updateSet(
+        exerciseIndex,
+        setIndex,
+        field,
+        input.value
+      );
+    } catch (error) {
+      showToast(
+        error.message ||
+        "입력값을 확인해 주세요."
+      );
+    }
 
     syncState();
+    renderWorkout();
   }
 
   function selectFatigueScore(
@@ -2485,6 +2599,16 @@
           );
         }
       }
+    );
+
+    setList?.addEventListener(
+      "input",
+      handleSetInput
+    );
+
+    setList?.addEventListener(
+      "change",
+      handleSetChange
     );
 
     setList?.addEventListener(

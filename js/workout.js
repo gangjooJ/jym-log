@@ -529,6 +529,96 @@ window.JYMLog.workout = (() => {
     return state.sets[key];
   }
 
+  function normalizeSetFieldValue(
+    field,
+    value
+  ) {
+    const numericValue =
+      Number(value);
+
+    if (
+      !Number.isFinite(
+        numericValue
+      )
+    ) {
+      throw new Error(
+        "올바른 숫자를 입력해 주세요."
+      );
+    }
+
+    if (field === "weight") {
+      if (
+        numericValue < 0 ||
+        numericValue > 1000
+      ) {
+        throw new Error(
+          "중량은 0~1000kg 사이로 입력해 주세요."
+        );
+      }
+
+      return Math.round(
+        numericValue * 100
+      ) / 100;
+    }
+
+    if (field === "reps") {
+      if (
+        !Number.isInteger(
+          numericValue
+        ) ||
+        numericValue < 0 ||
+        numericValue > 100
+      ) {
+        throw new Error(
+          "반복 수는 0~100 사이의 정수로 입력해 주세요."
+        );
+      }
+
+      return numericValue;
+    }
+
+    throw new Error(
+      "수정할 세트 항목을 확인할 수 없습니다."
+    );
+  }
+
+  function validateSet(set) {
+    const weight =
+      Number(set?.weight);
+
+    const reps =
+      Number(set?.reps);
+
+    if (
+      !Number.isFinite(weight) ||
+      weight < 0 ||
+      weight > 1000
+    ) {
+      return {
+        valid: false,
+        message:
+          "중량은 0kg 이상으로 입력해 주세요."
+      };
+    }
+
+    if (
+      !Number.isInteger(reps) ||
+      reps < 1 ||
+      reps > 100
+    ) {
+      return {
+        valid: false,
+        message:
+          "세트 완료 전 반복 수를 1회 이상 입력해 주세요."
+      };
+    }
+
+    return {
+      valid: true,
+      message: ""
+    };
+  }
+
   function updateSet(
     exerciseIndex,
     setIndex,
@@ -540,8 +630,25 @@ window.JYMLog.workout = (() => {
       setIndex
     );
 
-    set[field] = value;
+    set[field] =
+      normalizeSetFieldValue(
+        field,
+        value
+      );
+
+    /*
+    * 완료된 세트의 값을 무효한 값으로 바꾸면
+    * 완료 상태를 자동 해제합니다.
+    */
+    if (
+      set.done &&
+      !validateSet(set).valid
+    ) {
+      set.done = false;
+    }
+
     saveState();
+
     return set;
   }
 
@@ -554,9 +661,30 @@ window.JYMLog.workout = (() => {
       setIndex
     );
 
-    set.done = !set.done;
+    /*
+    * 이미 완료된 세트는 검증 없이
+    * 완료 취소할 수 있어야 합니다.
+    */
+    if (set.done) {
+      set.done = false;
+      saveState();
+
+      return false;
+    }
+
+    const validation =
+      validateSet(set);
+
+    if (!validation.valid) {
+      throw new Error(
+        validation.message
+      );
+    }
+
+    set.done = true;
     saveState();
-    return set.done;
+
+    return true;
   }
 
   function setActiveExercise(
@@ -1069,6 +1197,7 @@ window.JYMLog.workout = (() => {
     formatTime,
     getSet,
     updateSet,
+    validateSet,
     toggleSetDone,
     setActiveExercise,
     beginWorkout,
