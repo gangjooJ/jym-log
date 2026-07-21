@@ -1,41 +1,42 @@
-const CACHE_NAME = "jym-log-v0.2.0-dev-56-1";
+const CACHE_NAME = "jym-log-v0.2.0-dev-57";
 
 const APP_SHELL = [
   "./",
   "./index.html",
 
   "./css/style.css",
-  "./css/app-shell.css?v=dev56",
+  "./css/app-shell.css?v=dev57",
   "./css/progression.css",
   "./css/progression-history.css",
   "./css/progression-editor.css",
   "./css/routine-schedule.css",
 
-  "./js/config.js",
-  "./js/layer-manager.js?v=dev56",
-  "./js/theme.js",
-  "./js/viewport.js?v=dev54-1",
-  "./js/firebase-client.js",
-  "./js/profile.js",
-  "./js/routines.js",
-  "./js/sync.js",
-  "./js/progression-history.js",
-  "./js/history-ui.js",
-  "./js/analysis-ui.js",
-  "./js/sync-conflict-ui.js?v=dev56",
-  "./js/sessions.js",
-  "./js/history.js",
-  "./js/analysis.js",
-  "./js/auth.js",
-  "./js/storage.js",
-  "./js/progression-policy.js",
-  "./js/workout.js?v=dev55-1",
-  "./js/progression-engine.js",
-  "./js/workout-ui.js?v=dev56-1",
-  "./js/routine-ui.js?v=dev56",
-  "./js/routine-schedule.js",
-  "./js/routine-override.js",
-  "./js/app.js?v=dev56",
+    "./js/config.js?v=dev57",
+    "./js/layer-manager.js?v=dev56",
+    "./js/theme.js?v=dev57",
+    "./js/viewport.js?v=dev54-1",
+    "./js/firebase-client.js",
+    "./js/profile.js",
+    "./js/routines.js",
+    "./js/sync.js",
+    "./js/progression-history.js",
+    "./js/history-ui.js",
+    "./js/analysis-ui.js",
+    "./js/sync-conflict-ui.js?v=dev56",
+    "./js/sessions.js",
+    "./js/history.js",
+    "./js/analysis.js",
+    "./js/auth.js",
+    "./js/storage.js",
+    "./js/progression-policy.js",
+    "./js/workout.js?v=dev55-1",
+    "./js/progression-engine.js",
+    "./js/workout-ui.js?v=dev56-1",
+    "./js/routine-ui.js?v=dev56",
+    "./js/routine-schedule.js",
+    "./js/routine-override.js",
+    "./js/app.js?v=dev57",
+    "./js/pwa-update.js?v=dev57",
 
   "./manifest.webmanifest",
 
@@ -54,14 +55,41 @@ const APP_SHELL = [
  *
  * 앱 실행에 필요한 기본 파일을 미리 캐시에 저장합니다.
  */
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
-  );
-});
+self.addEventListener(
+  "install",
+  (event) => {
+    event.waitUntil(
+      caches
+        .open(CACHE_NAME)
+        .then(
+          (cache) =>
+            cache.addAll(
+              APP_SHELL
+            )
+        )
+    );
+  }
+);
+
+/**
+ * 사용자가 업데이트를 선택했을 때만
+ * 대기 중인 서비스 워커를 활성화합니다.
+ */
+self.addEventListener(
+  "message",
+  (event) => {
+    if (
+      event.data?.type !==
+      "SKIP_WAITING"
+    ) {
+      return;
+    }
+
+    event.waitUntil(
+      self.skipWaiting()
+    );
+  }
+);
 
 /**
  * 서비스 워커 활성화

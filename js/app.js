@@ -1438,21 +1438,9 @@ function isStandaloneMode() {
 }
 
 function hasOpenModal() {
-  return [
-    document.getElementById(
-      "leaveWorkoutModal"
-    ),
-    document.getElementById(
-      "exerciseEditorModal"
-    ),
-    document.getElementById(
-      "syncConflictModal"
-    ),
-    document.getElementById(
-      "fatigueModal"
-    )
-  ].some(
-    isElementVisible
+  return Boolean(
+    layerManager
+      ?.activeLayerId
   );
 }
 
@@ -1816,26 +1804,6 @@ if (settingsVersion) {
 if (settingsUpdated) {
   settingsUpdated.textContent =
     window.JYMLog.config.updatedAt;
-}
-
-if (
-  "serviceWorker" in navigator
-) {
-  window.addEventListener(
-    "load",
-    () => {
-      navigator.serviceWorker
-        .register("./sw.js")
-        .catch(
-          (error) => {
-            console.warn(
-              "서비스 워커 등록에 실패했습니다.",
-              error
-            );
-          }
-        );
-    }
-  );
 }
 
 window.JYMLog.navigation =
