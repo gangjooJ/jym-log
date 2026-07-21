@@ -19,7 +19,7 @@ import {
 import {
   initializeWorkoutSync,
   stopWorkoutSync
-} from "./sync.js?v=rc1-3";
+} from "./sync.js?v=rc1-5";
 
 import {
   ensureActiveRoutine,

@@ -20,6 +20,14 @@ const SYNC_SCHEMA_VERSION = 1;
 const INITIAL_SYNC_TIMEOUT_MS =
   12000;
 
+const SYNC_RETRY_DELAYS_MS = [
+  1500,
+  3000,
+  7000,
+  15000,
+  30000
+];  
+
 function withTimeout(
   promise,
   timeoutMs,
@@ -67,8 +75,95 @@ let writeInProgress = false;
 let currentCloudRevision = 0;
 let syncConflictActive = false;
 
+let syncRetryTimerId = null;
+let syncRetryAttempt = 0;
+
 const deviceId =
   storage.getDeviceId();
+
+function clearSyncRetry(
+  resetAttempt = true
+) {
+  if (syncRetryTimerId !== null) {
+    window.clearTimeout(
+      syncRetryTimerId
+    );
+
+    syncRetryTimerId = null;
+  }
+
+  if (resetAttempt) {
+    syncRetryAttempt = 0;
+  }
+}
+
+function scheduleSyncRetry(
+  delayOverride = null
+) {
+  if (
+    syncRetryTimerId !== null ||
+    !activeUserId ||
+    !navigator.onLine ||
+    syncConflictActive
+  ) {
+    return false;
+  }
+
+  const retryIndex =
+    Math.min(
+      syncRetryAttempt,
+      SYNC_RETRY_DELAYS_MS.length - 1
+    );
+
+  const delay =
+    delayOverride === null
+      ? SYNC_RETRY_DELAYS_MS[
+          retryIndex
+        ]
+      : Math.max(
+          0,
+          Number(delayOverride) || 0
+        );
+
+  syncRetryAttempt += 1;
+
+  syncRetryTimerId =
+    window.setTimeout(
+      () => {
+        syncRetryTimerId = null;
+
+        if (
+          !activeUserId ||
+          !navigator.onLine ||
+          syncConflictActive
+        ) {
+          return;
+        }
+
+        if (!pendingPayload) {
+          pendingPayload =
+            storage.loadPendingSync(
+              activeUserId
+            );
+        }
+
+        if (!pendingPayload) {
+          clearSyncRetry();
+          return;
+        }
+
+        emitSyncStatus(
+          "saving",
+          "저장 재시도 중"
+        );
+
+        void flushPendingState();
+      },
+      delay
+    );
+
+  return true;
+}
 
 function emitSyncStatus(
   status,
@@ -946,6 +1041,8 @@ async function flushPendingState() {
       result.status ===
       "conflict"
     ) {
+      clearSyncRetry();
+
       const latestLocalState =
         chooseNewerState(
           payloadToSave.state,
@@ -971,6 +1068,8 @@ async function flushPendingState() {
       normalizeRevision(
         result.revision
       );
+
+    clearSyncRetry();  
 
     storage.clearPendingSync(
       userId,
@@ -1038,15 +1137,22 @@ async function flushPendingState() {
         error
       );
 
+      const isOnline =
+        navigator.onLine;
+
       emitSyncStatus(
-        navigator.onLine
-          ? "error"
+        isOnline
+          ? "saving"
           : "offline",
 
-        navigator.onLine
-          ? "동기화 오류"
+        isOnline
+          ? "재시도 대기"
           : "오프라인 저장"
       );
+
+      if (isOnline) {
+        scheduleSyncRetry();
+      }
     }
   } finally {
     writeInProgress = false;
@@ -1155,6 +1261,7 @@ function attachStateSavedHandler() {
 
 function stopWorkoutSync() {
   detachStateSavedHandler();
+  clearSyncRetry();
 
   activeUserId = null;
   pendingPayload = null;
@@ -1565,10 +1672,20 @@ window.addEventListener(
     if (pendingPayload) {
       emitSyncStatus(
         "saving",
-        "저장 중"
+        "재연결 확인 중"
       );
 
-      void flushPendingState();
+      /*
+      * 네트워크가 online으로 바뀐 직후에는
+      * Firestore 연결이 아직 준비되지 않았을 수 있어
+      * 약간 기다린 뒤 저장합니다.
+      */
+      clearSyncRetry(false);
+
+      scheduleSyncRetry(
+        1500
+      );
+
       return;
     }
 
@@ -1580,11 +1697,45 @@ window.addEventListener(
 );
 
 window.addEventListener(
+  "visibilitychange",
+  () => {
+    if (
+      document.hidden ||
+      !activeUserId ||
+      !navigator.onLine ||
+      syncConflictActive
+    ) {
+      return;
+    }
+
+    if (!pendingPayload) {
+      pendingPayload =
+        storage.loadPendingSync(
+          activeUserId
+        );
+    }
+
+    if (!pendingPayload) {
+      return;
+    }
+
+    emitSyncStatus(
+      "saving",
+      "대기 기록 확인 중"
+    );
+
+    scheduleSyncRetry(0);
+  }
+);
+
+window.addEventListener(
   "offline",
   () => {
     if (!activeUserId) {
       return;
     }
+
+    clearSyncRetry(false);
 
     emitSyncStatus(
       syncConflictActive
