@@ -521,25 +521,12 @@ async function overwriteCloudState(
   const copiedState =
     cloneValue(state);
 
-  let clientUpdatedAt =
-    getStateUpdatedAt(
-      copiedState
-    );
-
-  if (clientUpdatedAt <= 0) {
-    clientUpdatedAt =
-      Date.now();
-
-    copiedState.updatedAt =
-      clientUpdatedAt;
-  }
-
   return runTransaction(
     db,
     async (transaction) => {
       /*
-       * 저장 직전 최신 revision을
-       * 트랜잭션 안에서 다시 읽습니다.
+       * 저장 직전 최신 클라우드 revision과
+       * 현재 클라우드 갱신 시각을 읽습니다.
        */
       const snapshot =
         await transaction.get(
@@ -555,6 +542,28 @@ async function overwriteCloudState(
         getCloudRevision(
           cloudData
         );
+
+      /*
+       * 충돌 해결 결과는 반드시 기존 양쪽
+       * 기록보다 최신 시각을 가져야 합니다.
+       *
+       * 단순히 Date.now()만 사용하면 기기 간
+       * 시계 차이 때문에 다른 기기의 오래된
+       * 상태가 다시 최신으로 판단될 수 있습니다.
+       */
+      const resolvedUpdatedAt =
+        Math.max(
+          Date.now(),
+          getCloudUpdatedAt(
+            cloudData
+          ) + 1,
+          getStateUpdatedAt(
+            copiedState
+          ) + 1
+        );
+
+      copiedState.updatedAt =
+        resolvedUpdatedAt;
 
       const nextRevision =
         cloudRevision + 1;
@@ -576,7 +585,8 @@ async function overwriteCloudState(
           lastDeviceId:
             deviceId,
 
-          clientUpdatedAt,
+          clientUpdatedAt:
+            resolvedUpdatedAt,
 
           updatedAt:
             serverTimestamp()
@@ -587,14 +597,18 @@ async function overwriteCloudState(
       );
 
       return {
-        status:
-          "saved",
+        status: "saved",
 
         revision:
           nextRevision,
 
         savedUpdatedAt:
-          clientUpdatedAt
+          resolvedUpdatedAt,
+
+        savedState:
+          cloneValue(
+            copiedState
+          )
       };
     }
   );
@@ -956,6 +970,26 @@ async function resolveSyncConflict(
         result.revision
       );
 
+    const resolvedLocalState =
+      result.savedState
+        ? cloneValue(
+            result.savedState
+          )
+        : cloneValue(
+            localState
+          );
+
+    resolvedLocalState.updatedAt =
+      Number(
+        result.savedUpdatedAt
+      ) ||
+      getStateUpdatedAt(
+        resolvedLocalState
+      ) ||
+      Date.now();  
+
+    clearSyncRetry();
+    
     pendingPayload = null;
     syncConflictActive = false;
 
@@ -968,7 +1002,7 @@ async function resolveSyncConflict(
     );
 
     applyResolvedStateLocally(
-      localState
+      resolvedLocalState
     );
 
     emitSyncStatus(
@@ -978,7 +1012,7 @@ async function resolveSyncConflict(
 
     emitSyncConflictResolved(
       "local",
-      localState
+      resolvedLocalState
     );
 
     console.info(
