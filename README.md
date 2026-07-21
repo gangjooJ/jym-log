@@ -8,7 +8,7 @@ https://gangjooj.github.io/jym-log/
 
 ## 현재 개발 상태
 
-- 버전: `v0.2.0-dev-47`
+- 버전: `v0.2.0-rc.1`
 - 앱 형태: 모바일 중심 PWA
 - 프런트엔드 배포: GitHub Pages
 - 인증: Firebase Authentication
@@ -155,7 +155,10 @@ jym-log/
 │  ├─ firebase-data-model.md
 │  ├─ firestore-rules-test-matrix.md
 │  ├─ manual-test-checklist.md
-│  └─ stabilization-roadmap.md
+│  ├─ stabilization-roadmap.md
+│  ├─ v0.2.0-rc.1-regression.md
+│  ├─ release-checklist.md
+│  └─ known-issues.md
 ├─ firestore.rules
 ├─ manifest.webmanifest
 ├─ sw.js
@@ -229,11 +232,10 @@ Cloud Firestore
 
 ## 현재 제한 사항
 
-- 두 기기에서 동시에 수정할 경우 마지막 저장 데이터가 우선될 수 있음
-- 오프라인 상태에서 앱을 완전히 종료한 경우 미전송 변경 보호 보완 필요
-- 벤치프레스 분석이 운동 이름에 일부 의존
-- 자동 증량·유지·디로드 추천 엔진 미구현
 - iPhone Safari와 iOS 홈 화면 PWA 실기기 테스트 미완료
+- 설정 화면의 운동 환경 스위치는 아직 실제 기능과 연결되지 않음
+- PC와 모바일에서 같은 운동을 동시에 수정할 경우 충돌 선택이 필요함
+- 운동 분석은 기초 주간 통계와 일부 중량 변화만 제공
 
 ## 개발 원칙
 
