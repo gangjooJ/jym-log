@@ -23,7 +23,8 @@ import {
 
 import {
   ensureActiveRoutine
-} from "./routines.js?v=rc1-1";
+  alignRoutineWithWorkoutState
+} from "./routines.js?v=rc1-4";
 
 import "./sessions.js";
 import "./history.js";
@@ -461,6 +462,32 @@ async function initializeAuth() {
                   ? "오프라인 저장"
                   : "동기화 오류",
 
+              changedAt:
+                Date.now()
+            }
+          }
+        )
+      );
+    }
+
+    try {
+      await alignRoutineWithWorkoutState(
+        user.uid
+      );
+    } catch (error) {
+      console.error(
+        "[JYM Log] 동기화 운동 루틴 연결 실패",
+        error
+      );
+
+      window.dispatchEvent(
+        new CustomEvent(
+          "jym-log:sync-status",
+          {
+            detail: {
+              status: "error",
+              message:
+                "루틴 연결 오류",
               changedAt:
                 Date.now()
             }

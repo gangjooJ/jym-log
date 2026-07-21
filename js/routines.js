@@ -986,6 +986,102 @@ async function ensureActiveRoutine(
   return activeRoutine;
 }
 
+async function alignRoutineWithWorkoutState(
+  userId
+) {
+  const workoutState =
+    workout.state;
+
+  const routineId =
+    String(
+      workoutState?.routineId ||
+      ""
+    ).trim();
+
+  /*
+   * 아직 시작하지 않은 운동은
+   * 사용자가 선택한 활성 루틴을 그대로 사용합니다.
+   */
+  if (
+    !workoutState?.started ||
+    !routineId
+  ) {
+    return activeRoutine;
+  }
+
+  let targetRoutine =
+    availableRoutines.find(
+      (routine) =>
+        routine.id ===
+        routineId
+    );
+
+  /*
+   * 현재 캐시에 없다면 Firestore에서
+   * 진행 중 운동의 루틴을 직접 불러옵니다.
+   */
+  if (!targetRoutine) {
+    const resolvedUserId =
+      String(
+        userId ||
+        activeRoutine?.userId ||
+        ""
+      ).trim();
+
+    if (!resolvedUserId) {
+      throw new Error(
+        "진행 중 운동의 사용자 정보를 찾을 수 없습니다."
+      );
+    }
+
+    const routineSnapshot =
+      await getDoc(
+        getRoutineDocument(
+          resolvedUserId,
+          routineId
+        )
+      );
+
+    if (!routineSnapshot.exists()) {
+      throw new Error(
+        "진행 중 운동에 사용된 루틴을 찾을 수 없습니다."
+      );
+    }
+
+    targetRoutine =
+      normalizeRoutine(
+        routineSnapshot.id,
+        routineSnapshot.data(),
+        resolvedUserId
+      );
+
+    replaceRoutineInCache(
+      targetRoutine
+    );
+  }
+
+  /*
+   * 선호 루틴 설정은 덮어쓰지 않고,
+   * 현재 진행 중 운동 화면에서 사용할
+   * 운동 목록만 상태의 routineId와 맞춥니다.
+   */
+  activeRoutine =
+    targetRoutine;
+
+  workout.replaceExercises(
+    targetRoutine.exercises,
+    false
+  );
+
+  emitRoutineReady();
+
+  console.info(
+    `[JYM Log] 진행 중 운동 루틴 연결 완료: ${targetRoutine.name}`
+  );
+
+  return targetRoutine;
+}
+
 async function switchActiveRoutine(
   routineId
 ) {
@@ -1930,6 +2026,7 @@ async function moveActiveRoutineExercise(
 window.JYMLog.routines =
   Object.freeze({
     ensureActiveRoutine,
+    alignRoutineWithWorkoutState,
 
     switchActiveRoutine,
     createRoutine,
@@ -1973,6 +2070,7 @@ window.JYMLog.routines =
 
 export {
   ensureActiveRoutine,
+  alignRoutineWithWorkoutState,
 
   switchActiveRoutine,
   createRoutine,
