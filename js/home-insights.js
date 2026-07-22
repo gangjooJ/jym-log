@@ -10,6 +10,15 @@
   const WINDOW_DAYS =
     28;
 
+  const WEEK_DAYS =
+    7;
+
+  const WEEK_COUNT =
+    8;
+
+  const WEEK_MS =
+    WEEK_DAYS * DAY_MS;
+
   const QUERY_LIMIT =
     200;
 
@@ -21,6 +30,21 @@
   const messageElement =
     document.getElementById(
       "homeInsightsMessage"
+    );
+
+  const detailStateElement =
+    document.getElementById(
+      "insightsDetailState"
+    );
+
+  const detailMessageElement =
+    document.getElementById(
+      "insightsDetailMessage"
+    );
+
+  const refreshButton =
+    document.getElementById(
+      "refreshInsightsBtn"
     );
 
   let loading =
@@ -120,6 +144,135 @@
           ),
         0
       )
+    );
+  }
+
+  function getAverageDuration(
+    sessions
+  ) {
+    const durations =
+      sessions
+        .map(
+          (session) =>
+            Math.max(
+              0,
+              Number(
+                session
+                  ?.durationSeconds
+              ) || 0
+            )
+        )
+        .filter(
+          (duration) =>
+            duration > 0
+        );
+
+    if (
+      durations.length ===
+      0
+    ) {
+      return 0;
+    }
+
+    return Math.round(
+      durations.reduce(
+        (
+          total,
+          duration
+        ) =>
+          total + duration,
+        0
+      ) /
+      durations.length
+    );
+  }
+
+  function formatDuration(
+    value
+  ) {
+    const totalSeconds =
+      Math.max(
+        0,
+        Math.round(
+          Number(value) || 0
+        )
+      );
+
+    if (totalSeconds === 0) {
+      return "기록 없음";
+    }
+
+    const totalMinutes =
+      Math.max(
+        1,
+        Math.round(
+          totalSeconds / 60
+        )
+      );
+
+    if (totalMinutes < 60) {
+      return `${totalMinutes}분`;
+    }
+
+    const hours =
+      Math.floor(
+        totalMinutes / 60
+      );
+
+    const minutes =
+      totalMinutes % 60;
+
+    return minutes > 0
+      ? `${hours}시간 ${minutes}분`
+      : `${hours}시간`;
+  }
+
+  function formatRecentDate(
+    value
+  ) {
+    const timestamp =
+      Number(value) || 0;
+
+    if (timestamp <= 0) {
+      return "기록 없음";
+    }
+
+    return new Intl
+      .DateTimeFormat(
+        "ko-KR",
+        {
+          month: "long",
+          day: "numeric"
+        }
+      )
+      .format(
+        new Date(timestamp)
+      );
+  }
+
+  function formatChartVolume(
+    value
+  ) {
+    const volume =
+      Math.max(
+        0,
+        Number(value) || 0
+      );
+
+    if (volume >= 10000) {
+      return `${Math.round(
+        volume / 1000
+      )}t`;
+    }
+
+    if (volume >= 1000) {
+      return `${(
+        volume / 1000
+      ).toFixed(1)}t`;
+    }
+
+    return String(
+      Math.round(volume)
     );
   }
 
@@ -252,6 +405,135 @@
     ].join("");
   }
 
+  function createWeeklyBuckets(
+    sessions,
+    now
+  ) {
+    const oldestStart =
+      now -
+      WEEK_COUNT *
+      WEEK_MS;
+
+    const buckets =
+      Array.from(
+        {
+          length:
+            WEEK_COUNT
+        },
+        (
+          _,
+          index
+        ) => {
+          const weeksAgo =
+            WEEK_COUNT -
+            index -
+            1;
+
+          return {
+            index,
+
+            startAt:
+              oldestStart +
+              index *
+              WEEK_MS,
+
+            endAt:
+              oldestStart +
+              (
+                index + 1
+              ) *
+              WEEK_MS,
+
+            label:
+              weeksAgo === 0
+                ? "이번 7일"
+                : `${weeksAgo}주 전`,
+
+            shortLabel:
+              weeksAgo === 0
+                ? "이번"
+                : `${weeksAgo}주`,
+
+            sessions: []
+          };
+        }
+      );
+
+    sessions.forEach(
+      (session) => {
+        const completedAt =
+          getCompletedAtMillis(
+            session
+          );
+
+        if (
+          completedAt <
+            oldestStart ||
+          completedAt >
+            now
+        ) {
+          return;
+        }
+
+        const rawIndex =
+          Math.floor(
+            (
+              completedAt -
+              oldestStart
+            ) /
+            WEEK_MS
+          );
+
+        const bucketIndex =
+          Math.min(
+            WEEK_COUNT - 1,
+            Math.max(
+              0,
+              rawIndex
+            )
+          );
+
+        buckets[
+          bucketIndex
+        ].sessions.push(
+          session
+        );
+      }
+    );
+
+    return buckets.map(
+      (bucket) => ({
+        index:
+          bucket.index,
+
+        startAt:
+          bucket.startAt,
+
+        endAt:
+          bucket.endAt,
+
+        label:
+          bucket.label,
+
+        shortLabel:
+          bucket.shortLabel,
+
+        sessionCount:
+          bucket.sessions.length,
+
+        totalVolume:
+          getTotalVolume(
+            bucket.sessions
+          ),
+
+        averageDurationSeconds:
+          getAverageDuration(
+            bucket.sessions
+          )
+      })
+    );
+  }
+
   function createSnapshot(
     sessions,
     now = Date.now()
@@ -266,7 +548,7 @@
       WINDOW_DAYS *
       DAY_MS;
 
-    const normalizedSessions =
+    const validSessions =
       (
         Array.isArray(
           sessions
@@ -282,16 +564,24 @@
               );
 
             return (
-              completedAt >=
-                previousStart &&
-              completedAt <=
-                now
+              completedAt > 0 &&
+              completedAt <= now
             );
           }
         );
 
+    const comparedSessions =
+      validSessions
+        .filter(
+          (session) =>
+            getCompletedAtMillis(
+              session
+            ) >=
+            previousStart
+        );
+
     const currentSessions =
-      normalizedSessions
+      comparedSessions
         .filter(
           (session) =>
             getCompletedAtMillis(
@@ -301,7 +591,7 @@
         );
 
     const previousSessions =
-      normalizedSessions
+      comparedSessions
         .filter(
           (session) => {
             const completedAt =
@@ -318,6 +608,21 @@
           }
         );
 
+    const recentWorkoutAt =
+      validSessions.reduce(
+        (
+          latest,
+          session
+        ) =>
+          Math.max(
+            latest,
+            getCompletedAtMillis(
+              session
+            )
+          ),
+        0
+      );
+
     return {
       status: "ready",
 
@@ -327,9 +632,13 @@
       windowDays:
         WINDOW_DAYS,
 
+      weekDays:
+        WEEK_DAYS,
+
       comparedSessionCount:
-        normalizedSessions
-          .length,
+        comparedSessions.length,
+
+      recentWorkoutAt,
 
       current: {
         sessionCount:
@@ -337,6 +646,11 @@
 
         totalVolume:
           getTotalVolume(
+            currentSessions
+          ),
+
+        averageDurationSeconds:
+          getAverageDuration(
             currentSessions
           )
       },
@@ -348,9 +662,333 @@
         totalVolume:
           getTotalVolume(
             previousSessions
+          ),
+
+        averageDurationSeconds:
+          getAverageDuration(
+            previousSessions
           )
-      }
+      },
+
+      weekly:
+        createWeeklyBuckets(
+          comparedSessions,
+          now
+        )
     };
+  }
+
+  function setDetailState(
+    state
+  ) {
+    if (!detailStateElement) {
+      return;
+    }
+
+    detailStateElement.dataset.state =
+      String(state);
+
+    detailStateElement.setAttribute(
+      "aria-busy",
+      String(
+        state === "loading"
+      )
+    );
+  }
+
+  function setDetailMessage(
+    message
+  ) {
+    if (detailMessageElement) {
+      detailMessageElement.textContent =
+        String(message);
+    }
+  }
+
+  function clearElement(
+    id
+  ) {
+    document
+      .getElementById(id)
+      ?.replaceChildren();
+  }
+
+  function renderWeeklyChart(
+    elementId,
+    buckets,
+    valueKey,
+    formatter
+  ) {
+    const container =
+      document.getElementById(
+        elementId
+      );
+
+    if (!container) {
+      return;
+    }
+
+    const safeBuckets =
+      Array.isArray(
+        buckets
+      )
+        ? buckets
+        : [];
+
+    const values =
+      safeBuckets.map(
+        (bucket) =>
+          Math.max(
+            0,
+            Number(
+              bucket?.[
+                valueKey
+              ]
+            ) || 0
+          )
+      );
+
+    const maxValue =
+      Math.max(
+        ...values,
+        0
+      );
+
+    container.replaceChildren();
+
+    safeBuckets.forEach(
+      (
+        bucket,
+        index
+      ) => {
+        const value =
+          values[index];
+
+        const height =
+          maxValue > 0 &&
+          value > 0
+            ? Math.max(
+                8,
+                (
+                  value /
+                  maxValue
+                ) * 100
+              )
+            : 0;
+
+        const item =
+          document.createElement(
+            "div"
+          );
+
+        item.className =
+          "insights-bar-item";
+
+        item.setAttribute(
+          "aria-label",
+          `${bucket.label}: ${formatter(
+            value
+          )}`
+        );
+
+        const valueElement =
+          document.createElement(
+            "span"
+          );
+
+        valueElement.className =
+          "insights-bar-value";
+
+        valueElement.textContent =
+          formatter(value);
+
+        const track =
+          document.createElement(
+            "div"
+          );
+
+        track.className =
+          "insights-bar-track";
+
+        const fill =
+          document.createElement(
+            "div"
+          );
+
+        fill.className =
+          "insights-bar-fill";
+
+        fill.style.setProperty(
+          "--insights-bar-height",
+          `${height}%`
+        );
+
+        track.appendChild(
+          fill
+        );
+
+        const label =
+          document.createElement(
+            "span"
+          );
+
+        label.className =
+          "insights-bar-label";
+
+        label.textContent =
+          bucket.shortLabel;
+
+        item.append(
+          valueElement,
+          track,
+          label
+        );
+
+        container.appendChild(
+          item
+        );
+      }
+    );
+  }
+
+  function renderDetailLoading() {
+    setDetailState(
+      "loading"
+    );
+
+    setText(
+      "insightsRecentWorkout",
+      "—"
+    );
+
+    setText(
+      "insightsAverageDuration",
+      "—"
+    );
+
+    setText(
+      "insightsCurrentWorkoutCount",
+      "—"
+    );
+
+    setText(
+      "insightsCurrentVolume",
+      "—"
+    );
+
+    setDetailMessage(
+      "완료 운동 기록을 불러오고 있습니다."
+    );
+  }
+
+  function renderDetailSnapshot(
+    snapshot
+  ) {
+    setDetailState(
+      "ready"
+    );
+
+    setText(
+      "insightsRecentWorkout",
+      formatRecentDate(
+        snapshot.recentWorkoutAt
+      )
+    );
+
+    setText(
+      "insightsAverageDuration",
+      formatDuration(
+        snapshot
+          .current
+          .averageDurationSeconds
+      )
+    );
+
+    setText(
+      "insightsCurrentWorkoutCount",
+      `${snapshot.current.sessionCount}회`
+    );
+
+    setText(
+      "insightsCurrentVolume",
+      formatVolume(
+        snapshot
+          .current
+          .totalVolume
+      )
+    );
+
+    renderWeeklyChart(
+      "insightsWeeklyCountChart",
+      snapshot.weekly,
+      "sessionCount",
+      (value) =>
+        `${Math.round(value)}회`
+    );
+
+    renderWeeklyChart(
+      "insightsWeeklyVolumeChart",
+      snapshot.weekly,
+      "totalVolume",
+      formatChartVolume
+    );
+
+    if (
+      snapshot
+        .comparedSessionCount ===
+      0
+    ) {
+      setDetailMessage(
+        "최근 8주 완료 기록이 없습니다."
+      );
+
+      return;
+    }
+
+    setDetailMessage(
+      `최근 8주 완료 기록 ${snapshot.comparedSessionCount}건을 7일 단위로 표시했습니다.`
+    );
+  }
+
+  function renderDetailError(
+    message
+  ) {
+    setDetailState(
+      "error"
+    );
+
+    setText(
+      "insightsRecentWorkout",
+      "확인 불가"
+    );
+
+    setText(
+      "insightsAverageDuration",
+      "확인 불가"
+    );
+
+    setText(
+      "insightsCurrentWorkoutCount",
+      "확인 불가"
+    );
+
+    setText(
+      "insightsCurrentVolume",
+      "확인 불가"
+    );
+
+    clearElement(
+      "insightsWeeklyCountChart"
+    );
+
+    clearElement(
+      "insightsWeeklyVolumeChart"
+    );
+
+    setDetailMessage(
+      message ||
+      "최근 흐름 상세 정보를 불러오지 못했습니다."
+    );
   }
 
   function renderLoading() {
@@ -381,6 +1019,8 @@
     setMessage(
       "최근 8주 완료 기록을 비교하고 있습니다."
     );
+
+    renderDetailLoading();
   }
 
   function renderSnapshot(
@@ -388,6 +1028,10 @@
   ) {
     setGridState(
       "ready"
+    );
+
+    renderDetailSnapshot(
+      snapshot
     );
 
     setText(
@@ -470,6 +1114,10 @@
 
     setGridState(
       "error"
+    );
+
+    renderDetailError(
+      message
     );
 
     setText(
@@ -597,6 +1245,14 @@
         }
       }
     );
+
+    refreshButton
+      ?.addEventListener(
+        "click",
+        () => {
+          void refresh();
+        }
+      );
 
     if (
       window.JYMLog

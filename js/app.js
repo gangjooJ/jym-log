@@ -99,6 +99,7 @@ const ROOT_SCREEN =
 const VALID_SCREENS =
   new Set([
     "home",
+    "insights",
     "workout",
     "summary",
     "history",
@@ -110,6 +111,7 @@ const VALID_SCREENS =
 
 const SCREEN_LABELS = {
   home: "오늘의 운동",
+  insights: "최근 흐름",
   workout: "운동 진행",
   summary: "운동 완료",
   history: "운동 기록",
@@ -410,6 +412,7 @@ function updateScreenChrome(
 
   const shouldHideBottomNav =
     [
+      "insights",
       "workout",
       "summary",
       "session-detail"
@@ -669,6 +672,16 @@ function renderScreen(
   ) {
     contentLoadTask =
       analysisUI?.load();
+  }
+
+  if (
+    normalizedName ===
+      "insights"
+  ) {
+    contentLoadTask =
+      window.JYMLog
+        .homeInsights
+        ?.refresh();
   }
 
   /*

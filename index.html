@@ -14,19 +14,19 @@
   <link rel="icon" href="./assets/jym-app-icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
 
-  <script src="./js/theme.js?v=dev0301"></script>
-  <script src="./js/viewport.js?v=dev0301"></script>
+  <script src="./js/theme.js?v=dev0302"></script>
+  <script src="./js/viewport.js?v=dev0302"></script>
 
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/progression.css" />
   <link rel="stylesheet" href="./css/progression-history.css" />
   <link rel="stylesheet" href="./css/progression-editor.css" />
   <link rel="stylesheet" href="./css/routine-schedule.css" />
-  <link rel="stylesheet" href="./css/sync-diagnostics.css?v=dev0301" />
-  <link rel="stylesheet" href="./css/error-recovery.css?v=dev0301" />
-  <link rel="stylesheet" href="./css/app-health.css?v=dev0301" />
-  <link rel="stylesheet" href="./css/release-readiness.css?v=dev0301" />
-  <link rel="stylesheet" href="./css/home-insights.css?v=dev0301" />
+  <link rel="stylesheet" href="./css/sync-diagnostics.css?v=dev0302" />
+  <link rel="stylesheet" href="./css/error-recovery.css?v=dev0302" />
+  <link rel="stylesheet" href="./css/app-health.css?v=dev0302" />
+  <link rel="stylesheet" href="./css/release-readiness.css?v=dev0302" />
+  <link rel="stylesheet" href="./css/home-insights.css?v=dev0302" />
 </head>
 
 <body>
@@ -312,6 +312,156 @@
       >
         최근 8주 완료 기록을 비교하고 있습니다.
       </p>
+      <button
+        class="ghost-btn full home-insights-detail-btn"
+        id="openHomeInsightsBtn"
+        type="button"
+        data-nav="insights"
+      >
+        <span>최근 흐름 자세히 보기</span>
+        <span aria-hidden="true">›</span>
+      </button>
+    </section>
+
+    <section
+      class="screen"
+      id="screen-insights"
+    >
+      <div class="eyebrow">
+        최근 8주
+      </div>
+
+      <h1 class="insights-detail-title">
+        운동 흐름 자세히 보기
+      </h1>
+
+      <p class="insights-detail-description">
+        최근 4주와 이전 4주를 비교하고,
+        7일 단위 운동 흐름을 표시합니다.
+      </p>
+
+      <div
+        class="insights-detail-state"
+        id="insightsDetailState"
+        data-state="loading"
+        aria-busy="true"
+      >
+        <div class="section-title">
+          <h2>최근 상태</h2>
+          <small>완료 기록 기준</small>
+        </div>
+
+        <div class="mini-grid insights-summary-grid">
+          <div class="metric">
+            <div class="metric-label">
+              최근 운동일
+            </div>
+
+            <strong id="insightsRecentWorkout">
+              —
+            </strong>
+
+            <small>
+              가장 최근 완료 세션
+            </small>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">
+              평균 운동 시간
+            </div>
+
+            <strong id="insightsAverageDuration">
+              —
+            </strong>
+
+            <small>
+              최근 4주 기준
+            </small>
+          </div>
+        </div>
+
+        <div class="mini-grid insights-summary-grid">
+          <div class="metric">
+            <div class="metric-label">
+              최근 4주 운동
+            </div>
+
+            <strong id="insightsCurrentWorkoutCount">
+              —
+            </strong>
+
+            <small>
+              완료 세션
+            </small>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">
+              최근 4주 볼륨
+            </div>
+
+            <strong id="insightsCurrentVolume">
+              —
+            </strong>
+
+            <small>
+              중량 × 반복
+            </small>
+          </div>
+        </div>
+
+        <div class="card insights-chart-card">
+          <div class="insights-chart-heading">
+            <div>
+              <h2>주차별 운동 횟수</h2>
+              <p>7일 단위 · 최근 8주</p>
+            </div>
+
+            <strong>회</strong>
+          </div>
+
+          <div
+            class="insights-bar-chart"
+            id="insightsWeeklyCountChart"
+            aria-label="최근 8주 주차별 운동 횟수"
+          ></div>
+        </div>
+
+        <div class="card insights-chart-card">
+          <div class="insights-chart-heading">
+            <div>
+              <h2>주차별 운동 볼륨</h2>
+              <p>7일 단위 · 최근 8주</p>
+            </div>
+
+            <strong>kg</strong>
+          </div>
+
+          <div
+            class="insights-bar-chart"
+            id="insightsWeeklyVolumeChart"
+            aria-label="최근 8주 주차별 운동 볼륨"
+          ></div>
+        </div>
+
+        <button
+          class="secondary-btn full insights-refresh-btn"
+          id="refreshInsightsBtn"
+          type="button"
+        >
+          최근 흐름 다시 계산
+        </button>
+
+        <p
+          class="insights-detail-message"
+          id="insightsDetailMessage"
+          role="status"
+          aria-live="polite"
+        >
+          완료 운동 기록을 불러오고 있습니다.
+        </p>
+      </div>
     </section>
 
     <section class="screen" id="screen-workout">
@@ -2256,26 +2406,26 @@
   </div>
 </div>
 
-<script src="./js/config.js?v=dev0301"></script>
-<script src="./js/layer-manager.js?v=dev0301"></script>
-<script src="./js/error-recovery.js?v=dev0301"></script>
+<script src="./js/config.js?v=dev0302"></script>
+<script src="./js/layer-manager.js?v=dev0302"></script>
+<script src="./js/error-recovery.js?v=dev0302"></script>
 <script
   type="module"
   src="./js/firebase-client.js"
 ></script>
 <script src="./js/storage.js"></script>
 <script src="./js/progression-policy.js"></script>
-<script src="./js/workout.js?v=dev0301"></script>
+<script src="./js/workout.js?v=dev0302"></script>
 <script src="./js/progression-engine.js"></script>
-<script src="./js/workout-ui.js?v=dev0301"></script>
-<script src="./js/routine-ui.js?v=dev0301"></script>
+<script src="./js/workout-ui.js?v=dev0302"></script>
+<script src="./js/routine-ui.js?v=dev0302"></script>
 <script src="./js/progression-history.js"></script>
 <script src="./js/history-ui.js"></script>
 <script src="./js/analysis-ui.js"></script>
-<script src="./js/sync-conflict-ui.js?v=dev0301"></script>
-<script src="./js/app.js?v=dev0301"></script>
-<script src="./js/pwa-update.js?v=dev0301"></script>
-<script src="./js/accessibility.js?v=dev0301"></script>
+<script src="./js/sync-conflict-ui.js?v=dev0302"></script>
+<script src="./js/app.js?v=dev0302"></script>
+<script src="./js/pwa-update.js?v=dev0302"></script>
+<script src="./js/accessibility.js?v=dev0302"></script>
 <script
   type="module"
   src="./js/routine-schedule.js"
@@ -2288,37 +2438,37 @@
 
 <script
   type="module"
-  src="./js/auth.js?v=dev0301"
+  src="./js/auth.js?v=dev0302"
 ></script>
 
 <script
   type="module"
-  src="./js/home-insights.js?v=dev0301"
+  src="./js/home-insights.js?v=dev0302"
 ></script>
 
 <script
   type="module"
-  src="./js/backup.js?v=dev0301"
+  src="./js/backup.js?v=dev0302"
 ></script>
 
 <script
   type="module"
-  src="./js/restore.js?v=dev0301"
+  src="./js/restore.js?v=dev0302"
 ></script>
 
 <script
   type="module"
-  src="./js/sync-diagnostics.js?v=dev0301"
+  src="./js/sync-diagnostics.js?v=dev0302"
 ></script>
 
 <script
   type="module"
-  src="./js/app-health.js?v=dev0301"
+  src="./js/app-health.js?v=dev0302"
 ></script>
 
 <script
   type="module"
-  src="./js/release-readiness.js?v=dev0301"
+  src="./js/release-readiness.js?v=dev0302"
 ></script>
 
 </body>
