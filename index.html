@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="./css/progression-history.css" />
   <link rel="stylesheet" href="./css/progression-editor.css" />
   <link rel="stylesheet" href="./css/routine-schedule.css" />
+  <link rel="stylesheet" href="./css/sync-diagnostics.css?v=dev0215" />
 </head>
 
 <body>
@@ -1205,6 +1206,148 @@
       </p>
 
       <div class="section-title">
+        <h2>동기화 진단</h2>
+        <small>문제 확인용</small>
+      </div>
+
+      <details
+        class="card sync-diagnostics-card"
+        id="syncDiagnosticsDetails"
+      >
+        <summary>
+          동기화 상태 자세히 보기
+        </summary>
+
+        <div class="sync-diagnostics-content">
+          <div class="settings-list sync-diagnostics-list">
+            <div class="setting-row">
+              <div>
+                <p>네트워크</p>
+                <span>현재 브라우저 연결 상태</span>
+              </div>
+              <strong id="diagnosticNetwork">확인 중</strong>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <p>동기화 상태</p>
+                <span>최근 상태 메시지</span>
+              </div>
+              <strong id="diagnosticStatus">확인 중</strong>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <p>최근 상태 변경</p>
+                <span>상태가 마지막으로 바뀐 시각</span>
+              </div>
+              <strong id="diagnosticStatusChanged">없음</strong>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <p>클라우드 revision</p>
+                <span>현재 앱이 인식한 저장 순번</span>
+              </div>
+              <strong id="diagnosticRevision">0</strong>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <p>로컬 운동 갱신</p>
+                <span>이 기기의 운동 상태 시각</span>
+              </div>
+              <strong id="diagnosticLocalUpdated">없음</strong>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <p>클라우드 운동 갱신</p>
+                <span>Firestore 운동 상태 시각</span>
+              </div>
+              <strong id="diagnosticCloudUpdated">확인 전</strong>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <p>대기 중 저장</p>
+                <span>아직 업로드되지 않은 기록</span>
+              </div>
+              <strong id="diagnosticPending">없음</strong>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <p>동기화 충돌</p>
+                <span>기기 간 선택 대기 상태</span>
+              </div>
+              <strong id="diagnosticConflict">없음</strong>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <p>자동 재시도</p>
+                <span>실패한 저장의 재시도 상태</span>
+              </div>
+              <strong id="diagnosticRetry">없음</strong>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <p>현재 기기</p>
+                <span>마스킹된 기기 식별자</span>
+              </div>
+              <strong id="diagnosticDevice">없음</strong>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <p>최근 클라우드 기기</p>
+                <span>마지막 저장 기기</span>
+              </div>
+              <strong id="diagnosticCloudDevice">확인 전</strong>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <p>최근 오류</p>
+                <span>현재 실행 중 발생한 오류</span>
+              </div>
+              <strong id="diagnosticLastError">없음</strong>
+            </div>
+          </div>
+
+          <div class="sync-diagnostics-actions">
+            <button
+              class="secondary-btn"
+              id="refreshSyncDiagnosticsBtn"
+              type="button"
+            >
+              새로고침
+            </button>
+
+            <button
+              class="ghost-btn"
+              id="copySyncDiagnosticsBtn"
+              type="button"
+            >
+              진단 정보 복사
+            </button>
+          </div>
+
+          <p
+            class="sync-diagnostics-message"
+            id="syncDiagnosticsMessage"
+            role="status"
+            aria-live="polite"
+          >
+            자세히 보기를 열면 클라우드 상태를 확인합니다.
+          </p>
+        </div>
+      </details>
+
+
+      <div class="section-title">
         <h2>앱 정보</h2>
       </div>
 
@@ -1771,7 +1914,7 @@
   </div>
 </div>
 
-<script src="./js/config.js?v=dev0214"></script>
+<script src="./js/config.js?v=dev0215"></script>
 <script src="./js/layer-manager.js?v=dev56"></script>
 <script
   type="module"
@@ -1802,7 +1945,7 @@
 
 <script
   type="module"
-  src="./js/auth.js?v=rc1-6"
+  src="./js/auth.js?v=dev0215"
 ></script>
 
 <script
@@ -1812,7 +1955,12 @@
 
 <script
   type="module"
-  src="./js/restore.js?v=dev0214"
+  src="./js/restore.js?v=dev0215"
+></script>
+
+<script
+  type="module"
+  src="./js/sync-diagnostics.js?v=dev0215"
 ></script>
 
 </body>

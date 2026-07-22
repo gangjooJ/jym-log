@@ -78,6 +78,14 @@ let syncConflictActive = false;
 let syncRetryTimerId = null;
 let syncRetryAttempt = 0;
 
+let lastSyncStatus = {
+  status: "idle",
+  message: "동기화 대기",
+  changedAt: Date.now()
+};
+
+let lastSyncError = null;
+
 const deviceId =
   storage.getDeviceId();
 
@@ -165,19 +173,64 @@ function scheduleSyncRetry(
   return true;
 }
 
+function rememberSyncError(
+  error,
+  context
+) {
+  lastSyncError = {
+    context:
+      String(
+        context ||
+        "동기화"
+      ),
+
+    message:
+      String(
+        error?.message ||
+        error ||
+        "알 수 없는 오류"
+      ),
+
+    code:
+      String(
+        error?.code ||
+        ""
+      ),
+
+    changedAt:
+      Date.now()
+  };
+}
+
 function emitSyncStatus(
   status,
   message
 ) {
+  lastSyncStatus = {
+    status:
+      String(
+        status ||
+        "unknown"
+      ),
+
+    message:
+      String(
+        message ||
+        ""
+      ),
+
+    changedAt:
+      Date.now()
+  };
+
   window.dispatchEvent(
     new CustomEvent(
       "jym-log:sync-status",
       {
-        detail: {
-          status,
-          message,
-          changedAt: Date.now()
-        }
+        detail:
+          cloneValue(
+            lastSyncStatus
+          )
       }
     )
   );
@@ -1021,7 +1074,12 @@ async function resolveSyncConflict(
 
     return workout.state;
   } catch (error) {
-    syncConflictActive = true;
+      rememberSyncError(
+        error,
+        "동기화 충돌 해결"
+      );
+
+      syncConflictActive = true;
 
     emitSyncStatus(
       "conflict",
@@ -1139,7 +1197,12 @@ async function flushPendingState() {
       );
     }
   } catch (error) {
-    saveFailed = true;
+      saveFailed = true;
+
+      rememberSyncError(
+        error,
+        "운동 기록 클라우드 저장"
+      );
 
     const retryState =
       chooseNewerState(
@@ -1309,6 +1372,9 @@ async function initializeWorkoutSync(
 ) {
   stopWorkoutSync();
 
+  lastSyncError =
+    null;
+
   emitSyncStatus(
     "loading",
     "확인 중"
@@ -1379,6 +1445,11 @@ async function initializeWorkoutSync(
     ) {
       return workout.state;
     }
+
+    rememberSyncError(
+      error,
+      "클라우드 운동 상태 확인"
+    );
 
     workout.replaceState(
       localState,
@@ -1783,10 +1854,163 @@ window.addEventListener(
   }
 );
 
+function getSyncDiagnostics() {
+  const userId =
+    activeUserId ||
+    storage.activeUserId ||
+    null;
+
+  const storedPending =
+    userId
+      ? (
+          pendingPayload ||
+          storage.loadPendingSync(
+            userId
+          )
+        )
+      : null;
+
+  const storedConflict =
+    userId
+      ? storage.loadSyncConflict(
+          userId
+        )
+      : null;
+
+  return {
+    schemaVersion: 1,
+
+    active:
+      Boolean(
+        activeUserId
+      ),
+
+    online:
+      navigator.onLine,
+
+    status:
+      cloneValue(
+        lastSyncStatus
+      ),
+
+    lastError:
+      lastSyncError
+        ? cloneValue(
+            lastSyncError
+          )
+        : null,
+
+    currentCloudRevision:
+      Number(
+        currentCloudRevision
+      ) || 0,
+
+    deviceId:
+      String(
+        deviceId ||
+        ""
+      ),
+
+    writeInProgress:
+      Boolean(
+        writeInProgress
+      ),
+
+    retry: {
+      scheduled:
+        syncRetryTimerId !==
+        null,
+
+      attempt:
+        Number(
+          syncRetryAttempt
+        ) || 0
+    },
+
+    pending: storedPending
+      ? {
+          exists: true,
+
+          baseRevision:
+            Number(
+              storedPending
+                .baseRevision
+            ) || 0,
+
+          localUpdatedAt:
+            Number(
+              storedPending
+                .localUpdatedAt
+            ) || 0,
+
+          deviceId:
+            String(
+              storedPending
+                .deviceId ||
+              ""
+            )
+        }
+      : {
+          exists: false,
+          baseRevision: 0,
+          localUpdatedAt: 0,
+          deviceId: ""
+        },
+
+    conflict: storedConflict
+      ? {
+          exists: true,
+
+          cloudRevision:
+            Number(
+              storedConflict
+                .cloudRevision
+            ) || 0,
+
+          localUpdatedAt:
+            Number(
+              storedConflict
+                .localUpdatedAt
+            ) || 0,
+
+          cloudUpdatedAt:
+            Number(
+              storedConflict
+                .cloudUpdatedAt
+            ) || 0,
+
+          localDeviceId:
+            String(
+              storedConflict
+                .localDeviceId ||
+              ""
+            ),
+
+          cloudDeviceId:
+            String(
+              storedConflict
+                .cloudDeviceId ||
+              ""
+            )
+        }
+      : {
+          exists: false,
+          cloudRevision: 0,
+          localUpdatedAt: 0,
+          cloudUpdatedAt: 0,
+          localDeviceId: "",
+          cloudDeviceId: ""
+        }
+  };
+}
+
 window.JYMLog.sync =
   Object.freeze({
     resolveConflict:
       resolveSyncConflict,
+
+    getDiagnostics:
+      getSyncDiagnostics,  
 
     getConflict() {
       if (!activeUserId) {
@@ -1814,5 +2038,6 @@ window.JYMLog.sync =
 export {
   initializeWorkoutSync,
   stopWorkoutSync,
-  resolveSyncConflict
+  resolveSyncConflict,
+  getSyncDiagnostics
 };

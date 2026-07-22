@@ -1,0 +1,80 @@
+.sync-diagnostics-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.sync-diagnostics-card > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  min-height: 58px;
+  padding: 16px;
+
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+}
+
+.sync-diagnostics-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sync-diagnostics-card > summary::after {
+  content: "＋";
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 20px;
+}
+
+.sync-diagnostics-card[open] > summary::after {
+  content: "−";
+}
+
+.sync-diagnostics-content {
+  padding: 0 12px 14px;
+}
+
+.sync-diagnostics-list {
+  margin: 0;
+}
+
+.sync-diagnostics-list .setting-row {
+  min-height: 54px;
+}
+
+.sync-diagnostics-list .setting-row strong {
+  max-width: 58%;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.sync-diagnostics-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.sync-diagnostics-message {
+  min-height: 20px;
+  margin: 10px 4px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 420px) {
+  .sync-diagnostics-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .sync-diagnostics-list .setting-row {
+    align-items: flex-start;
+  }
+
+  .sync-diagnostics-list .setting-row strong {
+    max-width: 52%;
+  }
+}
