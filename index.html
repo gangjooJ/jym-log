@@ -14,18 +14,19 @@
   <link rel="icon" href="./assets/jym-app-icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
 
-  <script src="./js/theme.js?v=v022"></script>
-  <script src="./js/viewport.js?v=v022"></script>
+  <script src="./js/theme.js?v=dev0301"></script>
+  <script src="./js/viewport.js?v=dev0301"></script>
 
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/progression.css" />
   <link rel="stylesheet" href="./css/progression-history.css" />
   <link rel="stylesheet" href="./css/progression-editor.css" />
   <link rel="stylesheet" href="./css/routine-schedule.css" />
-  <link rel="stylesheet" href="./css/sync-diagnostics.css?v=v022" />
-  <link rel="stylesheet" href="./css/error-recovery.css?v=v022" />
-  <link rel="stylesheet" href="./css/app-health.css?v=v022" />
-  <link rel="stylesheet" href="./css/release-readiness.css?v=v022" />
+  <link rel="stylesheet" href="./css/sync-diagnostics.css?v=dev0301" />
+  <link rel="stylesheet" href="./css/error-recovery.css?v=dev0301" />
+  <link rel="stylesheet" href="./css/app-health.css?v=dev0301" />
+  <link rel="stylesheet" href="./css/release-readiness.css?v=dev0301" />
+  <link rel="stylesheet" href="./css/home-insights.css?v=dev0301" />
 </head>
 
 <body>
@@ -263,12 +264,54 @@
       <div class="section-title"><h2>오늘의 구성</h2><small>직전 기록 기반</small></div>
       <div class="exercise-list" id="homeExerciseList"></div>
 
-      <div class="section-title"><h2>최근 흐름</h2><small>지난 4주</small></div>
-      <div class="mini-grid">
-        <div class="metric"><div class="metric-label">운동 완료율</div><strong>92%</strong><small>+8% 상승</small></div>
-        <div class="metric"><div class="metric-label">벤치 추정 1RM</div><strong>93kg</strong><small>+2.5kg 상승</small></div>
+      <div class="section-title">
+        <h2>최근 흐름</h2>
+        <small>최근 4주</small>
       </div>
-      <p class="prototype-note">이 화면은 저장된 예시 데이터로 동작하는 애자일 1차 프로토타입입니다.</p>
+
+      <div
+        class="mini-grid home-insights-grid"
+        id="homeInsightsGrid"
+        data-state="loading"
+        aria-busy="true"
+      >
+        <div class="metric">
+          <div class="metric-label">
+            운동 횟수
+          </div>
+
+          <strong id="homeRecentWorkoutCount">
+            —
+          </strong>
+
+          <small id="homeRecentWorkoutCountChange">
+            기록 확인 중
+          </small>
+        </div>
+
+        <div class="metric">
+          <div class="metric-label">
+            총 운동 볼륨
+          </div>
+
+          <strong id="homeRecentVolume">
+            —
+          </strong>
+
+          <small id="homeRecentVolumeChange">
+            기록 확인 중
+          </small>
+        </div>
+      </div>
+
+      <p
+        class="home-insights-message"
+        id="homeInsightsMessage"
+        role="status"
+        aria-live="polite"
+      >
+        최근 8주 완료 기록을 비교하고 있습니다.
+      </p>
     </section>
 
     <section class="screen" id="screen-workout">
@@ -1441,8 +1484,8 @@
       </details>
 
       <div class="section-title">
-        <h2>릴리스 점검</h2>
-        <small>정식 배포 점검</small>
+        <h2>릴리스 후보 준비</h2>
+        <small>v0.3.0 회귀 테스트</small>
       </div>
 
       <details
@@ -1450,7 +1493,7 @@
         id="releaseReadinessDetails"
       >
         <summary>
-          v0.2.2 최종 점검
+          v0.3.0 최종 점검
 
           <span
             class="release-readiness-summary"
@@ -1466,7 +1509,7 @@
               <div class="release-readiness-target">
                 목표 버전
                 <strong id="releaseTargetVersion">
-                  v0.2.2
+                  v0.3.0-rc.1
                 </strong>
               </div>
 
@@ -2213,26 +2256,26 @@
   </div>
 </div>
 
-<script src="./js/config.js?v=v022"></script>
-<script src="./js/layer-manager.js?v=v022"></script>
-<script src="./js/error-recovery.js?v=v022"></script>
+<script src="./js/config.js?v=dev0301"></script>
+<script src="./js/layer-manager.js?v=dev0301"></script>
+<script src="./js/error-recovery.js?v=dev0301"></script>
 <script
   type="module"
   src="./js/firebase-client.js"
 ></script>
 <script src="./js/storage.js"></script>
 <script src="./js/progression-policy.js"></script>
-<script src="./js/workout.js?v=v022"></script>
+<script src="./js/workout.js?v=dev0301"></script>
 <script src="./js/progression-engine.js"></script>
-<script src="./js/workout-ui.js?v=v022"></script>
-<script src="./js/routine-ui.js?v=v022"></script>
+<script src="./js/workout-ui.js?v=dev0301"></script>
+<script src="./js/routine-ui.js?v=dev0301"></script>
 <script src="./js/progression-history.js"></script>
 <script src="./js/history-ui.js"></script>
 <script src="./js/analysis-ui.js"></script>
-<script src="./js/sync-conflict-ui.js?v=v022"></script>
-<script src="./js/app.js?v=v022"></script>
-<script src="./js/pwa-update.js?v=v022"></script>
-<script src="./js/accessibility.js?v=v022"></script>
+<script src="./js/sync-conflict-ui.js?v=dev0301"></script>
+<script src="./js/app.js?v=dev0301"></script>
+<script src="./js/pwa-update.js?v=dev0301"></script>
+<script src="./js/accessibility.js?v=dev0301"></script>
 <script
   type="module"
   src="./js/routine-schedule.js"
@@ -2245,32 +2288,37 @@
 
 <script
   type="module"
-  src="./js/auth.js?v=v022"
+  src="./js/auth.js?v=dev0301"
 ></script>
 
 <script
   type="module"
-  src="./js/backup.js?v=v022"
+  src="./js/home-insights.js?v=dev0301"
 ></script>
 
 <script
   type="module"
-  src="./js/restore.js?v=v022"
+  src="./js/backup.js?v=dev0301"
 ></script>
 
 <script
   type="module"
-  src="./js/sync-diagnostics.js?v=v022"
+  src="./js/restore.js?v=dev0301"
 ></script>
 
 <script
   type="module"
-  src="./js/app-health.js?v=v022"
+  src="./js/sync-diagnostics.js?v=dev0301"
 ></script>
 
 <script
   type="module"
-  src="./js/release-readiness.js?v=v022"
+  src="./js/app-health.js?v=dev0301"
+></script>
+
+<script
+  type="module"
+  src="./js/release-readiness.js?v=dev0301"
 ></script>
 
 </body>

@@ -19,12 +19,12 @@ import {
 import {
   initializeWorkoutSync,
   stopWorkoutSync
-} from "./sync.js?v=v022";
+} from "./sync.js?v=dev0301";
 
 import {
   ensureActiveRoutine,
   alignRoutineWithWorkoutState
-} from "./routines.js?v=v022";
+} from "./routines.js?v=dev0301";
 
 import "./sessions.js";
 import "./history.js";

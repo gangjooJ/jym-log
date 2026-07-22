@@ -358,6 +358,18 @@ async function saveCompletedWorkoutSession(
     }
   );
 
+  window.dispatchEvent(
+    new CustomEvent(
+      "jym-log:workout-session-saved",
+      {
+        detail: {
+          sessionId,
+          completedAtMillis
+        }
+      }
+    )
+  );
+
   return sessionId;
 }
 

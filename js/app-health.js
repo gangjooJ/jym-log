@@ -16,6 +16,10 @@
     "bottomNav",
     "syncStatus",
     "screen-home",
+    "homeInsightsGrid",
+    "homeRecentWorkoutCount",
+    "homeRecentVolume",
+    "homeInsightsMessage",
     "screen-history",
     "screen-analysis",
     "screen-routine",
@@ -35,6 +39,7 @@
     ["레이어 관리자", "layerManager"],
     ["로컬 저장소", "storage"],
     ["운동 상태", "workout"],
+    ["홈 최근 흐름", "homeInsights"],
     ["Firebase", "firebase"],
     ["동기화", "sync"],
     ["백업", "backup"],
@@ -547,6 +552,11 @@
         "workout.replaceState",
         app.workout
           ?.replaceState
+      ],
+      [
+        "homeInsights.refresh",
+        app.homeInsights
+          ?.refresh
       ],
       [
         "sync.getDiagnostics",

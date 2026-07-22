@@ -2,7 +2,7 @@ window.JYMLog = window.JYMLog || {};
 
 window.JYMLog.config = Object.freeze({
   appName: "JYM Log",
-  version: "v0.2.2",
+  version: "v0.3.0-dev.1",
   updatedAt: "2026-07-22",
   storageKey: "jym-log-prototype-state",
   locale: "ko-KR",
