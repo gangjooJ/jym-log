@@ -14,19 +14,20 @@
   <link rel="icon" href="./assets/jym-app-icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
 
-  <script src="./js/theme.js?v=dev0303"></script>
-  <script src="./js/viewport.js?v=dev0303"></script>
+  <script src="./js/theme.js?v=dev0304"></script>
+  <script src="./js/viewport.js?v=dev0304"></script>
 
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/progression.css" />
   <link rel="stylesheet" href="./css/progression-history.css" />
   <link rel="stylesheet" href="./css/progression-editor.css" />
   <link rel="stylesheet" href="./css/routine-schedule.css" />
-  <link rel="stylesheet" href="./css/sync-diagnostics.css?v=dev0303" />
-  <link rel="stylesheet" href="./css/error-recovery.css?v=dev0303" />
-  <link rel="stylesheet" href="./css/app-health.css?v=dev0303" />
-  <link rel="stylesheet" href="./css/release-readiness.css?v=dev0303" />
-  <link rel="stylesheet" href="./css/home-insights.css?v=dev0303" />
+  <link rel="stylesheet" href="./css/sync-diagnostics.css?v=dev0304" />
+  <link rel="stylesheet" href="./css/error-recovery.css?v=dev0304" />
+  <link rel="stylesheet" href="./css/app-health.css?v=dev0304" />
+  <link rel="stylesheet" href="./css/release-readiness.css?v=dev0304" />
+  <link rel="stylesheet" href="./css/home-insights.css?v=dev0304" />
+  <link rel="stylesheet" href="./css/exercise-analysis.css?v=dev0304" />
 </head>
 
 <body>
@@ -1061,9 +1062,26 @@
       </div>
 
       <div class="section-title">
-        <h2>벤치프레스</h2>
+        <h2>운동별 성과</h2>
+        <small>완료 세션 기준</small>
+      </div>
 
-        <small>최근 완료 세션 기준</small>
+      <div
+        class="card exercise-analysis-control"
+        id="exerciseAnalysisControl"
+      >
+        <label for="analysisExerciseSelector">
+          분석할 운동
+        </label>
+
+        <select
+          id="analysisExerciseSelector"
+          aria-describedby="analysisState"
+        >
+          <option value="">
+            운동 기록 불러오는 중
+          </option>
+        </select>
       </div>
 
       <div
@@ -1071,28 +1089,115 @@
         id="analysisBenchCard"
         aria-busy="true"
       >
-        <div class="analysis-bench-head">
+        <div class="exercise-analysis-head">
           <div>
-            <span>현재 작업 중량</span>
+            <span>선택 운동</span>
 
-            <strong id="analysisBenchWeight">
+            <strong id="analysisExerciseName">
               —
             </strong>
           </div>
 
           <span
-            class="analysis-change"
-            id="analysisBenchChange"
-            data-trend="neutral"
+            class="analysis-pr-badge"
+            id="analysisPrBadge"
+            data-state="idle"
           >
-            —
+            기록 확인 중
           </span>
         </div>
 
+        <div class="mini-grid exercise-analysis-metrics">
+          <div class="metric">
+            <div class="metric-label">
+              최근 최고 중량
+            </div>
+
+            <strong id="analysisTopWeight">
+              —
+            </strong>
+
+            <small id="analysisTopWeightChange">
+              직전 기록 확인 중
+            </small>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">
+              추정 1RM
+            </div>
+
+            <strong id="analysisEstimatedOneRm">
+              —
+            </strong>
+
+            <small id="analysisEstimatedOneRmChange">
+              직전 기록 확인 중
+            </small>
+          </div>
+        </div>
+
+        <div class="mini-grid exercise-analysis-metrics">
+          <div class="metric">
+            <div class="metric-label">
+              최근 세션 볼륨
+            </div>
+
+            <strong id="analysisExerciseVolume">
+              —
+            </strong>
+
+            <small id="analysisExerciseVolumeChange">
+              직전 기록 확인 중
+            </small>
+          </div>
+
+          <div class="metric">
+            <div class="metric-label">
+              완료 세션
+            </div>
+
+            <strong id="analysisExerciseSessionCount">
+              —
+            </strong>
+
+            <small id="analysisExercisePeriod">
+              최근 기록 기준
+            </small>
+          </div>
+        </div>
+
+        <div class="exercise-analysis-chart-head">
+          <div>
+            <h3>성과 추이</h3>
+
+            <p>
+              최근 완료 세션 최대 8회
+            </p>
+          </div>
+
+          <select
+            id="analysisMetricSelector"
+            aria-label="성과 그래프 지표"
+          >
+            <option value="estimatedOneRm">
+              추정 1RM
+            </option>
+
+            <option value="topWeight">
+              최고 중량
+            </option>
+
+            <option value="volume">
+              세션 볼륨
+            </option>
+          </select>
+        </div>
+
         <div
-          class="analysis-bars"
+          class="analysis-bars exercise-analysis-bars"
           id="analysisBars"
-          aria-label="최근 벤치프레스 작업 중량 변화"
+          aria-label="선택 운동의 최근 성과 변화"
         ></div>
 
         <div
@@ -2559,26 +2664,26 @@
   </div>
 </div>
 
-<script src="./js/config.js?v=dev0303"></script>
-<script src="./js/layer-manager.js?v=dev0303"></script>
-<script src="./js/error-recovery.js?v=dev0303"></script>
+<script src="./js/config.js?v=dev0304"></script>
+<script src="./js/layer-manager.js?v=dev0304"></script>
+<script src="./js/error-recovery.js?v=dev0304"></script>
 <script
   type="module"
   src="./js/firebase-client.js"
 ></script>
 <script src="./js/storage.js"></script>
 <script src="./js/progression-policy.js"></script>
-<script src="./js/workout.js?v=dev0303"></script>
+<script src="./js/workout.js?v=dev0304"></script>
 <script src="./js/progression-engine.js"></script>
-<script src="./js/workout-ui.js?v=dev0303"></script>
-<script src="./js/routine-ui.js?v=dev0303"></script>
+<script src="./js/workout-ui.js?v=dev0304"></script>
+<script src="./js/routine-ui.js?v=dev0304"></script>
 <script src="./js/progression-history.js"></script>
 <script src="./js/history-ui.js"></script>
 <script src="./js/analysis-ui.js"></script>
-<script src="./js/sync-conflict-ui.js?v=dev0303"></script>
-<script src="./js/app.js?v=dev0303"></script>
-<script src="./js/pwa-update.js?v=dev0303"></script>
-<script src="./js/accessibility.js?v=dev0303"></script>
+<script src="./js/sync-conflict-ui.js?v=dev0304"></script>
+<script src="./js/app.js?v=dev0304"></script>
+<script src="./js/pwa-update.js?v=dev0304"></script>
+<script src="./js/accessibility.js?v=dev0304"></script>
 <script
   type="module"
   src="./js/routine-schedule.js"
@@ -2591,37 +2696,37 @@
 
 <script
   type="module"
-  src="./js/auth.js?v=dev0303"
+  src="./js/auth.js?v=dev0304"
 ></script>
 
 <script
   type="module"
-  src="./js/home-insights.js?v=dev0303"
+  src="./js/home-insights.js?v=dev0304"
 ></script>
 
 <script
   type="module"
-  src="./js/backup.js?v=dev0303"
+  src="./js/backup.js?v=dev0304"
 ></script>
 
 <script
   type="module"
-  src="./js/restore.js?v=dev0303"
+  src="./js/restore.js?v=dev0304"
 ></script>
 
 <script
   type="module"
-  src="./js/sync-diagnostics.js?v=dev0303"
+  src="./js/sync-diagnostics.js?v=dev0304"
 ></script>
 
 <script
   type="module"
-  src="./js/app-health.js?v=dev0303"
+  src="./js/app-health.js?v=dev0304"
 ></script>
 
 <script
   type="module"
-  src="./js/release-readiness.js?v=dev0303"
+  src="./js/release-readiness.js?v=dev0304"
 ></script>
 
 </body>

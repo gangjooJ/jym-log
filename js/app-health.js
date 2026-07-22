@@ -35,6 +35,16 @@
     "refreshInsightsBtn",
     "screen-history",
     "screen-analysis",
+    "analysisExerciseSelector",
+    "analysisMetricSelector",
+    "analysisExerciseName",
+    "analysisTopWeight",
+    "analysisEstimatedOneRm",
+    "analysisExerciseVolume",
+    "analysisExerciseSessionCount",
+    "analysisPrBadge",
+    "analysisBars",
+    "analysisState",
     "screen-routine",
     "screen-settings",
     "exportBackupBtn",
@@ -575,6 +585,16 @@
         "homeInsights.setPeriodWeeks",
         app.homeInsights
           ?.setPeriodWeeks
+      ],
+      [
+        "analysis.loadWorkoutAnalysis",
+        app.analysis
+          ?.loadWorkoutAnalysis
+      ],
+      [
+        "analysis.calculateExerciseAnalysis",
+        app.analysis
+          ?.calculateExerciseAnalysis
       ],
       [
         "sync.getDiagnostics",

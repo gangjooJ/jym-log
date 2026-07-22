@@ -1,8 +1,26 @@
 (() => {
+  "use strict";
+
   window.JYMLog =
     window.JYMLog || {};
 
-  let initialized = false;
+  const EXERCISE_STORAGE_KEY =
+    "jym-log:analysis:selected-exercise";
+
+  let initialized =
+    false;
+
+  let loading =
+    false;
+
+  let selectedExercise =
+    loadSelectedExercise();
+
+  let selectedMetric =
+    "estimatedOneRm";
+
+  let lastAnalysis =
+    null;
 
   const weekRange =
     document.getElementById(
@@ -24,19 +42,19 @@
       "analysisWeeklyVolume"
     );
 
-  const benchCard =
+  const analysisCard =
     document.getElementById(
       "analysisBenchCard"
     );
 
-  const benchWeight =
+  const exerciseSelector =
     document.getElementById(
-      "analysisBenchWeight"
+      "analysisExerciseSelector"
     );
 
-  const benchChange =
+  const metricSelector =
     document.getElementById(
-      "analysisBenchChange"
+      "analysisMetricSelector"
     );
 
   const bars =
@@ -49,18 +67,66 @@
       "analysisState"
     );
 
+  function loadSelectedExercise() {
+    try {
+      return String(
+        localStorage.getItem(
+          EXERCISE_STORAGE_KEY
+        ) || ""
+      );
+    } catch (error) {
+      console.warn(
+        "[JYM Log] 분석 운동 선택값 불러오기 실패",
+        error
+      );
+
+      return "";
+    }
+  }
+
+  function saveSelectedExercise(
+    value
+  ) {
+    try {
+      localStorage.setItem(
+        EXERCISE_STORAGE_KEY,
+        String(value || "")
+      );
+    } catch (error) {
+      console.warn(
+        "[JYM Log] 분석 운동 선택값 저장 실패",
+        error
+      );
+    }
+  }
+
   function hasRequiredElements() {
     return Boolean(
       weekRange &&
       sessionCount &&
       weeklySets &&
       weeklyVolume &&
-      benchCard &&
-      benchWeight &&
-      benchChange &&
+      analysisCard &&
+      exerciseSelector &&
+      metricSelector &&
       bars &&
       stateMessage
     );
+  }
+
+  function setText(
+    id,
+    value
+  ) {
+    const element =
+      document.getElementById(
+        id
+      );
+
+    if (element) {
+      element.textContent =
+        String(value);
+    }
   }
 
   function formatDateRange(
@@ -69,118 +135,519 @@
   ) {
     const formatter =
       new Intl.DateTimeFormat(
-        window.JYMLog.config.locale,
+        window.JYMLog
+          .config.locale,
         {
           timeZone:
-            window.JYMLog.config
-              .timezone,
-          month: "numeric",
-          day: "numeric"
+            window.JYMLog
+              .config.timezone,
+
+          month:
+            "numeric",
+
+          day:
+            "numeric"
         }
       );
 
-    return `${
-      formatter.format(
-        new Date(startMillis)
-      )
-    } – ${
-      formatter.format(
-        new Date(endMillis)
-      )
-    }`;
+    return `${formatter.format(
+      new Date(startMillis)
+    )} – ${formatter.format(
+      new Date(endMillis)
+    )}`;
   }
 
   function formatBarDate(
     timestampMillis
   ) {
-    return new Intl.DateTimeFormat(
-      window.JYMLog.config.locale,
-      {
-        timeZone:
-          window.JYMLog.config
-            .timezone,
-        month: "numeric",
-        day: "numeric"
+    return new Intl
+      .DateTimeFormat(
+        window.JYMLog
+          .config.locale,
+        {
+          timeZone:
+            window.JYMLog
+              .config.timezone,
+
+          month:
+            "numeric",
+
+          day:
+            "numeric"
+        }
+      )
+      .format(
+        new Date(
+          timestampMillis
+        )
+      );
+  }
+
+  function formatWeight(
+    value
+  ) {
+    const number =
+      Number(value) || 0;
+
+    return number > 0
+      ? `${number}kg`
+      : "기록 없음";
+  }
+
+  function formatVolume(
+    value
+  ) {
+    const number =
+      Math.max(
+        0,
+        Math.round(
+          Number(value) || 0
+        )
+      );
+
+    return number > 0
+      ? `${number.toLocaleString()}kg`
+      : "기록 없음";
+  }
+
+  function formatChange(
+    value,
+    unit
+  ) {
+    const number =
+      Number(value) || 0;
+
+    if (number > 0) {
+      return `직전보다 +${number}${unit}`;
+    }
+
+    if (number < 0) {
+      return `직전보다 ${number}${unit}`;
+    }
+
+    return "직전과 동일";
+  }
+
+  function renderExerciseOptions(
+    exerciseNames,
+    activeExercise
+  ) {
+    const names =
+      Array.isArray(
+        exerciseNames
+      )
+        ? exerciseNames
+        : [];
+
+    exerciseSelector
+      .replaceChildren();
+
+    if (
+      names.length ===
+      0
+    ) {
+      const option =
+        document.createElement(
+          "option"
+        );
+
+      option.value =
+        "";
+
+      option.textContent =
+        "완료 운동 기록 없음";
+
+      exerciseSelector
+        .appendChild(
+          option
+        );
+
+      exerciseSelector.disabled =
+        true;
+
+      return;
+    }
+
+    names.forEach(
+      (name) => {
+        const option =
+          document.createElement(
+            "option"
+          );
+
+        option.value =
+          name;
+
+        option.textContent =
+          name;
+
+        exerciseSelector
+          .appendChild(
+            option
+          );
       }
-    ).format(
-      new Date(timestampMillis)
+    );
+
+    exerciseSelector.disabled =
+      false;
+
+    exerciseSelector.value =
+      activeExercise;
+  }
+
+  function getMetricConfig() {
+    const configs = {
+      estimatedOneRm: {
+        key:
+          "estimatedOneRm",
+
+        unit:
+          "kg",
+
+        formatter:
+          formatWeight
+      },
+
+      topWeight: {
+        key:
+          "topWeight",
+
+        unit:
+          "kg",
+
+        formatter:
+          formatWeight
+      },
+
+      volume: {
+        key:
+          "volume",
+
+        unit:
+          "kg",
+
+        formatter:
+          formatVolume
+      }
+    };
+
+    return (
+      configs[
+        selectedMetric
+      ] ||
+      configs.estimatedOneRm
     );
   }
 
   function renderBars(
     trend
   ) {
-    if (!bars) {
-      return;
-    }
+    const safeTrend =
+      Array.isArray(
+        trend
+      )
+        ? trend
+        : [];
+
+    bars.replaceChildren();
+
+    bars.style.setProperty(
+      "--analysis-point-count",
+      String(
+        Math.max(
+          1,
+          safeTrend.length
+        )
+      )
+    );
 
     if (
-      !Array.isArray(trend) ||
-      trend.length === 0
+      safeTrend.length ===
+      0
     ) {
-      bars.innerHTML = "";
       return;
     }
 
-    const weights =
-      trend.map(
+    const config =
+      getMetricConfig();
+
+    const values =
+      safeTrend.map(
         (item) =>
-          Number(item.weight) || 0
+          Math.max(
+            0,
+            Number(
+              item[
+                config.key
+              ]
+            ) || 0
+          )
       );
 
-    const minimumWeight =
-      Math.min(...weights);
+    const minimum =
+      Math.min(
+        ...values
+      );
 
-    const maximumWeight =
-      Math.max(...weights);
-
-    const weightRange =
+    const maximum =
       Math.max(
-        2.5,
-        maximumWeight -
-          minimumWeight
+        ...values
       );
 
-    bars.innerHTML =
-      trend
-        .map(
-          (item) => {
-            const weight =
-              Number(item.weight) || 0;
+    const range =
+      Math.max(
+        1,
+        maximum -
+          minimum
+      );
 
-            const height =
-              42 +
+    safeTrend.forEach(
+      (
+        item,
+        index
+      ) => {
+        const value =
+          values[index];
+
+        const height =
+          value <= 0
+            ? 0
+            : 42 +
               (
                 (
-                  weight -
-                  minimumWeight
+                  value -
+                  minimum
                 ) /
-                weightRange
+                range
               ) *
               78;
 
-            return `
-              <div class="analysis-bar-item">
-                <span class="analysis-bar-value">
-                  ${weight}kg
-                </span>
+        const barItem =
+          document.createElement(
+            "div"
+          );
 
-                <div
-                  class="analysis-bar-column"
-                  style="height: ${Math.round(height)}px"
-                  title="${weight}kg"
-                ></div>
+        barItem.className =
+          "analysis-bar-item";
 
-                <span class="analysis-bar-label">
-                  ${formatBarDate(
-                    item.completedAtMillis
-                  )}
-                </span>
-              </div>
-            `;
-          }
-        )
-        .join("");
+        barItem.classList.toggle(
+          "is-pr",
+          Boolean(
+            lastAnalysis
+              ?.exercise
+              ?.isPersonalRecord &&
+            index ===
+              safeTrend.length - 1
+          )
+        );
+
+        const valueElement =
+          document.createElement(
+            "span"
+          );
+
+        valueElement.className =
+          "analysis-bar-value";
+
+        valueElement.textContent =
+          config.formatter(
+            value
+          );
+
+        const column =
+          document.createElement(
+            "div"
+          );
+
+        column.className =
+          "analysis-bar-column";
+
+        column.style.height =
+          `${Math.round(
+            height
+          )}px`;
+
+        column.title =
+          config.formatter(
+            value
+          );
+
+        const label =
+          document.createElement(
+            "span"
+          );
+
+        label.className =
+          "analysis-bar-label";
+
+        label.textContent =
+          formatBarDate(
+            item.completedAtMillis
+          );
+
+        barItem.append(
+          valueElement,
+          column,
+          label
+        );
+
+        bars.appendChild(
+          barItem
+        );
+      }
+    );
+  }
+
+  function renderExercise(
+    exercise
+  ) {
+    const latest =
+      exercise?.latest;
+
+    const previous =
+      exercise?.previous;
+
+    setText(
+      "analysisExerciseName",
+      exercise?.exerciseName ||
+      "기록 없음"
+    );
+
+    setText(
+      "analysisTopWeight",
+      formatWeight(
+        latest?.topWeight
+      )
+    );
+
+    setText(
+      "analysisEstimatedOneRm",
+      formatWeight(
+        latest?.estimatedOneRm
+      )
+    );
+
+    setText(
+      "analysisExerciseVolume",
+      formatVolume(
+        latest?.volume
+      )
+    );
+
+    setText(
+      "analysisExerciseSessionCount",
+      `${Number(
+        exercise?.sessionCount
+      ) || 0}회`
+    );
+
+    setText(
+      "analysisExercisePeriod",
+      exercise?.sessionCount > 0
+        ? "완료 세션 기준"
+        : "기록 없음"
+    );
+
+    if (!latest) {
+      setText(
+        "analysisTopWeightChange",
+        "비교할 기록 없음"
+      );
+
+      setText(
+        "analysisEstimatedOneRmChange",
+        "비교할 기록 없음"
+      );
+
+      setText(
+        "analysisExerciseVolumeChange",
+        "비교할 기록 없음"
+      );
+
+      const badge =
+        document.getElementById(
+          "analysisPrBadge"
+        );
+
+      if (badge) {
+        badge.dataset.state =
+          "empty";
+
+        badge.textContent =
+          "기록 없음";
+      }
+
+      stateMessage.textContent =
+        "선택한 운동의 완료 세트 기록이 없습니다.";
+
+      renderBars([]);
+
+      return;
+    }
+
+    setText(
+      "analysisTopWeightChange",
+      previous
+        ? formatChange(
+            exercise
+              .changes
+              .topWeight,
+            "kg"
+          )
+        : "첫 완료 기록"
+    );
+
+    setText(
+      "analysisEstimatedOneRmChange",
+      previous
+        ? formatChange(
+            exercise
+              .changes
+              .estimatedOneRm,
+            "kg"
+          )
+        : "첫 완료 기록"
+    );
+
+    setText(
+      "analysisExerciseVolumeChange",
+      previous
+        ? formatChange(
+            exercise
+              .changes
+              .volume,
+            "kg"
+          )
+        : "첫 완료 기록"
+    );
+
+    const badge =
+      document.getElementById(
+        "analysisPrBadge"
+      );
+
+    if (badge) {
+      badge.dataset.state =
+        exercise
+          .isPersonalRecord
+          ? "pr"
+          : "steady";
+
+      badge.textContent =
+        exercise
+          .isPersonalRecord
+          ? "새 개인기록"
+          : "최근 기록";
+    }
+
+    renderBars(
+      exercise.trend
+    );
+
+    stateMessage.textContent =
+      exercise.sessionCount === 1
+        ? "기록이 더 쌓이면 직전 세션과 변화를 비교합니다."
+        : `최근 ${exercise.trend.length}회의 성과 추이를 표시했습니다.`;
   }
 
   function render(
@@ -193,10 +660,15 @@
       return;
     }
 
+    lastAnalysis =
+      analysis;
+
     weekRange.textContent =
       formatDateRange(
-        analysis.weekStartMillis,
-        analysis.weekEndMillis
+        analysis
+          .weekStartMillis,
+        analysis
+          .weekEndMillis
       );
 
     sessionCount.textContent =
@@ -210,79 +682,39 @@
         analysis.weeklyVolume
       ).toLocaleString()}kg`;
 
-    if (
-      analysis.currentBenchWeight <= 0
-    ) {
-      benchWeight.textContent =
-        "기록 없음";
+    selectedExercise =
+      analysis.selectedExercise ||
+      "";
 
-      benchChange.textContent =
-        "—";
-
-      benchChange.dataset.trend =
-        "neutral";
-
-      stateMessage.textContent =
-        "완료된 벤치프레스 기록이 쌓이면 중량 변화를 표시합니다.";
-
-      renderBars([]);
-      return;
-    }
-
-    benchWeight.textContent =
-      `${analysis.currentBenchWeight}kg`;
-
-    const change =
-      Number(
-        analysis.benchWeightChange
-      ) || 0;
-
-    if (change > 0) {
-      benchChange.textContent =
-        `+${change}kg`;
-
-      benchChange.dataset.trend =
-        "up";
-    } else if (change < 0) {
-      benchChange.textContent =
-        `${change}kg`;
-
-      benchChange.dataset.trend =
-        "down";
-    } else {
-      benchChange.textContent =
-        "유지";
-
-      benchChange.dataset.trend =
-        "neutral";
-    }
-
-    const benchTrend =
-      Array.isArray(
-        analysis.benchTrend
-      )
-        ? analysis.benchTrend
-        : [];
-
-    renderBars(
-      benchTrend
+    saveSelectedExercise(
+      selectedExercise
     );
 
-    stateMessage.textContent =
-      benchTrend.length === 1
-        ? "기록이 더 쌓이면 최근 운동과 변화량을 비교합니다."
-        : `최근 ${benchTrend.length}회의 완료 세션을 비교했습니다.`;
+    renderExerciseOptions(
+      analysis.exerciseNames,
+      selectedExercise
+    );
+
+    renderExercise(
+      analysis.exercise
+    );
   }
 
-  async function load() {
-    if (!hasRequiredElements()) {
-      console.warn(
-        "[JYM Log] 운동 분석 UI 요소를 찾을 수 없습니다."
-      );
+  async function load(
+    exerciseName =
+      selectedExercise
+  ) {
+    if (
+      !hasRequiredElements() ||
+      loading
+    ) {
       return;
     }
 
-    benchCard.setAttribute(
+    loading =
+      true;
+
+    analysisCard.setAttribute(
       "aria-busy",
       "true"
     );
@@ -299,8 +731,9 @@
         window.JYMLog.analysis;
 
       if (
-        !analysisApi
-          ?.loadWorkoutAnalysis
+        typeof analysisApi
+          ?.loadWorkoutAnalysis !==
+        "function"
       ) {
         throw new Error(
           "운동 분석 모듈을 찾을 수 없습니다."
@@ -309,25 +742,18 @@
 
       const analysis =
         await analysisApi
-          .loadWorkoutAnalysis(100);
+          .loadWorkoutAnalysis(
+            200,
+            exerciseName
+          );
 
       render(
         analysis
-      );
-
-      benchCard.setAttribute(
-        "aria-busy",
-        "false"
       );
     } catch (error) {
       console.error(
         "[JYM Log] 운동 분석 불러오기 실패",
         error
-      );
-
-      benchCard.setAttribute(
-        "aria-busy",
-        "false"
       );
 
       stateMessage.classList.add(
@@ -336,6 +762,14 @@
 
       stateMessage.textContent =
         "분석 데이터를 불러오지 못했습니다. 네트워크 연결을 확인해 주세요.";
+    } finally {
+      loading =
+        false;
+
+      analysisCard.setAttribute(
+        "aria-busy",
+        "false"
+      );
     }
   }
 
@@ -356,22 +790,29 @@
     weeklyVolume.textContent =
       "—";
 
-    benchWeight.textContent =
-      "—";
-
-    benchChange.textContent =
-      "—";
-
-    benchChange.dataset.trend =
-      "neutral";
-
-    benchCard.setAttribute(
-      "aria-busy",
-      "false"
+    setText(
+      "analysisExerciseName",
+      "—"
     );
 
-    stateMessage.classList.remove(
-      "error"
+    setText(
+      "analysisTopWeight",
+      "—"
+    );
+
+    setText(
+      "analysisEstimatedOneRm",
+      "—"
+    );
+
+    setText(
+      "analysisExerciseVolume",
+      "—"
+    );
+
+    setText(
+      "analysisExerciseSessionCount",
+      "—"
     );
 
     stateMessage.textContent =
@@ -385,8 +826,52 @@
       return;
     }
 
+    exerciseSelector
+      ?.addEventListener(
+        "change",
+        () => {
+          selectedExercise =
+            exerciseSelector.value;
+
+          saveSelectedExercise(
+            selectedExercise
+          );
+
+          void load(
+            selectedExercise
+          );
+        }
+      );
+
+    metricSelector
+      ?.addEventListener(
+        "change",
+        () => {
+          selectedMetric =
+            metricSelector.value;
+
+          renderBars(
+            lastAnalysis
+              ?.exercise
+              ?.trend ||
+            []
+          );
+        }
+      );
+
+    window.addEventListener(
+      "jym-log:workout-session-saved",
+      () => {
+        void load(
+          selectedExercise
+        );
+      }
+    );
+
     reset();
-    initialized = true;
+
+    initialized =
+      true;
   }
 
   window.JYMLog.analysisUI =
@@ -394,7 +879,10 @@
       initialize,
       load,
       reset,
-      render
+      render,
+
+      get selectedExercise() {
+        return selectedExercise;
+      }
     });
 })();
-

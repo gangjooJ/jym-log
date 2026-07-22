@@ -1,0 +1,172 @@
+.exercise-analysis-control {
+  display: grid;
+  gap: 7px;
+
+  padding: 14px;
+}
+
+.exercise-analysis-control label {
+  color: var(--muted);
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.exercise-analysis-control select,
+.exercise-analysis-chart-head select {
+  width: 100%;
+  min-height: 44px;
+
+  padding: 0 12px;
+
+  border: 1px solid var(--line);
+  border-radius: 13px;
+
+  background: var(--surface);
+  color: var(--text);
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.exercise-analysis-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.exercise-analysis-head span {
+  display: block;
+
+  color: var(--muted);
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.exercise-analysis-head strong {
+  display: block;
+
+  margin-top: 4px;
+
+  font-size: 18px;
+}
+
+.analysis-pr-badge {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 30px;
+  padding: 0 10px;
+
+  border-radius: 999px;
+
+  background: var(--surface-2);
+  color: var(--muted);
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.analysis-pr-badge[data-state="pr"] {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.analysis-pr-badge[data-state="steady"] {
+  background: #f3f4f6;
+  color: var(--muted);
+}
+
+.analysis-pr-badge[data-state="empty"] {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.exercise-analysis-metrics {
+  margin-top: 12px;
+}
+
+.exercise-analysis-metrics .metric {
+  min-width: 0;
+}
+
+.exercise-analysis-metrics .metric strong {
+  overflow-wrap: anywhere;
+}
+
+.exercise-analysis-metrics .metric small {
+  display: block;
+
+  margin-top: 4px;
+
+  line-height: 1.45;
+}
+
+.exercise-analysis-chart-head {
+  display: grid;
+  grid-template-columns: 1fr 132px;
+  gap: 12px;
+  align-items: end;
+
+  margin-top: 18px;
+}
+
+.exercise-analysis-chart-head h3 {
+  font-size: 14px;
+}
+
+.exercise-analysis-chart-head p {
+  margin-top: 3px;
+
+  color: var(--muted);
+
+  font-size: 10px;
+}
+
+.exercise-analysis-chart-head select {
+  min-height: 40px;
+
+  font-size: 11px;
+}
+
+.exercise-analysis-bars {
+  grid-template-columns:
+    repeat(
+      var(--analysis-point-count, 8),
+      minmax(38px, 1fr)
+    );
+
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+
+  padding-bottom: 6px;
+}
+
+.exercise-analysis-bars
+.analysis-bar-item.is-pr
+.analysis-bar-column {
+  filter: brightness(0.8);
+}
+
+.exercise-analysis-bars
+.analysis-bar-item.is-pr
+.analysis-bar-value,
+.exercise-analysis-bars
+.analysis-bar-item.is-pr
+.analysis-bar-label {
+  color: var(--accent);
+  font-weight: 900;
+}
+
+@media (max-width: 390px) {
+  .exercise-analysis-chart-head {
+    grid-template-columns: 1fr;
+  }
+
+  .exercise-analysis-chart-head select {
+    width: 100%;
+  }
+}

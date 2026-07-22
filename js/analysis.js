@@ -5,7 +5,12 @@ import {
 window.JYMLog =
   window.JYMLog || {};
 
-function getMondayStart(dateValue = new Date()) {
+const MAX_TREND_POINTS =
+  8;
+
+function getMondayStart(
+  dateValue = new Date()
+) {
   const date =
     new Date(dateValue);
 
@@ -32,7 +37,9 @@ function getMondayStart(dateValue = new Date()) {
   return date;
 }
 
-function getSundayEnd(monday) {
+function getSundayEnd(
+  monday
+) {
   const sunday =
     new Date(monday);
 
@@ -50,76 +57,395 @@ function getSundayEnd(monday) {
   return sunday;
 }
 
-/**
- * 완료된 벤치프레스 세트 중
- * 가장 높은 중량을 반환합니다.
- */
-function getBenchPressWeight(session) {
-  const benchPress =
-    session.exercises.find(
-      (exercise) =>
-        exercise.name === "벤치프레스"
-    );
-
-  if (!benchPress) {
-    return 0;
-  }
-
-  const completedWeights =
-    benchPress.sets
-      .filter(
-        (set) => set.done
-      )
-      .map(
-        (set) =>
-          Number(set.weight) || 0
-      );
-
-  if (
-    completedWeights.length === 0
-  ) {
-    return 0;
-  }
-
-  return Math.max(
-    ...completedWeights
-  );
+function normalizeExerciseName(
+  value
+) {
+  return String(
+    value || ""
+  ).trim();
 }
 
-function buildBenchPressTrend(sessions) {
-  return sessions
+function getCompletedSets(
+  exercise
+) {
+  return (
+    Array.isArray(
+      exercise?.sets
+    )
+      ? exercise.sets
+      : []
+  )
+    .filter(
+      (set) =>
+        Boolean(set?.done)
+    )
     .map(
-      (session) => ({
-        sessionId:
-          session.id,
-
-        completedAtMillis:
-          session.completedAtMillis,
-
+      (set) => ({
         weight:
-          getBenchPressWeight(
-            session
+          Math.max(
+            0,
+            Number(
+              set?.weight
+            ) || 0
+          ),
+
+        reps:
+          Math.max(
+            0,
+            Number(
+              set?.reps
+            ) || 0
           )
       })
     )
     .filter(
-      (item) => item.weight > 0
+      (set) =>
+        set.weight > 0 &&
+        set.reps > 0
+    );
+}
+
+function calculateEstimatedOneRm(
+  weight,
+  reps
+) {
+  const normalizedWeight =
+    Math.max(
+      0,
+      Number(weight) || 0
+    );
+
+  const normalizedReps =
+    Math.max(
+      0,
+      Number(reps) || 0
+    );
+
+  if (
+    normalizedWeight <= 0 ||
+    normalizedReps <= 0
+  ) {
+    return 0;
+  }
+
+  if (normalizedReps === 1) {
+    return normalizedWeight;
+  }
+
+  return Math.round(
+    (
+      normalizedWeight *
+      (
+        1 +
+        Math.min(
+          normalizedReps,
+          30
+        ) /
+        30
+      )
+    ) *
+    10
+  ) / 10;
+}
+
+function createExerciseSessionPoint(
+  session,
+  exercise
+) {
+  const completedSets =
+    getCompletedSets(
+      exercise
+    );
+
+  if (
+    completedSets.length ===
+    0
+  ) {
+    return null;
+  }
+
+  const topWeight =
+    Math.max(
+      ...completedSets.map(
+        (set) =>
+          set.weight
+      )
+    );
+
+  const estimatedOneRm =
+    Math.max(
+      ...completedSets.map(
+        (set) =>
+          calculateEstimatedOneRm(
+            set.weight,
+            set.reps
+          )
+      )
+    );
+
+  const volume =
+    Math.round(
+      completedSets.reduce(
+        (
+          total,
+          set
+        ) =>
+          total +
+          set.weight *
+          set.reps,
+        0
+      )
+    );
+
+  return {
+    sessionId:
+      session.id,
+
+    completedAtMillis:
+      Number(
+        session.completedAtMillis
+      ) || 0,
+
+    routineName:
+      session.routineName ||
+      "운동 세션",
+
+    topWeight,
+    estimatedOneRm,
+    volume,
+
+    completedSetCount:
+      completedSets.length
+  };
+}
+
+function getExerciseNames(
+  sessions
+) {
+  const names =
+    new Set();
+
+  sessions.forEach(
+    (session) => {
+      const exercises =
+        Array.isArray(
+          session?.exercises
+        )
+          ? session.exercises
+          : [];
+
+      exercises.forEach(
+        (exercise) => {
+          const name =
+            normalizeExerciseName(
+              exercise?.name
+            );
+
+          if (
+            name &&
+            getCompletedSets(
+              exercise
+            ).length > 0
+          ) {
+            names.add(name);
+          }
+        }
+      );
+    }
+  );
+
+  return [
+    ...names
+  ].sort(
+    (left, right) =>
+      left.localeCompare(
+        right,
+        "ko"
+      )
+  );
+}
+
+function buildExerciseTrend(
+  sessions,
+  exerciseName
+) {
+  const normalizedName =
+    normalizeExerciseName(
+      exerciseName
+    );
+
+  if (!normalizedName) {
+    return [];
+  }
+
+  return sessions
+    .map(
+      (session) => {
+        const exercises =
+          Array.isArray(
+            session?.exercises
+          )
+            ? session.exercises
+            : [];
+
+        const exercise =
+          exercises.find(
+            (item) =>
+              normalizeExerciseName(
+                item?.name
+              ) ===
+              normalizedName
+          );
+
+        return exercise
+          ? createExerciseSessionPoint(
+              session,
+              exercise
+            )
+          : null;
+      }
     )
-    .slice(0, 6)
-    .reverse();
+    .filter(Boolean)
+    .sort(
+      (
+        left,
+        right
+      ) =>
+        left.completedAtMillis -
+        right.completedAtMillis
+    );
+}
+
+function getChange(
+  currentValue,
+  previousValue
+) {
+  const current =
+    Number(currentValue) || 0;
+
+  const previous =
+    Number(previousValue) || 0;
+
+  return Math.round(
+    (
+      current -
+      previous
+    ) *
+    10
+  ) / 10;
+}
+
+function calculateExerciseAnalysis(
+  sessions,
+  exerciseName
+) {
+  const trend =
+    buildExerciseTrend(
+      sessions,
+      exerciseName
+    );
+
+  const recentTrend =
+    trend.slice(
+      -MAX_TREND_POINTS
+    );
+
+  const latest =
+    trend.at(-1) ||
+    null;
+
+  const previous =
+    trend.at(-2) ||
+    null;
+
+  const previousBestOneRm =
+    trend
+      .slice(
+        0,
+        -1
+      )
+      .reduce(
+        (
+          highest,
+          item
+        ) =>
+          Math.max(
+            highest,
+            Number(
+              item.estimatedOneRm
+            ) || 0
+          ),
+        0
+      );
+
+  const isPersonalRecord =
+    Boolean(
+      latest &&
+      latest.estimatedOneRm > 0 &&
+      latest.estimatedOneRm >
+        previousBestOneRm
+    );
+
+  return {
+    exerciseName:
+      normalizeExerciseName(
+        exerciseName
+      ),
+
+    sessionCount:
+      trend.length,
+
+    latest,
+    previous,
+
+    changes: {
+      topWeight:
+        getChange(
+          latest?.topWeight,
+          previous?.topWeight
+        ),
+
+      estimatedOneRm:
+        getChange(
+          latest?.estimatedOneRm,
+          previous?.estimatedOneRm
+        ),
+
+      volume:
+        getChange(
+          latest?.volume,
+          previous?.volume
+        )
+    },
+
+    isPersonalRecord,
+    previousBestOneRm,
+    trend:
+      recentTrend
+  };
 }
 
 function calculateWorkoutAnalysis(
-  sessions
+  sessions,
+  selectedExerciseName = ""
 ) {
+  const safeSessions =
+    Array.isArray(
+      sessions
+    )
+      ? sessions
+      : [];
+
   const monday =
     getMondayStart();
 
   const sunday =
-    getSundayEnd(monday);
+    getSundayEnd(
+      monday
+    );
 
   const weeklySessions =
-    sessions.filter(
+    safeSessions.filter(
       (session) =>
         session.completedAtMillis >=
           monday.getTime() &&
@@ -129,30 +455,45 @@ function calculateWorkoutAnalysis(
 
   const weeklyCompletedSets =
     weeklySessions.reduce(
-      (total, session) =>
+      (
+        total,
+        session
+      ) =>
         total +
-        session.completedSets,
+        (
+          Number(
+            session.completedSets
+          ) || 0
+        ),
       0
     );
 
   const weeklyVolume =
     weeklySessions.reduce(
-      (total, session) =>
+      (
+        total,
+        session
+      ) =>
         total +
-        session.totalVolume,
+        (
+          Number(
+            session.totalVolume
+          ) || 0
+        ),
       0
     );
 
-  const benchTrend =
-    buildBenchPressTrend(
-      sessions
+  const exerciseNames =
+    getExerciseNames(
+      safeSessions
     );
 
-  const firstBenchWeight =
-    benchTrend[0]?.weight || 0;
-
-  const currentBenchWeight =
-    benchTrend.at(-1)?.weight || 0;
+  const selectedExercise =
+    exerciseNames.includes(
+      selectedExerciseName
+    )
+      ? selectedExerciseName
+      : exerciseNames[0] || "";
 
   return {
     weekStartMillis:
@@ -166,17 +507,22 @@ function calculateWorkoutAnalysis(
 
     weeklyCompletedSets,
     weeklyVolume,
-    benchTrend,
-    currentBenchWeight,
 
-    benchWeightChange:
-      currentBenchWeight -
-      firstBenchWeight
+    exerciseNames,
+
+    selectedExercise,
+
+    exercise:
+      calculateExerciseAnalysis(
+        safeSessions,
+        selectedExercise
+      )
   };
 }
 
 async function loadWorkoutAnalysis(
-  maxResults = 100
+  maxResults = 200,
+  selectedExerciseName = ""
 ) {
   const sessions =
     await loadRecentWorkoutSessions(
@@ -184,16 +530,21 @@ async function loadWorkoutAnalysis(
     );
 
   return calculateWorkoutAnalysis(
-    sessions
+    sessions,
+    selectedExerciseName
   );
 }
 
 window.JYMLog.analysis =
   Object.freeze({
-    loadWorkoutAnalysis
+    loadWorkoutAnalysis,
+    calculateWorkoutAnalysis,
+    calculateExerciseAnalysis
   });
 
 export {
+  calculateEstimatedOneRm,
+  calculateExerciseAnalysis,
   calculateWorkoutAnalysis,
   loadWorkoutAnalysis
 };
