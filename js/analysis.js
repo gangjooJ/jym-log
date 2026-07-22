@@ -105,6 +105,54 @@ function getCompletedSets(
     );
 }
 
+function countSessionCompletedSets(
+  session
+) {
+  const storedCount =
+    Math.max(
+      0,
+      Number(
+        session?.completedSets
+      ) || 0
+    );
+
+  const derivedCount =
+    (
+      Array.isArray(
+        session?.exercises
+      )
+        ? session.exercises
+        : []
+    )
+      .reduce(
+        (
+          total,
+          exercise
+        ) =>
+          total +
+          (
+            Array.isArray(
+              exercise?.sets
+            )
+              ? exercise.sets
+                  .filter(
+                    (set) =>
+                      Boolean(
+                        set?.done
+                      )
+                  )
+                  .length
+              : 0
+          ),
+        0
+      );
+
+  return Math.max(
+    storedCount,
+    derivedCount
+  );
+}
+
 function calculateEstimatedOneRm(
   weight,
   reps
@@ -446,11 +494,26 @@ function calculateWorkoutAnalysis(
 
   const weeklySessions =
     safeSessions.filter(
-      (session) =>
-        session.completedAtMillis >=
-          monday.getTime() &&
-        session.completedAtMillis <=
-          sunday.getTime()
+      (session) => {
+        const completedAtMillis =
+          Number(
+            session
+              ?.completedAtMillis
+          ) || 0;
+
+        const completedSetCount =
+          countSessionCompletedSets(
+            session
+          );
+
+        return (
+          completedAtMillis >=
+            monday.getTime() &&
+          completedAtMillis <=
+            sunday.getTime() &&
+          completedSetCount > 0
+        );
+      }
     );
 
   const weeklyCompletedSets =
@@ -460,10 +523,8 @@ function calculateWorkoutAnalysis(
         session
       ) =>
         total +
-        (
-          Number(
-            session.completedSets
-          ) || 0
+        countSessionCompletedSets(
+          session
         ),
       0
     );

@@ -4,6 +4,13 @@
   window.JYMLog =
     window.JYMLog || {};
 
+  const ANALYSIS_MODULE_URL =
+    new URL(
+      "./analysis.js?v=dev0304",
+      document.currentScript?.src ||
+        window.location.href
+    ).href;
+
   const EXERCISE_STORAGE_KEY =
     "jym-log:analysis:selected-exercise";
 
@@ -700,6 +707,38 @@
     );
   }
 
+  async function ensureAnalysisApi() {
+    let analysisApi =
+      window.JYMLog.analysis;
+
+    if (
+      typeof analysisApi
+        ?.loadWorkoutAnalysis ===
+      "function"
+    ) {
+      return analysisApi;
+    }
+
+    await import(
+      ANALYSIS_MODULE_URL
+    );
+
+    analysisApi =
+      window.JYMLog.analysis;
+
+    if (
+      typeof analysisApi
+        ?.loadWorkoutAnalysis !==
+      "function"
+    ) {
+      throw new Error(
+        "운동 분석 모듈을 찾을 수 없습니다."
+      );
+    }
+
+    return analysisApi;
+  }
+
   async function load(
     exerciseName =
       selectedExercise
@@ -708,7 +747,29 @@
       !hasRequiredElements() ||
       loading
     ) {
-      return;
+      return null;
+    }
+
+    const currentUser =
+      window.JYMLog
+        .firebase
+        ?.auth
+        ?.currentUser;
+
+    if (!currentUser?.uid) {
+      analysisCard.setAttribute(
+        "aria-busy",
+        "false"
+      );
+
+      stateMessage.classList.remove(
+        "error"
+      );
+
+      stateMessage.textContent =
+        "로그인 상태를 확인하고 있습니다.";
+
+      return null;
     }
 
     loading =
@@ -728,17 +789,7 @@
 
     try {
       const analysisApi =
-        window.JYMLog.analysis;
-
-      if (
-        typeof analysisApi
-          ?.loadWorkoutAnalysis !==
-        "function"
-      ) {
-        throw new Error(
-          "운동 분석 모듈을 찾을 수 없습니다."
-        );
-      }
+        await ensureAnalysisApi();
 
       const analysis =
         await analysisApi
@@ -751,6 +802,21 @@
         analysis
       );
     } catch (error) {
+      const isAuthUnavailable =
+        error?.message ===
+        "로그인 사용자를 확인할 수 없습니다.";
+
+      if (isAuthUnavailable) {
+        stateMessage.classList.remove(
+          "error"
+        );
+
+        stateMessage.textContent =
+          "로그인 상태를 확인하고 있습니다.";
+
+        return null;
+      }
+
       console.error(
         "[JYM Log] 운동 분석 불러오기 실패",
         error
@@ -865,6 +931,26 @@
         void load(
           selectedExercise
         );
+      }
+    );
+
+    window.addEventListener(
+      "jym-log:user-state-ready",
+      () => {
+        const analysisScreen =
+          document.getElementById(
+            "screen-analysis"
+          );
+
+        if (
+          analysisScreen
+            ?.classList
+            .contains("active")
+        ) {
+          void load(
+            selectedExercise
+          );
+        }
       }
     );
 
