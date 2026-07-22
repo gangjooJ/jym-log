@@ -317,3 +317,185 @@ span:last-child {
     transition: none;
   }
 }
+.insights-period-control {
+  display: grid;
+  grid-template-columns:
+    repeat(3, 1fr);
+  gap: 7px;
+
+  margin-top: 16px;
+  padding: 5px;
+
+  border: 1px solid var(--line);
+  border-radius: 16px;
+
+  background: var(--surface-2);
+}
+
+.insights-period-btn {
+  min-height: 42px;
+
+  border: 0;
+  border-radius: 12px;
+
+  background: transparent;
+  color: var(--muted);
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+
+  cursor: pointer;
+}
+
+.insights-period-btn[
+  aria-pressed="true"
+] {
+  background: var(--surface);
+  color: var(--accent);
+
+  box-shadow:
+    0 1px 4px
+    rgba(15, 23, 42, 0.1);
+}
+
+.insights-period-btn:focus-visible {
+  outline:
+    3px solid
+    rgba(37, 99, 235, 0.25);
+
+  outline-offset: 2px;
+}
+
+.insights-comparison-card {
+  margin-top: 12px;
+  padding: 15px;
+}
+
+.insights-comparison-grid {
+  margin-top: 12px;
+}
+
+.insights-trend[
+  data-trend="up"
+] {
+  color: var(--good);
+}
+
+.insights-trend[
+  data-trend="down"
+] {
+  color: var(--danger);
+}
+
+.insights-trend[
+  data-trend="new"
+] {
+  color: var(--accent);
+}
+
+.insights-trend[
+  data-trend="neutral"
+] {
+  color: var(--text);
+}
+
+.insights-best-week-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+
+  margin-top: 12px;
+  padding: 15px;
+}
+
+.insights-best-week-copy {
+  min-width: 0;
+}
+
+.insights-best-week-copy
+> span {
+  display: block;
+
+  color: var(--muted);
+
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.insights-best-week-copy
+> strong {
+  display: block;
+
+  margin-top: 4px;
+
+  font-size: 16px;
+}
+
+.insights-best-week-copy
+> small {
+  display: block;
+
+  margin-top: 3px;
+
+  color: var(--muted);
+
+  font-size: 10px;
+}
+
+.insights-best-week-mark {
+  flex: 0 0 auto;
+
+  color: var(--accent);
+
+  font-size: 24px;
+}
+
+.insights-bar-chart {
+  grid-template-columns:
+    repeat(
+      var(
+        --insights-week-count,
+        8
+      ),
+      minmax(36px, 1fr)
+    );
+
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+
+  padding-bottom: 6px;
+
+  scrollbar-width: thin;
+}
+
+.insights-bar-item.is-best
+.insights-bar-fill {
+  filter:
+    brightness(0.82);
+}
+
+.insights-bar-item.is-best
+.insights-bar-value,
+.insights-bar-item.is-best
+.insights-bar-label {
+  color: var(--accent);
+  font-weight: 900;
+}
+
+@media (
+  max-width: 390px
+) {
+  .insights-period-control {
+    gap: 5px;
+  }
+
+  .insights-period-btn {
+    min-height: 40px;
+  }
+
+  .insights-comparison-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -24,6 +24,12 @@
     "insightsDetailState",
     "insightsRecentWorkout",
     "insightsAverageDuration",
+    "insightsPeriodControl",
+    "insightsWeeklyAverageCount",
+    "insightsWeeklyAverageVolume",
+    "insightsCountChangePercent",
+    "insightsVolumeChangePercent",
+    "insightsBestWeek",
     "insightsWeeklyCountChart",
     "insightsWeeklyVolumeChart",
     "refreshInsightsBtn",
@@ -564,6 +570,11 @@
         "homeInsights.refresh",
         app.homeInsights
           ?.refresh
+      ],
+      [
+        "homeInsights.setPeriodWeeks",
+        app.homeInsights
+          ?.setPeriodWeeks
       ],
       [
         "sync.getDiagnostics",
