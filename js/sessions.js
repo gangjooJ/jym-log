@@ -358,10 +358,6 @@ async function saveCompletedWorkoutSession(
     }
   );
 
-  console.info(
-    `[JYM Log] 완료 운동 세션 저장 완료: ${sessionId}`
-  );
-
   return sessionId;
 }
 

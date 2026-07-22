@@ -120,10 +120,6 @@ async function ensureUserProfile(user) {
       }
     );
 
-    console.info(
-      "[JYM Log] 사용자 프로필 생성 완료"
-    );
-
     return {
       created: true,
 
@@ -140,10 +136,6 @@ async function ensureUserProfile(user) {
     {
       merge: true
     }
-  );
-
-  console.info(
-    "[JYM Log] 사용자 프로필 확인 완료"
   );
 
   return {
@@ -196,10 +188,6 @@ async function updateUserNickname(
     {
       merge: true
     }
-  );
-
-  console.info(
-    "[JYM Log] 사용자 닉네임 저장 완료"
   );
 
   return nickname;

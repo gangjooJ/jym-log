@@ -229,12 +229,7 @@ let routineLibraryBusy =
   false;
 let initialized = false;
 
-let showToast = (message) => {
-  console.info(
-    "[JYM Log] 루틴 안내",
-    message
-  );
-};
+let showToast = () => {};
 
 let onRoutineChanged = () => {};
 
@@ -2645,10 +2640,6 @@ function initialize(options = {}) {
         routines
       );
       onRoutineChanged(routine);
-
-      console.info(
-        "[JYM Log] 사용자 루틴 화면 반영 완료"
-      );
     }
   );
 

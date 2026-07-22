@@ -19,12 +19,12 @@ import {
 import {
   initializeWorkoutSync,
   stopWorkoutSync
-} from "./sync.js?v=dev0215";
+} from "./sync.js?v=rc0211";
 
 import {
   ensureActiveRoutine,
   alignRoutineWithWorkoutState
-} from "./routines.js?v=rc1-4";
+} from "./routines.js?v=rc0211";
 
 import "./sessions.js";
 import "./history.js";
@@ -194,10 +194,6 @@ function showSignedIn(
   );
 
   setLoginLoading(false);
-
-  console.info(
-    `[JYM Log] 로그인 사용자 확인: ${user.uid}`
-  );
 }
 
 function getFriendlyAuthError(error) {

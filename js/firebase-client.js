@@ -36,10 +36,6 @@ window.JYMLog.firebase = Object.freeze({
   db
 });
 
-console.info(
-  `[${window.JYMLog.config.appName}] Firebase 연결 완료`
-);
-
 export {
   firebaseApp,
   auth,

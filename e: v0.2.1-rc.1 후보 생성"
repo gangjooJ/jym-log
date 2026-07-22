@@ -1,0 +1,16 @@
+ CHANGELOG.md          | 22 [32m++++++++++++++++++++++[m
+ index.html            | 44 [32m++++++++++++++++++++++[m[31m----------------------[m
+ js/app.js             |  4 [31m----[m
+ js/auth.js            |  8 [32m++[m[31m------[m
+ js/config.js          |  2 [32m+[m[31m-[m
+ js/firebase-client.js |  4 [31m----[m
+ js/profile.js         | 12 [31m------------[m
+ js/restore.js         |  4 [32m++[m[31m--[m
+ js/routine-ui.js      | 11 [32m+[m[31m----------[m
+ js/routines.js        | 36 [31m------------------------------------[m
+ js/sessions.js        |  4 [31m----[m
+ js/storage.js         |  4 [31m----[m
+ js/sync.js            | 24 [31m------------------------[m
+ js/theme.js           |  2 [32m+[m[31m-[m
+ sw.js                 | 54 [32m+++++++++++++++++++++++++++[m[31m---------------------------[m
+ 15 files changed, 78 insertions(+), 157 deletions(-)

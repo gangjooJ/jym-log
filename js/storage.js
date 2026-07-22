@@ -265,10 +265,6 @@ window.JYMLog.storage = (() => {
         userId
       );
 
-      console.info(
-        "[JYM Log] 기존 운동 기록을 로그인 계정으로 이전했습니다."
-      );
-
       return readValue(
         userKey,
         defaultValue

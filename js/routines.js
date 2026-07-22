@@ -932,10 +932,6 @@ async function ensureActiveRoutine(
           serverTimestamp()
       }
     );
-
-    console.info(
-      "[JYM Log] 기본 운동 루틴 생성 완료"
-    );
   }
 
   await loadAvailableRoutines(
@@ -977,10 +973,6 @@ async function ensureActiveRoutine(
    */
   applyActiveRoutineToWorkout(
     false
-  );
-
-  console.info(
-    `[JYM Log] 활성 루틴 불러오기 완료: ${activeRoutine.name}`
   );
 
   return activeRoutine;
@@ -1075,10 +1067,6 @@ async function alignRoutineWithWorkoutState(
 
   emitRoutineReady();
 
-  console.info(
-    `[JYM Log] 진행 중 운동 루틴 연결 완료: ${targetRoutine.name}`
-  );
-
   return targetRoutine;
 }
 
@@ -1148,10 +1136,6 @@ async function switchActiveRoutine(
 
   applyActiveRoutineToWorkout(
     true
-  );
-
-  console.info(
-    `[JYM Log] 활성 루틴 전환 완료: ${activeRoutine.name}`
   );
 
   return activeRoutine;
@@ -1234,10 +1218,6 @@ async function createRoutine(
 
   applyActiveRoutineToWorkout(
     true
-  );
-
-  console.info(
-    `[JYM Log] 새 루틴 생성 완료: ${routine.name}`
   );
 
   return routine;
@@ -1345,10 +1325,6 @@ async function duplicateActiveRoutine(
     true
   );
 
-  console.info(
-    `[JYM Log] 루틴 복제 완료: ${routine.name}`
-  );
-
   return routine;
 }
 
@@ -1434,10 +1410,6 @@ async function deleteActiveRoutine() {
     );
   }
 
-  console.info(
-    `[JYM Log] 루틴 삭제 완료: ${deletedRoutine.name}`
-  );
-
   return {
     deletedRoutine,
     activeRoutine
@@ -1504,10 +1476,6 @@ async function updateActiveRoutineMetadata(
   );
 
   emitRoutineReady();
-
-  console.info(
-    "[JYM Log] 루틴 정보 저장 완료"
-  );
 
   return activeRoutine;
 }
@@ -1609,10 +1577,6 @@ async function saveActiveRoutineExercises(
   workout.saveState();
 
   emitRoutineReady();
-
-  console.info(
-    `[JYM Log] ${logMessage}`
-  );
 
   return orderedExercises;
 }

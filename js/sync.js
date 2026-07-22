@@ -985,10 +985,6 @@ async function resolveSyncConflict(
         cloudState
       );
 
-      console.info(
-        "[JYM Log] 클라우드 기록으로 동기화 충돌을 해결했습니다."
-      );
-
       return workout.state;
     }
 
@@ -1066,10 +1062,6 @@ async function resolveSyncConflict(
     emitSyncConflictResolved(
       "local",
       resolvedLocalState
-    );
-
-    console.info(
-      "[JYM Log] 이 기기 기록으로 동기화 충돌을 해결했습니다."
     );
 
     return workout.state;
@@ -1187,10 +1179,6 @@ async function flushPendingState() {
     if (
       activeUserId === userId
     ) {
-      console.info(
-        "[JYM Log] 운동 기록 클라우드 저장 완료"
-      );
-
       emitSyncStatus(
         "synced",
         "동기화됨"
@@ -1686,10 +1674,6 @@ async function initializeWorkoutSync(
       localState
     );
 
-    console.info(
-      "[JYM Log] 기존 운동 기록 최초 업로드 준비"
-    );
-
     return workout.state;
   }
 
@@ -1718,10 +1702,6 @@ async function initializeWorkoutSync(
     queueCloudSave(
       localState
     );
-
-    console.info(
-      "[JYM Log] 더 최신인 로컬 운동 기록 업로드 준비"
-    );
   } else {
     workout.replaceState(
       cloudState,
@@ -1741,10 +1721,6 @@ async function initializeWorkoutSync(
     emitSyncStatus(
       "synced",
       "동기화됨"
-    );
-
-    console.info(
-      "[JYM Log] 더 최신인 클라우드 운동 기록 적용 완료"
     );
   }
 
