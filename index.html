@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="./css/progression-editor.css" />
   <link rel="stylesheet" href="./css/routine-schedule.css" />
   <link rel="stylesheet" href="./css/sync-diagnostics.css?v=dev0215" />
+  <link rel="stylesheet" href="./css/error-recovery.css?v=dev0216" />
 </head>
 
 <body>
@@ -1315,6 +1316,18 @@
               </div>
               <strong id="diagnosticLastError">없음</strong>
             </div>
+            <div class="setting-row">
+              <div>
+                <p>최근 앱 오류</p>
+                <span>
+                  현재 탭에서 감지된 실행 오류
+                </span>
+              </div>
+
+              <strong id="diagnosticRuntimeError">
+                없음
+              </strong>
+            </div>
           </div>
 
           <div class="sync-diagnostics-actions">
@@ -1391,6 +1404,95 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div
+  class="app-error-modal hidden"
+  id="appErrorModal"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="appErrorTitle"
+  aria-describedby="appErrorMessage"
+  aria-hidden="true"
+>
+  <div
+    class="app-error-backdrop"
+    data-layer-backdrop
+  ></div>
+
+  <section class="app-error-sheet">
+    <div
+      class="app-error-icon"
+      aria-hidden="true"
+    >
+      !
+    </div>
+
+    <p class="app-error-eyebrow">
+      앱 복구
+    </p>
+
+    <h2 id="appErrorTitle">
+      앱에서 오류를 감지했습니다.
+    </h2>
+
+    <p
+      class="app-error-message"
+      id="appErrorMessage"
+    >
+      앱 실행 중 오류가 발생했습니다.
+    </p>
+
+    <p
+      class="app-error-meta"
+      id="appErrorMeta"
+    >
+      오류 정보를 확인하고 있습니다.
+    </p>
+
+    <details class="app-error-details">
+      <summary>
+        오류 정보 보기
+      </summary>
+
+      <pre id="appErrorDetails"></pre>
+    </details>
+
+    <p
+      class="app-error-status"
+      id="appErrorStatus"
+      role="status"
+      aria-live="polite"
+    >
+      앱 데이터는 삭제하지 않고 화면만 다시 불러올 수 있습니다.
+    </p>
+
+    <div class="app-error-actions">
+      <button
+        class="ghost-btn"
+        id="continueAfterErrorBtn"
+        type="button"
+      >
+        계속 사용
+      </button>
+
+      <button
+        class="secondary-btn"
+        id="copyAppErrorBtn"
+        type="button"
+      >
+        오류 정보 복사
+      </button>
+
+      <button
+        class="primary-btn reload-error-btn"
+        id="reloadAppAfterErrorBtn"
+        type="button"
+      >
+        앱 다시 불러오기
+      </button>
+    </div>
+  </section>
+</div>
 
 <div
   class="navigation-modal"
@@ -1914,8 +2016,9 @@
   </div>
 </div>
 
-<script src="./js/config.js?v=dev0215"></script>
+<script src="./js/config.js?v=dev0216"></script>
 <script src="./js/layer-manager.js?v=dev56"></script>
+<script src="./js/error-recovery.js?v=dev0216"></script>
 <script
   type="module"
   src="./js/firebase-client.js"
@@ -1960,7 +2063,7 @@
 
 <script
   type="module"
-  src="./js/sync-diagnostics.js?v=dev0215"
+  src="./js/sync-diagnostics.js?v=dev0216"
 ></script>
 
 </body>

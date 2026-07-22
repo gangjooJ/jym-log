@@ -230,6 +230,12 @@ function createDiagnosticSnapshot() {
   const cloud =
     lastCloudDiagnostics;
 
+  const runtimeError =
+    window.JYMLog
+        .errorRecovery
+        ?.getLastError?.() ||
+    null;  
+
   return {
     generatedAt:
       new Date()
@@ -244,6 +250,11 @@ function createDiagnosticSnapshot() {
       online:
         navigator.onLine
     },
+
+    runtimeError:
+        runtimeError
+            ? runtimeError
+            : null,
 
     sync: {
       active:
@@ -444,6 +455,23 @@ function renderDiagnostics() {
           sync.lastError.context,
           sync.lastError.message
         ].join(" · ")
+      : "없음"
+  );
+
+  setText(
+    "diagnosticRuntimeError",
+    snapshot.runtimeError
+      ? [
+          snapshot
+            .runtimeError
+            .name,
+
+          snapshot
+            .runtimeError
+            .message
+        ]
+          .filter(Boolean)
+          .join(" · ")
       : "없음"
   );
 
@@ -673,7 +701,8 @@ function initialize() {
   [
     "jym-log:sync-status",
     "jym-log:sync-conflict",
-    "jym-log:sync-conflict-resolved"
+    "jym-log:sync-conflict-resolved",
+    "jym-log:runtime-error"
   ].forEach(
     (eventName) => {
       window.addEventListener(

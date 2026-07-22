@@ -2,8 +2,8 @@ window.JYMLog = window.JYMLog || {};
 
 window.JYMLog.config = Object.freeze({
   appName: "JYM Log",
-  version: "v0.2.1-dev.5",
-  updatedAt: "2026-07-21",
+  version: "v0.2.1-dev.6",
+  updatedAt: "2026-07-22",
   storageKey: "jym-log-prototype-state",
   locale: "ko-KR",
   timezone: "Asia/Seoul",
