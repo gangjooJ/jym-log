@@ -4,12 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content" />
   <meta name="theme-color" content="#f4f7fb" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
   <title>JYM Log</title>
 
-  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="manifest" href="./manifest.webmanifest" crossorigin="use-credentials" />
   <link rel="icon" href="./assets/jym-app-icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
 
@@ -23,6 +24,7 @@
   <link rel="stylesheet" href="./css/routine-schedule.css" />
   <link rel="stylesheet" href="./css/sync-diagnostics.css?v=dev0215" />
   <link rel="stylesheet" href="./css/error-recovery.css?v=dev0216" />
+  <link rel="stylesheet" href="./css/app-health.css?v=dev0217" />
 </head>
 
 <body>
@@ -1359,6 +1361,83 @@
         </div>
       </details>
 
+      <div class="section-title">
+        <h2>앱 자가진단</h2>
+        <small>출시 전 점검</small>
+      </div>
+
+      <details
+        class="card app-health-card"
+        id="appHealthDetails"
+      >
+        <summary>
+          핵심 기능 상태 확인
+
+          <span
+            class="app-health-summary"
+            id="appHealthSummary"
+          >
+            실행 전
+          </span>
+        </summary>
+
+        <div class="app-health-content">
+          <div class="app-health-overview">
+            <span
+              class="app-health-badge"
+              id="appHealthBadge"
+              data-state="idle"
+            >
+              실행 전
+            </span>
+
+            <p>
+              최근 점검:
+              <span id="appHealthGenerated">
+                없음
+              </span>
+            </p>
+          </div>
+
+          <div
+            class="app-health-results"
+            id="appHealthResults"
+            aria-live="polite"
+          >
+            <div class="app-health-empty">
+              전체 진단을 실행하면 결과가 표시됩니다.
+            </div>
+          </div>
+
+          <div class="app-health-actions">
+            <button
+              class="secondary-btn"
+              id="runAppHealthBtn"
+              type="button"
+            >
+              전체 진단 실행
+            </button>
+
+            <button
+              class="ghost-btn"
+              id="copyAppHealthBtn"
+              type="button"
+              disabled
+            >
+              결과 복사
+            </button>
+          </div>
+
+          <p
+            class="app-health-message"
+            id="appHealthMessage"
+            role="status"
+            aria-live="polite"
+          >
+            실제 운동 데이터는 변경하지 않고 상태만 확인합니다.
+          </p>
+        </div>
+      </details>
 
       <div class="section-title">
         <h2>앱 정보</h2>
@@ -2016,7 +2095,7 @@
   </div>
 </div>
 
-<script src="./js/config.js?v=dev0216"></script>
+<script src="./js/config.js?v=dev0217"></script>
 <script src="./js/layer-manager.js?v=dev56"></script>
 <script src="./js/error-recovery.js?v=dev0216"></script>
 <script
@@ -2064,6 +2143,11 @@
 <script
   type="module"
   src="./js/sync-diagnostics.js?v=dev0216"
+></script>
+
+<script
+  type="module"
+  src="./js/app-health.js?v=dev0217"
 ></script>
 
 </body>

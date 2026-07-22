@@ -780,16 +780,27 @@
           ""
         ).toUpperCase();
 
-      if (
-        tagName !== "SCRIPT" &&
-        tagName !== "LINK"
-      ) {
+      const relation =
+        String(
+          event.target
+            ?.rel ||
+          ""
+        ).toLowerCase();
+
+      const isCriticalResource =
+        tagName === "SCRIPT" ||
+        (
+          tagName === "LINK" &&
+          relation === "stylesheet"
+        );
+
+      if (!isCriticalResource) {
         return;
       }
 
       captureError(
         createResourceErrorRecord(
-          event.target
+            event.target
         )
       );
 

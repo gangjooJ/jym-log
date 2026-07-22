@@ -1,0 +1,217 @@
+.app-health-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.app-health-card > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  min-height: 60px;
+  padding: 16px;
+
+  cursor: pointer;
+  list-style: none;
+
+  font-weight: 800;
+}
+
+.app-health-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-health-card > summary::after {
+  content: "＋";
+
+  flex: 0 0 auto;
+
+  color: var(--muted);
+  font-size: 20px;
+}
+
+.app-health-card[open] > summary::after {
+  content: "−";
+}
+
+.app-health-summary {
+  margin-left: auto;
+
+  color: var(--muted);
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.app-health-content {
+  padding: 0 14px 16px;
+}
+
+.app-health-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 14px;
+
+  border: 1px solid var(--line);
+  border-radius: 16px;
+
+  background: var(--surface-2);
+}
+
+.app-health-overview p {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.app-health-badge {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 30px;
+  padding: 0 10px;
+
+  border-radius: 999px;
+
+  background: #f3f4f6;
+  color: var(--muted);
+
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.app-health-badge[data-state="pass"] {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.app-health-badge[data-state="warn"] {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.app-health-badge[data-state="fail"] {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.app-health-results {
+  display: grid;
+  gap: 8px;
+
+  margin-top: 12px;
+}
+
+.app-health-empty {
+  padding: 18px;
+
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+
+  color: var(--muted);
+
+  font-size: 12px;
+  text-align: center;
+}
+
+.app-health-result {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 10px;
+  align-items: start;
+
+  padding: 13px;
+
+  border: 1px solid var(--line);
+  border-radius: 16px;
+
+  background: var(--surface);
+}
+
+.app-health-result-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 28px;
+  padding: 0 7px;
+
+  border-radius: 999px;
+
+  background: #f3f4f6;
+  color: var(--muted);
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.app-health-result[data-status="pass"]
+.app-health-result-status {
+  background: #dcfce7;
+  color: #047857;
+}
+
+.app-health-result[data-status="warn"]
+.app-health-result-status {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.app-health-result[data-status="fail"]
+.app-health-result-status {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.app-health-result strong {
+  display: block;
+
+  font-size: 13px;
+}
+
+.app-health-result p {
+  margin-top: 4px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+  line-height: 1.5;
+
+  overflow-wrap: anywhere;
+}
+
+.app-health-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+
+  margin-top: 14px;
+}
+
+.app-health-message {
+  min-height: 20px;
+  margin: 10px 3px 0;
+
+  color: var(--muted);
+
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 390px) {
+  .app-health-card > summary {
+    align-items: flex-start;
+  }
+
+  .app-health-summary {
+    max-width: 120px;
+    text-align: right;
+  }
+
+  .app-health-actions {
+    grid-template-columns: 1fr;
+  }
+}
