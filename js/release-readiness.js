@@ -5,7 +5,7 @@
     window.JYMLog || {};
 
   const TARGET_VERSION =
-    "v0.2.1-rc.1";
+    "v0.2.1";
 
   const VALID_STATES =
     new Set([
@@ -621,7 +621,7 @@
 
       badgeElement.textContent =
         ready
-          ? "RC 준비 완료"
+          ? "배포 준비 완료"
           : overall === "fail"
             ? "수정 필요"
             : "점검 진행 중";
@@ -847,7 +847,7 @@
 
     setMessage(
       report.ready
-        ? "RC 준비 완료 보고서를 저장했습니다."
+        ? "정식 배포 준비 완료 보고서를 저장했습니다."
         : "현재 진행 상태의 릴리스 점검 보고서를 저장했습니다."
     );
 
@@ -902,7 +902,7 @@
       return report;
     } catch (error) {
       console.warn(
-        "[JYM Log] RC 준비 자가진단 실행 실패",
+        "[JYM Log] 정식 배포 준 자가진단 실행 실패",
         error
       );
 
