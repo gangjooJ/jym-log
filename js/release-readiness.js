@@ -5,7 +5,7 @@
     window.JYMLog || {};
 
   const TARGET_VERSION =
-    "v0.2.1";
+    "v0.2.2";
 
   const VALID_STATES =
     new Set([
@@ -902,7 +902,7 @@
       return report;
     } catch (error) {
       console.warn(
-        "[JYM Log] 정식 배포 준 자가진단 실행 실패",
+        "[JYM Log] 정식 배포 준비 자가진단 실행 실패",
         error
       );
 
