@@ -7,6 +7,9 @@
   const TEMP_STORAGE_PREFIX =
     "jym-log:health-check:";
 
+  const REPORT_STORAGE_KEY =
+    "jym-log:health-check:last-report";  
+
   const REQUIRED_DOM_IDS = [
     "authScreen",
     "mainApp",
@@ -21,6 +24,9 @@
     "selectBackupFileBtn",
     "restoreBackupBtn",
     "syncDiagnosticsDetails",
+    "appHealthDetails",
+    "releaseReadinessDetails",
+    "releaseChecklist",
     "settingsVersion"
   ];
 
@@ -78,11 +84,74 @@
       "appHealthMessage"
     );
 
+  function loadStoredReport() {
+    try {
+      const rawValue =
+        sessionStorage
+          .getItem(
+            REPORT_STORAGE_KEY
+          );
+
+      if (!rawValue) {
+        return null;
+      }
+
+      const parsed =
+        JSON.parse(
+            rawValue
+      );
+
+      if (
+        !parsed ||
+        typeof parsed !==
+            "object" ||
+        !parsed.summary ||
+        !Array.isArray(
+            parsed.checks
+        )
+      ) {
+        return null;
+      }
+
+        return parsed;
+    } catch (error) {
+        console.warn(
+          "[JYM Log] 이전 자가진단 결과 불러오기 실패",
+          error
+        );
+
+        return null;
+    }
+  }
+
+  function saveStoredReport(
+    report
+    ) {
+    try {
+        sessionStorage
+        .setItem(
+            REPORT_STORAGE_KEY,
+            JSON.stringify(
+            report
+            )
+        );
+
+        return true;
+    } catch (error) {
+        console.warn(
+        "[JYM Log] 자가진단 결과 저장 실패",
+        error
+        );
+
+        return false;
+    }
+  }  
+
   let running =
     false;
 
   let lastReport =
-    null;
+    loadStoredReport();
 
   function sanitizeText(
     value,
@@ -1312,6 +1381,10 @@
     lastReport =
       report;
 
+    saveStoredReport(
+      report
+    );  
+
     renderReport(
       report
     );
@@ -1480,7 +1553,11 @@
       }
     );
 
-    if (copyButton) {
+    if (lastReport) {
+      renderReport(
+        lastReport
+      );
+    } else if (copyButton) {
       copyButton.disabled =
         true;
     }

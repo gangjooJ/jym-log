@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="./css/sync-diagnostics.css?v=dev0215" />
   <link rel="stylesheet" href="./css/error-recovery.css?v=dev0216" />
   <link rel="stylesheet" href="./css/app-health.css?v=dev0217" />
+  <link rel="stylesheet" href="./css/release-readiness.css?v=dev0218" />
 </head>
 
 <body>
@@ -1440,6 +1441,123 @@
       </details>
 
       <div class="section-title">
+        <h2>릴리스 후보 준비</h2>
+        <small>RC 회귀 테스트</small>
+      </div>
+
+      <details
+        class="card release-readiness-card"
+        id="releaseReadinessDetails"
+      >
+        <summary>
+          v0.2.1 최종 점검
+
+          <span
+            class="release-readiness-summary"
+            id="releaseReadinessSummary"
+          >
+            통과 0 · 실패 0 · 미확인 14
+          </span>
+        </summary>
+
+        <div class="release-readiness-content">
+          <div class="release-readiness-overview">
+            <div class="release-readiness-head">
+              <div class="release-readiness-target">
+                목표 버전
+                <strong id="releaseTargetVersion">
+                  v0.2.1-rc.1
+                </strong>
+              </div>
+
+              <span
+                class="release-readiness-badge"
+                id="releaseReadinessBadge"
+                data-state="warn"
+              >
+                점검 진행 중
+              </span>
+            </div>
+
+            <div>
+              <div class="release-progress-head">
+                <span>수동 회귀 테스트 완료율</span>
+
+                <strong id="releaseReadinessProgressText">
+                  0%
+                </strong>
+              </div>
+
+              <div class="release-progress-track">
+                <div
+                  class="release-progress-bar"
+                  id="releaseReadinessProgress"
+                  role="progressbar"
+                  aria-label="회귀 테스트 완료율"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="0"
+                ></div>
+              </div>
+            </div>
+
+            <div class="release-health-row">
+              <span>자동 앱 자가진단</span>
+
+              <strong
+                class="release-health-status"
+                id="releaseHealthStatus"
+                data-state="pending"
+              >
+                실행 전
+              </strong>
+            </div>
+          </div>
+
+          <div
+            class="release-checklist"
+            id="releaseChecklist"
+            aria-live="polite"
+          ></div>
+
+          <div class="release-readiness-actions">
+            <button
+              class="secondary-btn"
+              id="runReleaseHealthBtn"
+              type="button"
+            >
+              자가진단 다시 실행
+            </button>
+
+            <button
+              class="ghost-btn"
+              id="exportReleaseReportBtn"
+              type="button"
+            >
+              점검 보고서 저장
+            </button>
+
+            <button
+              class="ghost-btn reset-release-btn"
+              id="resetReleaseChecklistBtn"
+              type="button"
+            >
+              수동 결과 초기화
+            </button>
+          </div>
+
+          <p
+            class="release-readiness-message"
+            id="releaseReadinessMessage"
+            role="status"
+            aria-live="polite"
+          >
+            자동 진단과 모든 수동 회귀 테스트를 통과해야 RC 준비가 완료됩니다.
+          </p>
+        </div>
+      </details>
+
+      <div class="section-title">
         <h2>앱 정보</h2>
       </div>
 
@@ -2095,7 +2213,7 @@
   </div>
 </div>
 
-<script src="./js/config.js?v=dev0217"></script>
+<script src="./js/config.js?v=dev0218"></script>
 <script src="./js/layer-manager.js?v=dev56"></script>
 <script src="./js/error-recovery.js?v=dev0216"></script>
 <script
@@ -2148,6 +2266,11 @@
 <script
   type="module"
   src="./js/app-health.js?v=dev0217"
+></script>
+
+<script
+  type="module"
+  src="./js/release-readiness.js?v=dev0218"
 ></script>
 
 </body>
