@@ -2090,36 +2090,38 @@
     const action =
       actionButton.dataset.action;
 
-    if (!action) {
+    /*
+    * 숫자 변경은 numericScrubber와
+    * handleSetChange가 처리합니다.
+    * 이 함수는 세트 완료만 처리합니다.
+    */
+    if (action !== "done") {
       return;
     }
 
-    if (
-      action === "done" &&
-      doneActionLocked
-    ) {
+    if (doneActionLocked) {
       return;
     }
 
-    if (action === "done") {
-      doneActionLocked = true;
+    doneActionLocked = true;
 
-      actionButton.disabled =
-        true;
+    actionButton.disabled =
+      true;
 
-      window.setTimeout(
-        () => {
-          doneActionLocked =
-            false;
-        },
-        240
-      );
-    }
+    window.setTimeout(
+      () => {
+        doneActionLocked =
+          false;
+      },
+      240
+    );
 
     syncState();
 
     const exerciseIndex =
-      Number(state.activeExercise) || 0;
+      Number(
+        state.activeExercise
+      ) || 0;
 
     const setIndex =
       Number(
@@ -2131,81 +2133,31 @@
 
     if (
       !exercise ||
-      !Number.isInteger(setIndex) ||
+      !Number.isInteger(
+        setIndex
+      ) ||
       setIndex < 0
     ) {
       return;
     }
 
-    const set =
-      workout.getSet(
-        exerciseIndex,
-        setIndex
-      );
+    try {
+      const isDone =
+        workout.toggleSetDone(
+          exerciseIndex,
+          setIndex
+        );
 
-    if (action === "weight-down") {
-      workout.updateSet(
-        exerciseIndex,
-        setIndex,
-        "weight",
-        Math.max(
-          0,
-          Number(set.weight) -
-            exercise.increment
-        )
-      );
-    }
-
-    if (action === "weight-up") {
-      workout.updateSet(
-        exerciseIndex,
-        setIndex,
-        "weight",
-        Number(set.weight) +
-          exercise.increment
-      );
-    }
-
-    if (action === "reps-down") {
-      workout.updateSet(
-        exerciseIndex,
-        setIndex,
-        "reps",
-        Math.max(
-          0,
-          Number(set.reps) - 1
-        )
-      );
-    }
-
-    if (action === "reps-up") {
-      workout.updateSet(
-        exerciseIndex,
-        setIndex,
-        "reps",
-        Number(set.reps) + 1
-      );
-    }
-
-    if (action === "done") {
-      try {
-        const isDone =
-          workout.toggleSetDone(
-            exerciseIndex,
-            setIndex
-          );
-
-        if (isDone) {
-          startRest(
-            exercise.rest
-          );
-        }
-      } catch (error) {
-        showToast(
-          error.message ||
-          "세트 입력값을 확인해 주세요."
+      if (isDone) {
+        startRest(
+          exercise.rest
         );
       }
+    } catch (error) {
+      showToast(
+        error.message ||
+        "세트 입력값을 확인해 주세요."
+      );
     }
 
     syncState();

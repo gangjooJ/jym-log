@@ -1686,7 +1686,7 @@ function syncExerciseTypeFields() {
   exerciseRequiredSuccessesInput.disabled =
     isManual;
   exerciseIncrementInput.disabled =
-    isManual;
+    false;
   exerciseSetsInput.disabled =
     isStage;
   exerciseMinRepsInput.disabled =
@@ -1722,7 +1722,7 @@ function syncExerciseTypeFields() {
       stage:
         "현재 반복 단계를 달성하면 다음 단계로 이동하고, 최종 단계에서 중량을 증가합니다.",
       manual:
-        "운동 기록만 저장하며 자동 진행 추천이나 적용 버튼을 표시하지 않습니다."
+        "자동 증량 추천은 사용하지 않습니다. 중량 조절 간격은 운동 화면의 중량 변경 단위로 사용됩니다."
     };
 
     exerciseProgressionHelp.textContent =
@@ -2138,10 +2138,6 @@ async function saveExerciseEditor(
       exerciseIncrementInput.value
   };
 
-  setExerciseEditorBusy(
-    true
-  );
-
   saveExerciseEditorBtn.disabled =
     true;
 
@@ -2183,8 +2179,8 @@ async function saveExerciseEditor(
       );
     }
 
-    closeExerciseEditor();
-  } catch (error) {
+  closeExerciseEditor();
+    } catch (error) {
     console.error(
       "[JYM Log] 운동 설정 처리 실패",
       error
@@ -2192,15 +2188,14 @@ async function saveExerciseEditor(
 
     setExerciseEditorMessage(
       error.message ||
-      "운동 설정을 처리하지 못했습니다.",
+        "운동 설정을 처리하지 못했습니다.",
       true
     );
-
-  setExerciseEditorBusy(
-    false
-  );
-
   } finally {
+    setExerciseEditorBusy(
+      false
+    );
+
     saveExerciseEditorBtn.disabled =
       false;
 
@@ -2208,11 +2203,13 @@ async function saveExerciseEditor(
       false;
 
     if (
-      !exerciseEditorModal.classList
+      !exerciseEditorModal
+        .classList
         .contains("hidden")
     ) {
       saveExerciseEditorBtn.textContent =
-        exerciseEditorMode === "create"
+        exerciseEditorMode ===
+        "create"
           ? "운동 추가"
           : "운동 설정 저장";
     }
