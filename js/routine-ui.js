@@ -216,7 +216,7 @@ const addExerciseBtn =
   );
 
 const layerManager =
-  window.JYMLog.layerManager;  
+  window.JYMLog.layerManager;
 
 let editingExerciseIndex = null;
 let exerciseEditorMode = "edit";
@@ -248,6 +248,14 @@ function setExerciseEditorBusy(
       String(
         exerciseEditorBusy
       )
+    );
+}
+
+function syncNumericScrubbers() {
+  window.JYMLog
+    .numericScrubber
+    ?.syncAll?.(
+      exerciseEditorForm
     );
 }
 
@@ -1644,6 +1652,8 @@ function syncStageDerivedFields() {
     Math.min(...targets);
   exerciseMaxRepsInput.value =
     Math.max(...targets);
+
+  syncNumericScrubbers();
 }
 
 function syncExerciseTypeFields() {
@@ -1718,6 +1728,8 @@ function syncExerciseTypeFields() {
     exerciseProgressionHelp.textContent =
       help[strategy] || help.load;
   }
+
+  syncNumericScrubbers();
 }
 
 function readExerciseStageDrafts() {
@@ -1861,6 +1873,8 @@ function openExerciseEditor(
       exercise
     );
 
+  syncNumericScrubbers();
+
   saveExerciseEditorBtn.textContent =
     "운동 설정 저장";
 
@@ -1934,6 +1948,8 @@ function openExerciseCreator() {
   window.JYMLog
     .exerciseCatalogUI
     ?.openForCreate?.();
+
+  syncNumericScrubbers();
 
   saveExerciseEditorBtn.textContent =
     "운동 추가";
@@ -2395,6 +2411,12 @@ function initialize(options = {}) {
   window.JYMLog
     .exerciseCatalogUI
     ?.initialize?.();
+
+  window.JYMLog
+    .numericScrubber
+    ?.enhanceAll?.(
+      exerciseEditorForm
+    );
 
   if (
     typeof options.toast ===

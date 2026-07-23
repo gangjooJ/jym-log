@@ -1578,7 +1578,7 @@
 
     renderScheduleDetail(
       session
-    );    
+    );
 
     const recordedExercises =
       Array.isArray(

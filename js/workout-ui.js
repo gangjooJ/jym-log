@@ -89,7 +89,7 @@
     document.getElementById(
       "screen-workout"
     );
-  
+
     const timerCard =
     document.getElementById(
       "timerCard"
@@ -2141,7 +2141,7 @@
       workout.getSet(
         exerciseIndex,
         setIndex
-      ); 
+      );
 
     if (action === "weight-down") {
       workout.updateSet(

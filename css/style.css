@@ -58,7 +58,7 @@
       width:40px;height:40px;border:0;border-radius:14px;background:var(--surface);
       display:grid;place-items:center;box-shadow:0 5px 15px rgba(15,23,42,.06);font-size:18px
     }
-    
+
     main{padding:2px 16px 106px}
     .screen{display:none;animation:fade .18s ease}
     .screen.active{display:block}

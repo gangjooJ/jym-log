@@ -26,7 +26,7 @@ const SYNC_RETRY_DELAYS_MS = [
   7000,
   15000,
   30000
-];  
+];
 
 function withTimeout(
   promise,
@@ -1035,10 +1035,10 @@ async function resolveSyncConflict(
       getStateUpdatedAt(
         resolvedLocalState
       ) ||
-      Date.now();  
+      Date.now();
 
     clearSyncRetry();
-    
+
     pendingPayload = null;
     syncConflictActive = false;
 
@@ -1153,7 +1153,7 @@ async function flushPendingState() {
         result.revision
       );
 
-    clearSyncRetry();  
+    clearSyncRetry();
 
     storage.clearPendingSync(
       userId,
@@ -1986,7 +1986,7 @@ window.JYMLog.sync =
       resolveSyncConflict,
 
     getDiagnostics:
-      getSyncDiagnostics,  
+      getSyncDiagnostics,
 
     getConflict() {
       if (!activeUserId) {

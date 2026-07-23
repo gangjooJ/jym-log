@@ -17,6 +17,7 @@ const APP_SHELL = [
   "./css/home-insights.css?v=dev0306",
   "./css/exercise-analysis.css?v=dev0306",
   "./css/exercise-catalog.css?v=dev0306",
+  "./css/numeric-scrubber.css?v=dev0306",
 
   "./js/config.js?v=dev0306",
   "./js/layer-manager.js?v=dev0306",
@@ -44,6 +45,7 @@ const APP_SHELL = [
   "./js/storage.js",
   "./js/exercise-catalog.js?v=dev0306",
   "./js/exercise-catalog-ui.js?v=dev0306",
+  "./js/numeric-scrubber.js?v=dev0306",
   "./js/progression-policy.js",
   "./js/workout.js?v=dev0306",
   "./js/progression-engine.js",

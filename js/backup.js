@@ -938,7 +938,7 @@ function initializeBackupUI() {
   const restoreButton =
     document.getElementById(
       "restoreBackupBtn"
-    );  
+    );
 
   function showInspection(
     title,
@@ -1102,7 +1102,7 @@ function initializeBackupUI() {
           new CustomEvent(
             "jym-log:backup-cleared"
           )
-        );  
+        );
 
         if (selectButton) {
           selectButton.disabled =

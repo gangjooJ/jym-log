@@ -8,7 +8,7 @@
     "jym-log:health-check:";
 
   const REPORT_STORAGE_KEY =
-    "jym-log:health-check:last-report";  
+    "jym-log:health-check:last-report";
 
   const REQUIRED_DOM_IDS = [
     "authScreen",
@@ -80,6 +80,7 @@
     ["운동 상태", "workout"],
     ["운동 종목", "exerciseCatalog"],
     ["운동 종목 선택 화면", "exerciseCatalogUI"],
+    ["숫자 조절", "numericScrubber"],
     ["운동 기록", "history"],
     ["홈 최근 흐름", "homeInsights"],
     ["Firebase", "firebase"],
@@ -192,7 +193,7 @@
 
         return false;
     }
-  }  
+  }
 
   let running =
     false;
@@ -624,6 +625,16 @@
         "exerciseCatalogUI.getSuggestedTemplate",
         app.exerciseCatalogUI
           ?.getSuggestedTemplate
+      ],
+      [
+        "numericScrubber.enhanceAll",
+        app.numericScrubber
+          ?.enhanceAll
+      ],
+      [
+        "numericScrubber.syncAll",
+        app.numericScrubber
+          ?.syncAll
       ],
       [
         "history.filterValidWorkoutSessions",
@@ -1588,7 +1599,7 @@
 
     saveStoredReport(
       report
-    );  
+    );
 
     renderReport(
       report

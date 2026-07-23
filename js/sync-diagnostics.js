@@ -234,7 +234,7 @@ function createDiagnosticSnapshot() {
     window.JYMLog
         .errorRecovery
         ?.getLastError?.() ||
-    null;  
+    null;
 
   return {
     generatedAt:

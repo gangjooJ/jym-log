@@ -29,6 +29,7 @@
   <link rel="stylesheet" href="./css/home-insights.css?v=dev0306" />
   <link rel="stylesheet" href="./css/exercise-analysis.css?v=dev0306" />
   <link rel="stylesheet" href="./css/exercise-catalog.css?v=dev0306" />
+  <link rel="stylesheet" href="./css/numeric-scrubber.css?v=dev0306" />
 </head>
 
 <body>
@@ -1383,9 +1384,9 @@
       </form>
 
       <div id="routineList"></div>
-      <button 
-        class="secondary-btn full" 
-        style="margin-top:12px"   
+      <button
+        class="secondary-btn full"
+        style="margin-top:12px"
         id="addExerciseBtn"
         type="button"
       >
@@ -2424,8 +2425,11 @@
             type="number"
             min="0"
             max="1000"
-            step="0.5"
+            step="any"
             inputmode="decimal"
+            data-numeric-scrubber
+            data-scrubber-unit="kg"
+            data-scrubber-step-input="exerciseIncrementInput"
             required
           >
         </div>
@@ -2442,6 +2446,9 @@
             max="20"
             step="1"
             inputmode="numeric"
+            data-numeric-scrubber
+            data-scrubber-unit="세트"
+            data-scrubber-step="1"
             required
           >
         </div>
@@ -2458,6 +2465,9 @@
             max="100"
             step="1"
             inputmode="numeric"
+            data-numeric-scrubber
+            data-scrubber-unit="회"
+            data-scrubber-step="1"
             required
           >
         </div>
@@ -2474,6 +2484,9 @@
             max="100"
             step="1"
             inputmode="numeric"
+            data-numeric-scrubber
+            data-scrubber-unit="회"
+            data-scrubber-step="1"
             required
           >
         </div>
@@ -2488,8 +2501,11 @@
             type="number"
             min="0"
             max="1800"
-            step="10"
+            step="1"
             inputmode="numeric"
+            data-numeric-scrubber
+            data-scrubber-unit="초"
+            data-scrubber-step="15"
             required
           >
         </div>
@@ -2506,6 +2522,9 @@
             max="100"
             step="any"
             inputmode="decimal"
+            data-numeric-scrubber
+            data-scrubber-unit="kg"
+            data-scrubber-step="0.25"
             required
           >
         </div>
@@ -2526,6 +2545,9 @@
           max="10"
           step="1"
           inputmode="numeric"
+          data-numeric-scrubber
+          data-scrubber-unit="회"
+          data-scrubber-step="1"
           required
         >
       </div>
@@ -2813,9 +2835,8 @@
 ></script>
 <script src="./js/storage.js"></script>
 <script src="./js/exercise-catalog.js?v=dev0306"></script>
-<script src="./js/exercise-catalog.js?v=dev0306"></script>
 <script src="./js/exercise-catalog-ui.js?v=dev0306"></script>
-<script src="./js/progression-policy.js"></script>
+<script src="./js/numeric-scrubber.js?v=dev0306"></script>
 <script src="./js/progression-policy.js"></script>
 <script src="./js/workout.js?v=dev0306"></script>
 <script src="./js/progression-engine.js"></script>
