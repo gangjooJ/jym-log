@@ -19,16 +19,16 @@ import {
 import {
   initializeWorkoutSync,
   stopWorkoutSync
-} from "./sync.js?v=dev0304";
+} from "./sync.js?v=dev0305";
 
 import {
   ensureActiveRoutine,
   alignRoutineWithWorkoutState
-} from "./routines.js?v=dev0304";
+} from "./routines.js?v=dev0305";
 
 import "./sessions.js";
 import "./history.js";
-import "./analysis.js?v=dev0304";
+import "./analysis.js?v=dev0305";
 
 const workout =
   window.JYMLog.workout;

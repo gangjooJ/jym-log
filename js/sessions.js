@@ -24,6 +24,9 @@ if (!progressionPolicy) {
 
 const SESSION_SCHEMA_VERSION = 1;
 
+const pendingSessionSaves =
+  new Map();
+
 function getCompletedSetCount(state) {
   return Object.values(
     state.sets || {}
@@ -198,7 +201,29 @@ function isBenchPressSuccess(
     ).success;
 }
 
-async function saveCompletedWorkoutSession(
+function getCompletedWorkoutSessionId(
+  state
+) {
+  const startedAtMillis =
+    Number(
+      state?.startedAt
+    );
+
+  if (
+    !Number.isFinite(
+      startedAtMillis
+    ) ||
+    startedAtMillis <= 0
+  ) {
+    return "";
+  }
+
+  return `session-${Math.floor(
+    startedAtMillis
+  )}`;
+}
+
+async function persistCompletedWorkoutSession(
   state = workout.state
 ) {
   const user = auth.currentUser;
@@ -263,7 +288,9 @@ async function saveCompletedWorkoutSession(
     );
 
   const sessionId =
-    `session-${startedAtMillis}`;
+    getCompletedWorkoutSessionId(
+      state
+    );
 
   const sessionDocument = doc(
     db,
@@ -395,6 +422,64 @@ async function saveCompletedWorkoutSession(
   );
 
   return sessionId;
+}
+
+function saveCompletedWorkoutSession(
+  state = workout.state
+) {
+  const sessionId =
+    getCompletedWorkoutSessionId(
+      state
+    );
+
+  /*
+   * 시작 시각이 잘못된 상태는
+   * 실제 저장 함수의 검증에서
+   * 명확한 오류를 반환하게 합니다.
+   */
+  if (!sessionId) {
+    return persistCompletedWorkoutSession(
+      state
+    );
+  }
+
+  const existingSave =
+    pendingSessionSaves.get(
+      sessionId
+    );
+
+  /*
+   * 같은 운동 세션을 저장 중이면
+   * 새 Firestore 요청을 만들지 않고
+   * 진행 중인 Promise를 반환합니다.
+   */
+  if (existingSave) {
+    return existingSave;
+  }
+
+  const savePromise =
+    persistCompletedWorkoutSession(
+      state
+    ).finally(
+      () => {
+        if (
+          pendingSessionSaves.get(
+            sessionId
+          ) === savePromise
+        ) {
+          pendingSessionSaves.delete(
+            sessionId
+          );
+        }
+      }
+    );
+
+  pendingSessionSaves.set(
+    sessionId,
+    savePromise
+  );
+
+  return savePromise;
 }
 
 window.JYMLog.sessions =

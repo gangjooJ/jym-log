@@ -17,12 +17,12 @@ import {
   buildUserBackup,
   getSelectedBackup,
   validateBackupData
-} from "./backup.js?v=dev0304";
+} from "./backup.js?v=dev0305";
 
 import {
   initializeWorkoutSync,
   stopWorkoutSync
-} from "./sync.js?v=dev0304";
+} from "./sync.js?v=dev0305";
 
 window.JYMLog =
   window.JYMLog || {};
