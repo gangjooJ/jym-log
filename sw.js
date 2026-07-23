@@ -1,4 +1,4 @@
-const CACHE_NAME = "jym-log-v0.3.0-dev-6";
+const CACHE_NAME = "jym-log-v0.3.0-dev-7-a";
 
 const APP_SHELL = [
   "./",
@@ -17,7 +17,7 @@ const APP_SHELL = [
   "./css/home-insights.css?v=dev0306",
   "./css/exercise-analysis.css?v=dev0306",
   "./css/exercise-catalog.css?v=dev0306",
-  "./css/numeric-scrubber.css?v=dev0306",
+  "./css/numeric-scrubber.css?v=dev0307a",
 
   "./js/config.js?v=dev0306",
   "./js/layer-manager.js?v=dev0306",
@@ -45,11 +45,11 @@ const APP_SHELL = [
   "./js/storage.js",
   "./js/exercise-catalog.js?v=dev0306",
   "./js/exercise-catalog-ui.js?v=dev0306",
-  "./js/numeric-scrubber.js?v=dev0306",
+  "./js/numeric-scrubber.js?v=dev0307a",
   "./js/progression-policy.js",
   "./js/workout.js?v=dev0306",
   "./js/progression-engine.js",
-  "./js/workout-ui.js?v=dev0306",
+  "./js/workout-ui.js?v=dev0307a",
   "./js/routine-ui.js?v=dev0306",
   "./js/routine-schedule.js",
   "./js/routine-override.js",

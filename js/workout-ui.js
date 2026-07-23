@@ -297,6 +297,14 @@
       const setValidation =
         workout.validateSet(set);
 
+      const weightStep =
+        Math.max(
+          0.01,
+          Number(
+            exercise.increment
+          ) || 1
+        );
+
       rows.push(`
         <div
           class="set-row ${set.done ? "done" : ""}"
@@ -306,15 +314,13 @@
             ${setIndex + 1}
           </div>
 
-          <div class="stepper">
-            <button
-              data-action="weight-down"
-              data-set="${setIndex}"
-              type="button"
-              aria-label="${setIndex + 1}세트 중량 감소"
+          <div class="set-value-control">
+            <span
+              class="set-value-label"
+              aria-hidden="true"
             >
-              −
-            </button>
+              중량
+            </span>
 
             <input
               type="number"
@@ -326,28 +332,21 @@
               value="${set.weight}"
               data-field="weight"
               data-set="${setIndex}"
+              data-numeric-scrubber
+              data-scrubber-unit="kg"
+              data-scrubber-step="${weightStep}"
+              data-scrubber-pixels-per-step="38"
               aria-label="${setIndex + 1}세트 중량"
             >
-
-            <button
-              data-action="weight-up"
-              data-set="${setIndex}"
-              type="button"
-              aria-label="${setIndex + 1}세트 중량 증가"
-            >
-              ＋
-            </button>
           </div>
 
-          <div class="stepper">
-            <button
-              data-action="reps-down"
-              data-set="${setIndex}"
-              type="button"
-              aria-label="${setIndex + 1}세트 반복 감소"
+          <div class="set-value-control">
+            <span
+              class="set-value-label"
+              aria-hidden="true"
             >
-              −
-            </button>
+              반복
+            </span>
 
             <input
               type="number"
@@ -359,17 +358,12 @@
               value="${set.reps}"
               data-field="reps"
               data-set="${setIndex}"
+              data-numeric-scrubber
+              data-scrubber-unit="회"
+              data-scrubber-step="1"
+              data-scrubber-pixels-per-step="38"
               aria-label="${setIndex + 1}세트 반복"
             >
-
-            <button
-              data-action="reps-up"
-              data-set="${setIndex}"
-              type="button"
-              aria-label="${setIndex + 1}세트 반복 증가"
-            >
-              ＋
-            </button>
           </div>
 
           <button
@@ -393,6 +387,12 @@
 
     setList.innerHTML =
       rows.join("");
+
+    window.JYMLog
+      .numericScrubber
+      ?.enhanceAll?.(
+        setList
+      );
   }
 
   function setRestTimerVisible(
@@ -2465,6 +2465,33 @@
     }
   }
 
+  function requestWorkoutFinish() {
+    syncState();
+
+    if (
+      finishInProgress ||
+      state.completed
+    ) {
+      return false;
+    }
+
+    const validation =
+      workout
+        .validateWorkoutCompletion(
+          state
+        );
+
+    if (!validation.valid) {
+      showToast(
+        validation.message
+      );
+
+      return false;
+    }
+
+    return openFatigueModal();
+  }
+
   function openFatigueModal() {
     if (!fatigueModal) {
       return false;
@@ -2629,31 +2656,7 @@
     finishWorkoutBtn
       ?.addEventListener(
         "click",
-        () => {
-          syncState();
-
-          if (
-            finishInProgress ||
-            state.completed
-          ) {
-            return;
-          }
-
-          const validation =
-            workout
-              .validateWorkoutCompletion(
-                state
-              );
-
-          if (!validation.valid) {
-            showToast(
-              validation.message
-            );
-            return;
-          }
-
-          openFatigueModal();
-        }
+        requestWorkoutFinish
       );
 
     confirmFinishBtn
@@ -2881,7 +2884,8 @@
       handleUserStateReady,
       refreshAfterSync,
       renderWorkout,
-      renderSummary
+      renderSummary,
+      requestWorkoutFinish
     });
 })();
 

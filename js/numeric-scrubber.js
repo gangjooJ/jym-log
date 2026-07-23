@@ -58,6 +58,39 @@
     const track = wrapper.querySelector(".numeric-scrubber-track");
     const buttons = [...wrapper.querySelectorAll("[data-step-direction]")];
 
+    const accessibleName =
+      input.getAttribute(
+        "aria-label"
+      ) ||
+      input.labels?.[0]
+        ?.textContent
+        ?.trim() ||
+      "숫자 값";
+
+    picker.setAttribute(
+      "aria-label",
+      accessibleName
+    );
+
+    buttons.forEach(
+      (button) => {
+        const direction =
+          Number(
+            button.dataset
+              .stepDirection
+          );
+
+        button.setAttribute(
+          "aria-label",
+          `${accessibleName} ${
+            direction < 0
+              ? "감소"
+              : "증가"
+          }`
+        );
+      }
+    );
+
     let committed = 0;
     let preview = 0;
     let pointerId = null;

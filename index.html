@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="./css/home-insights.css?v=dev0306" />
   <link rel="stylesheet" href="./css/exercise-analysis.css?v=dev0306" />
   <link rel="stylesheet" href="./css/exercise-catalog.css?v=dev0306" />
-  <link rel="stylesheet" href="./css/numeric-scrubber.css?v=dev0306" />
+  <link rel="stylesheet" href="./css/numeric-scrubber.css?v=dev0307a" />
 </head>
 
 <body>
@@ -2354,65 +2354,62 @@
         >
       </div>
 
+      <div
+        class="exercise-editor-grid exercise-metadata-grid"
+      >
+        <div class="exercise-editor-field">
+          <label for="exerciseEquipmentInput">
+            사용 장비
+          </label>
+
+          <select
+            id="exerciseEquipmentInput"
+            required
+          ></select>
+        </div>
+
+        <div class="exercise-editor-field">
+          <label for="exercisePrimaryBodyPartInput">
+            주요 운동 부위
+          </label>
+
+          <select
+            id="exercisePrimaryBodyPartInput"
+            required
+          ></select>
+        </div>
+      </div>
+
       <div class="exercise-editor-field full">
         <label for="exerciseTypeInput">
           진행 방식
-          <div
-            class="exercise-editor-grid exercise-metadata-grid"
-          >
-            <div class="exercise-editor-field">
-              <label for="exerciseEquipmentInput">
-                사용 장비
-              </label>
+        </label>
 
-              <select
-                id="exerciseEquipmentInput"
-                required
-              ></select>
-            </div>
+        <select id="exerciseTypeInput">
+          <option value="load">
+            중량 증가형 · 고정 반복
+          </option>
 
-            <div class="exercise-editor-field">
-              <label for="exercisePrimaryBodyPartInput">
-                주요 운동 부위
-              </label>
+          <option value="rep-range">
+            반복 범위형
+          </option>
 
-              <select
-                id="exercisePrimaryBodyPartInput"
-                required
-              ></select>
-            </div>
-          </div>
+          <option value="stage">
+            반복 단계형
+          </option>
 
-          <div class="exercise-editor-field full">
-            <label for="exerciseTypeInput">
-              진행 방식
-            </label>
+          <option value="manual">
+            수동 관리형
+          </option>
+        </select>
 
-            <select id="exerciseTypeInput">
-              <option value="load">
-                중량 증가형 · 고정 반복
-              </option>
-
-              <option value="rep-range">
-                반복 범위형
-              </option>
-
-              <option value="stage">
-                반복 단계형
-              </option>
-
-              <option value="manual">
-                수동 관리형
-              </option>
-            </select>
-
-            <small
-              class="progression-editor-help"
-              id="exerciseProgressionHelp"
-            >
-              목표 세트와 반복을 달성하면 설정한 중량만큼 증가합니다.
-            </small>
-          </div>
+        <small
+          class="progression-editor-help"
+          id="exerciseProgressionHelp"
+        >
+          목표 세트와 반복을 달성하면 설정한 중량만큼 증가합니다.
+        </small>
+      </div>
 
       <div class="exercise-editor-grid">
         <div class="exercise-editor-field">
@@ -2836,11 +2833,11 @@
 <script src="./js/storage.js"></script>
 <script src="./js/exercise-catalog.js?v=dev0306"></script>
 <script src="./js/exercise-catalog-ui.js?v=dev0306"></script>
-<script src="./js/numeric-scrubber.js?v=dev0306"></script>
+<script src="./js/numeric-scrubber.js?v=dev0307a"></script>
 <script src="./js/progression-policy.js"></script>
 <script src="./js/workout.js?v=dev0306"></script>
 <script src="./js/progression-engine.js"></script>
-<script src="./js/workout-ui.js?v=dev0306"></script>
+<script src="./js/workout-ui.js?v=dev0307a"></script>
 <script src="./js/routine-ui.js?v=dev0306"></script>
 <script src="./js/progression-history.js"></script>
 <script src="./js/history-ui.js"></script>
