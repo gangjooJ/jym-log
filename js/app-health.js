@@ -62,6 +62,7 @@
     ["레이어 관리자", "layerManager"],
     ["로컬 저장소", "storage"],
     ["운동 상태", "workout"],
+    ["운동 기록", "history"],
     ["홈 최근 흐름", "homeInsights"],
     ["Firebase", "firebase"],
     ["동기화", "sync"],
@@ -575,6 +576,16 @@
         "workout.replaceState",
         app.workout
           ?.replaceState
+      ],
+      [
+        "history.filterValidWorkoutSessions",
+        app.history
+          ?.filterValidWorkoutSessions
+      ],
+      [
+        "history.summarizeWorkoutSessionIntegrity",
+        app.history
+          ?.summarizeWorkoutSessionIntegrity
       ],
       [
         "homeInsights.refresh",
@@ -1166,6 +1177,100 @@
     );
   }
 
+  async function checkWorkoutSessionIntegrity(
+    checks
+  ) {
+    const historyApi =
+      window.JYMLog.history;
+
+    const user =
+      window.JYMLog
+        .firebase
+        ?.auth
+        ?.currentUser;
+
+    if (!user?.uid) {
+      addCheck(
+        checks,
+        "workout-session-integrity",
+        "최근 운동 기록",
+        "skip",
+        "로그인 후 완료 기록 무결성을 확인할 수 있습니다."
+      );
+
+      return;
+    }
+
+    if (
+      typeof historyApi
+        ?.loadRecentWorkoutSessions !==
+          "function" ||
+      typeof historyApi
+        ?.summarizeWorkoutSessionIntegrity !==
+          "function"
+    ) {
+      addCheck(
+        checks,
+        "workout-session-integrity",
+        "최근 운동 기록",
+        "fail",
+        "운동 기록 무결성 검사 API를 찾을 수 없습니다."
+      );
+
+      return;
+    }
+
+    try {
+      const sessions =
+        await historyApi
+          .loadRecentWorkoutSessions(
+            100
+          );
+
+      const summary =
+        historyApi
+          .summarizeWorkoutSessionIntegrity(
+            sessions
+          );
+
+      if (
+        summary.invalidCount > 0
+      ) {
+        addCheck(
+          checks,
+          "workout-session-integrity",
+          "최근 운동 기록",
+          "warn",
+          [
+            `최근 ${summary.totalCount}개 중`,
+            `비정상 기록 ${summary.invalidCount}개`,
+            `빈 기록 ${summary.emptySessionCount}개`,
+            `완료 시각 누락 ${summary.missingCompletedAtCount}개`
+          ].join(" · ")
+        );
+
+        return;
+      }
+
+      addCheck(
+        checks,
+        "workout-session-integrity",
+        "최근 운동 기록",
+        "pass",
+        `최근 완료 기록 ${summary.validCount}개의 무결성을 확인했습니다.`
+      );
+    } catch (error) {
+      addCheck(
+        checks,
+        "workout-session-integrity",
+        "최근 운동 기록",
+        "warn",
+        error?.message ||
+          "최근 완료 기록을 검사하지 못했습니다."
+      );
+    }
+  }
+
   async function checkServiceWorker(
     checks
   ) {
@@ -1383,6 +1488,10 @@
       );
 
       checkRuntimeError(
+        checks
+      );
+
+      await checkWorkoutSessionIntegrity(
         checks
       );
 

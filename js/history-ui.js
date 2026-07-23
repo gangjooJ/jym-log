@@ -1426,8 +1426,27 @@
             100
           );
 
+      const integritySummary =
+        historyApi
+          .summarizeWorkoutSessionIntegrity(
+            sessions
+          );
+
       sessionsCache =
-        sessions;
+        historyApi
+          .filterValidWorkoutSessions(
+            sessions
+          );
+
+      if (
+        integritySummary.invalidCount >
+        0
+      ) {
+        console.warn(
+          "[JYM Log] 기록 화면에서 비정상 완료 세션을 제외했습니다.",
+          integritySummary
+        );
+      }
 
       renderCalendar(
         sessionsCache
