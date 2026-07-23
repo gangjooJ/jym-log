@@ -258,12 +258,75 @@
   function normalizeRoutineExercise(exercise, options = {}) {
     const index = Math.max(0, Math.round(toFiniteNumber(options.index, exercise?.order || 0)));
     const id = normalizeIdentifier(exercise?.id, `exercise-${index + 1}`);
+
+        const catalog =
+      window.JYMLog
+        .exerciseCatalog;
+
+    const requestedTemplateId =
+      String(
+        exercise?.templateId ||
+        ""
+      ).trim();
+
+    const templateId =
+      catalog
+        ?.normalizeTemplateId?.(
+          requestedTemplateId
+        ) ||
+      "";
+
+    const template =
+      templateId
+        ? catalog
+            ?.getTemplateById?.(
+              templateId
+            )
+        : null;
+
+    const equipment =
+      catalog
+        ?.normalizeEquipment?.(
+          exercise?.equipment
+        ) ||
+      "other";
+
+    const primaryBodyPart =
+      catalog
+        ?.normalizeBodyPart?.(
+          exercise
+            ?.primaryBodyPart ||
+          template
+            ?.primaryBodyPart
+        ) ||
+      "other";
+
+    const requestedSource =
+      String(
+        exercise?.source ||
+        ""
+      ).trim();
+
+    const source =
+      templateId
+        ? "builtin"
+        : requestedSource ===
+            "custom"
+          ? "custom"
+          : "legacy";
+
     const routineId = normalizeIdentifier(
       exercise?.routineId || options.routineId,
       "main"
     );
 
-    const name = String(exercise?.name || `운동 ${index + 1}`).trim() || `운동 ${index + 1}`;
+        const name =
+      String(
+        exercise?.name ||
+        template?.name ||
+        `운동 ${index + 1}`
+      ).trim() ||
+      `운동 ${index + 1}`;
     const minReps = toPositiveInteger(exercise?.min, 1);
     const maxReps = Math.max(
       minReps,
@@ -279,6 +342,10 @@
         exercise?.routineExerciseId,
         createRoutineExerciseId(routineId, id, index)
       ),
+      templateId,
+      equipment,
+      primaryBodyPart,
+      source,
       order: index,
       name,
       icon: String(exercise?.icon || name.charAt(0) || "E").slice(0, 2),

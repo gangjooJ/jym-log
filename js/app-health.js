@@ -62,6 +62,7 @@
     ["레이어 관리자", "layerManager"],
     ["로컬 저장소", "storage"],
     ["운동 상태", "workout"],
+    ["운동 종목", "exerciseCatalog"],
     ["운동 기록", "history"],
     ["홈 최근 흐름", "homeInsights"],
     ["Firebase", "firebase"],
@@ -576,6 +577,21 @@
         "workout.replaceState",
         app.workout
           ?.replaceState
+      ],
+            [
+        "exerciseCatalog.listTemplates",
+        app.exerciseCatalog
+          ?.listTemplates
+      ],
+      [
+        "exerciseCatalog.searchTemplates",
+        app.exerciseCatalog
+          ?.searchTemplates
+      ],
+      [
+        "exerciseCatalog.normalizeEquipment",
+        app.exerciseCatalog
+          ?.normalizeEquipment
       ],
       [
         "history.filterValidWorkoutSessions",

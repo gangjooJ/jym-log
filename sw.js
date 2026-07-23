@@ -41,6 +41,7 @@ const APP_SHELL = [
   "./js/app-health.js?v=dev0305",
   "./js/release-readiness.js?v=dev0305",
   "./js/storage.js",
+  "./js/exercise-catalog.js?v=dev0305",
   "./js/progression-policy.js",
   "./js/workout.js?v=dev0305",
   "./js/progression-engine.js",

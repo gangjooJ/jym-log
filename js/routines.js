@@ -279,6 +279,79 @@ function validateExerciseInput(
     );
   }
 
+    const catalog =
+    window.JYMLog
+      .exerciseCatalog;
+
+  if (!catalog) {
+    throw new Error(
+      "운동 종목 카탈로그를 불러오지 못했습니다."
+    );
+  }
+
+  const requestedTemplateId =
+    normalizeText(
+      input.templateId ??
+      currentExercise
+        ?.templateId
+    );
+
+  const templateId =
+    catalog
+      .normalizeTemplateId(
+        requestedTemplateId
+      );
+
+  if (
+    requestedTemplateId &&
+    !templateId
+  ) {
+    throw new Error(
+      "선택한 운동 종목을 카탈로그에서 찾을 수 없습니다."
+    );
+  }
+
+  const template =
+    templateId
+      ? catalog
+          .getTemplateById(
+            templateId
+          )
+      : null;
+
+  const equipment =
+    catalog
+      .normalizeEquipment(
+        input.equipment ??
+        currentExercise
+          ?.equipment
+      );
+
+  const primaryBodyPart =
+    catalog
+      .normalizeBodyPart(
+        input.primaryBodyPart ??
+        currentExercise
+          ?.primaryBodyPart ??
+        template
+          ?.primaryBodyPart
+      );
+
+  const requestedSource =
+    normalizeText(
+      input.source ??
+      currentExercise
+        ?.source
+    );
+
+  const source =
+    templateId
+      ? "builtin"
+      : requestedSource ===
+          "legacy"
+        ? "legacy"
+        : "custom";
+
   const allowedStrategies =
     new Set([
       "load",
@@ -440,6 +513,10 @@ function validateExerciseInput(
       currentExercise.id ||
       `exercise-${exerciseIndex + 1}`,
     order: exerciseIndex,
+    templateId,
+    equipment,
+    primaryBodyPart,
+    source,
     name,
     icon:
       currentExercise.icon ||
@@ -872,6 +949,10 @@ function createStarterExercise(
       id: createExerciseId(),
       routineId,
       routineExerciseId: "",
+      templateId: "",
+      equipment: "other",
+      primaryBodyPart: "other",
+      source: "legacy",
       order: 0,
       name: "새 운동",
       icon: "🏋️",
@@ -1829,6 +1910,10 @@ async function addActiveRoutineExercise(
 
   const exerciseDraft = {
     id: createExerciseId(),
+    templateId: "",
+    equipment: "other",
+    primaryBodyPart: "other",
+    source: "custom",
     order: exerciseIndex,
     name: "새 운동",
     icon: "",

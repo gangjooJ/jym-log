@@ -126,6 +126,30 @@ function buildExerciseResults(
             .routineExerciseId,
         exerciseId:
           normalizedExercise.id,
+
+                exerciseId:
+          normalizedExercise.id,
+
+        templateId:
+          normalizedExercise
+            .templateId ||
+          null,
+
+        equipment:
+          normalizedExercise
+            .equipment ||
+          "other",
+
+        primaryBodyPart:
+          normalizedExercise
+            .primaryBodyPart ||
+          "other",
+
+        source:
+          normalizedExercise
+            .source ||
+          "legacy",
+
         exerciseIndex,
         order: exerciseIndex,
         name:
