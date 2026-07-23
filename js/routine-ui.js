@@ -2157,7 +2157,8 @@ async function saveExerciseEditor(
 
   try {
     if (
-      exerciseEditorMode === "create"
+      exerciseEditorMode ===
+      "create"
     ) {
       await routineApi
         .addActiveRoutineExercise(
@@ -2179,7 +2180,7 @@ async function saveExerciseEditor(
       );
     }
 
-   if (
+    if (
       catalogDraft.templateId
     ) {
       window.JYMLog
@@ -2189,8 +2190,8 @@ async function saveExerciseEditor(
         );
     }
 
-  closeExerciseEditor();
-    } catch (error) {
+    closeExerciseEditor();
+  } catch (error) {
     console.error(
       "[JYM Log] 운동 설정 처리 실패",
       error
