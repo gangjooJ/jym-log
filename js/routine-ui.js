@@ -937,6 +937,22 @@ function renderRoutine() {
             index ===
             exercises.length - 1;
 
+          const catalog =
+            window.JYMLog
+              .exerciseCatalog;
+
+          const equipmentLabel =
+            catalog
+              ?.getEquipmentLabel(
+                exercise.equipment
+              ) ||
+            "기타";
+
+          const increment =
+            Number(
+              exercise.increment
+            ) || 0;
+
           return `
             <div
               class="card routine-card"
@@ -977,6 +993,9 @@ function renderRoutine() {
                 </h3>
 
                 <p>
+                  ${escapeHtml(
+                    equipmentLabel
+                  )} ·
                   ${exercise.weight}kg ·
                   ${exercise.sets}세트 ·
                   ${
@@ -985,6 +1004,7 @@ function renderRoutine() {
                       ? exercise.min
                       : `${exercise.min}–${exercise.max}`
                   }회
+                  · 조절 ${increment}kg
                   · 휴식 ${exercise.rest}초
                 </p>
               </div>
@@ -1835,6 +1855,12 @@ function openExerciseEditor(
   exerciseIncrementInput.value =
     exercise.increment;
 
+  window.JYMLog
+    .exerciseCatalogUI
+    ?.openForExercise?.(
+      exercise
+    );
+
   saveExerciseEditorBtn.textContent =
     "운동 설정 저장";
 
@@ -1904,6 +1930,10 @@ function openExerciseCreator() {
 
   exerciseIncrementInput.value =
     2.5;
+
+  window.JYMLog
+    .exerciseCatalogUI
+    ?.openForCreate?.();
 
   saveExerciseEditorBtn.textContent =
     "운동 추가";
@@ -2020,7 +2050,34 @@ async function saveExerciseEditor(
     manual: "수동 관리형"
   };
 
+  const catalogDraft =
+    window.JYMLog
+      .exerciseCatalogUI
+      ?.getDraft?.() || {
+        templateId: "",
+        equipment: "other",
+        primaryBodyPart:
+          "other",
+        source: "custom"
+      };
+
   const exerciseInput = {
+    templateId:
+      catalogDraft
+        .templateId,
+
+    equipment:
+      catalogDraft
+        .equipment,
+
+    primaryBodyPart:
+      catalogDraft
+        .primaryBodyPart,
+
+    source:
+      catalogDraft
+        .source,
+
     name:
       exerciseNameInput.value,
 
@@ -2335,6 +2392,10 @@ function initialize(options = {}) {
 
   initialized = true;
 
+  window.JYMLog
+    .exerciseCatalogUI
+    ?.initialize?.();
+
   if (
     typeof options.toast ===
     "function"
@@ -2480,7 +2541,7 @@ function initialize(options = {}) {
         "hidden",
 
       initialFocus:
-        "#exerciseNameInput",
+        "#exerciseCatalogSearchInput",
 
       closeOnBackdrop:
         true,

@@ -28,6 +28,7 @@
   <link rel="stylesheet" href="./css/release-readiness.css?v=dev0305" />
   <link rel="stylesheet" href="./css/home-insights.css?v=dev0305" />
   <link rel="stylesheet" href="./css/exercise-analysis.css?v=dev0305" />
+  <link rel="stylesheet" href="./css/exercise-catalog.css?v=dev0305" />
 </head>
 
 <body>
@@ -2228,6 +2229,82 @@
     </div>
 
     <form id="exerciseEditorForm">
+      <input
+        id="exerciseTemplateIdInput"
+        type="hidden"
+        value=""
+      >
+
+      <input
+        id="exerciseSourceInput"
+        type="hidden"
+        value="custom"
+      >
+
+      <section
+        class="exercise-catalog-panel"
+        aria-labelledby="exerciseCatalogTitle"
+      >
+        <div class="exercise-catalog-head">
+          <strong id="exerciseCatalogTitle">
+            운동 종목 선택
+          </strong>
+
+          <button
+            class="ghost-btn"
+            id="useCustomExerciseBtn"
+            type="button"
+          >
+            직접 입력
+          </button>
+        </div>
+
+        <input
+          class="exercise-catalog-search"
+          id="exerciseCatalogSearchInput"
+          type="search"
+          autocomplete="off"
+          enterkeyhint="search"
+          placeholder="운동 이름 검색"
+          aria-label="운동 종목 검색"
+        >
+
+        <div class="exercise-catalog-filters">
+          <select
+            id="exerciseCatalogBodyPartFilter"
+            aria-label="운동 부위 필터"
+          ></select>
+
+          <select
+            id="exerciseCatalogEquipmentFilter"
+            aria-label="추천 장비 필터"
+          ></select>
+        </div>
+
+        <div
+          class="exercise-catalog-results"
+          id="exerciseCatalogResults"
+          role="listbox"
+          aria-label="검색된 운동 종목"
+        ></div>
+
+        <p
+          class="exercise-catalog-message"
+          id="exerciseCatalogResultMessage"
+          role="status"
+          aria-live="polite"
+        ></p>
+
+        <div
+          class="exercise-template-summary"
+          id="exerciseTemplateSummary"
+        >
+          <strong>운동을 선택해 주세요.</strong>
+          <span>
+            목록에 없는 운동은 직접 입력할 수 있습니다.
+          </span>
+        </div>
+      </section>
       <div class="exercise-editor-field full">
         <label for="exerciseNameInput">
           운동 이름
@@ -2245,6 +2322,31 @@
       <div class="exercise-editor-field full">
         <label for="exerciseTypeInput">
           진행 방식
+          <div
+            class="exercise-editor-grid exercise-metadata-grid"
+          >
+            <div class="exercise-editor-field">
+              <label for="exerciseEquipmentInput">
+                사용 장비
+              </label>
+
+              <select
+                id="exerciseEquipmentInput"
+                required
+              ></select>
+            </div>
+
+            <div class="exercise-editor-field">
+              <label for="exercisePrimaryBodyPartInput">
+                주요 운동 부위
+              </label>
+
+              <select
+                id="exercisePrimaryBodyPartInput"
+                required
+              ></select>
+            </div>
+          </div>
         </label>
 
         <select id="exerciseTypeInput">
@@ -2356,15 +2458,15 @@
 
         <div class="exercise-editor-field">
           <label for="exerciseIncrementInput">
-            증량 단위(kg)
+            중량 조절 간격(kg)
           </label>
 
           <input
             id="exerciseIncrementInput"
             type="number"
-            min="0.5"
+            min="0.01"
             max="100"
-            step="0.5"
+            step="any"
             inputmode="decimal"
             required
           >
@@ -2673,6 +2775,9 @@
 ></script>
 <script src="./js/storage.js"></script>
 <script src="./js/exercise-catalog.js?v=dev0305"></script>
+<script src="./js/exercise-catalog.js?v=dev0305"></script>
+<script src="./js/exercise-catalog-ui.js?v=dev0305"></script>
+<script src="./js/progression-policy.js"></script>
 <script src="./js/progression-policy.js"></script>
 <script src="./js/workout.js?v=dev0305"></script>
 <script src="./js/progression-engine.js"></script>

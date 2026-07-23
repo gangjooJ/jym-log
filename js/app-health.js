@@ -46,6 +46,17 @@
     "analysisBars",
     "analysisState",
     "screen-routine",
+    "exerciseTemplateIdInput",
+    "exerciseSourceInput",
+    "exerciseCatalogSearchInput",
+    "exerciseCatalogBodyPartFilter",
+    "exerciseCatalogEquipmentFilter",
+    "exerciseCatalogResults",
+    "exerciseCatalogResultMessage",
+    "exerciseTemplateSummary",
+    "useCustomExerciseBtn",
+    "exerciseEquipmentInput",
+    "exercisePrimaryBodyPartInput",
     "screen-settings",
     "exportBackupBtn",
     "selectBackupFileBtn",
@@ -63,6 +74,7 @@
     ["로컬 저장소", "storage"],
     ["운동 상태", "workout"],
     ["운동 종목", "exerciseCatalog"],
+    ["운동 종목 선택 화면", "exerciseCatalogUI"],
     ["운동 기록", "history"],
     ["홈 최근 흐름", "homeInsights"],
     ["Firebase", "firebase"],
@@ -592,6 +604,16 @@
         "exerciseCatalog.normalizeEquipment",
         app.exerciseCatalog
           ?.normalizeEquipment
+      ],
+      [
+        "exerciseCatalogUI.initialize",
+        app.exerciseCatalogUI
+          ?.initialize
+      ],
+      [
+        "exerciseCatalogUI.getDraft",
+        app.exerciseCatalogUI
+          ?.getDraft
       ],
       [
         "history.filterValidWorkoutSessions",
