@@ -2003,6 +2003,21 @@
       return;
     }
 
+    syncState();
+
+    const validation =
+      workout
+        .validateWorkoutCompletion(
+          state
+        );
+
+    if (!validation.valid) {
+      showToast(
+        validation.message
+      );
+      return;
+    }
+
     setFinishBusy(true);
 
     closeFatigueModal({
@@ -2621,6 +2636,19 @@
             finishInProgress ||
             state.completed
           ) {
+            return;
+          }
+
+          const validation =
+            workout
+              .validateWorkoutCompletion(
+                state
+              );
+
+          if (!validation.valid) {
+            showToast(
+              validation.message
+            );
             return;
           }
 

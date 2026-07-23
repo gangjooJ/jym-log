@@ -219,6 +219,30 @@ async function saveCompletedWorkoutSession(
     );
   }
 
+  if (
+    typeof workout
+      .validateWorkoutCompletion !==
+    "function"
+  ) {
+    throw new Error(
+      "운동 완료 검증 기능을 불러오지 못했습니다."
+    );
+  }
+
+  const completionValidation =
+    workout
+      .validateWorkoutCompletion(
+        state
+      );
+
+  if (
+    !completionValidation.valid
+  ) {
+    throw new Error(
+      completionValidation.message
+    );
+  }
+
   const startedAtMillis =
     Number(state.startedAt);
 

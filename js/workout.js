@@ -803,6 +803,25 @@ window.JYMLog.workout = (() => {
   }
 
   function finishWorkout() {
+    const validation =
+      validateWorkoutCompletion(
+        state
+      );
+
+    if (!validation.valid) {
+      throw new Error(
+        validation.message
+      );
+    }
+
+    /*
+    * 이미 완료된 운동은 완료 시각을
+    * 다시 덮어쓰지 않습니다.
+    */
+    if (state.completed) {
+      return state;
+    }
+
     state.completed = true;
 
     if (!state.completedAt) {
@@ -814,6 +833,8 @@ window.JYMLog.workout = (() => {
     stopElapsedTimer();
 
     saveState();
+
+    return state;
   }
 
   function setFatigue(value) {
@@ -846,6 +867,70 @@ window.JYMLog.workout = (() => {
           0
         )
     );
+  }
+
+  function validateWorkoutCompletion(
+    targetState = state
+  ) {
+    const startedAt =
+      Number(
+        targetState?.startedAt
+      );
+
+    if (
+      !targetState?.started ||
+      !Number.isFinite(startedAt) ||
+      startedAt <= 0
+    ) {
+      return {
+        valid: false,
+        message:
+          "먼저 운동을 시작해 주세요.",
+        completedSetCount: 0
+      };
+    }
+
+    const completedSets =
+      Object.values(
+        targetState?.sets || {}
+      ).filter(
+        (set) =>
+          Boolean(set?.done)
+      );
+
+    if (
+      completedSets.length === 0
+    ) {
+      return {
+        valid: false,
+        message:
+          "완료한 세트가 없습니다. 한 세트 이상 완료해 주세요.",
+        completedSetCount: 0
+      };
+    }
+
+    const invalidCompletedSet =
+      completedSets.find(
+        (set) =>
+          !validateSet(set).valid
+      );
+
+    if (invalidCompletedSet) {
+      return {
+        valid: false,
+        message:
+          "완료한 세트의 중량과 반복 수를 확인해 주세요.",
+        completedSetCount:
+          completedSets.length
+      };
+    }
+
+    return {
+      valid: true,
+      message: "",
+      completedSetCount:
+        completedSets.length
+    };
   }
 
   function isBenchPressSuccess() {
@@ -1198,6 +1283,7 @@ window.JYMLog.workout = (() => {
     getSet,
     updateSet,
     validateSet,
+    validateWorkoutCompletion,
     toggleSetDone,
     setActiveExercise,
     beginWorkout,
