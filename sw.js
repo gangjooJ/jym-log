@@ -1,4 +1,4 @@
-const CACHE_NAME = "jym-log-v0.3.0-dev-7-b";
+const CACHE_NAME = "jym-log-v0.3.0-dev-7-c";
 
 const APP_SHELL = [
   "./",
@@ -16,7 +16,7 @@ const APP_SHELL = [
   "./css/release-readiness.css?v=dev0306",
   "./css/home-insights.css?v=dev0306",
   "./css/exercise-analysis.css?v=dev0306",
-  "./css/exercise-catalog.css?v=dev0306",
+  "./css/exercise-catalog.css?v=dev0307c",
   "./css/numeric-scrubber.css?v=dev0307a",
 
   "./js/config.js?v=dev0306",
@@ -40,17 +40,18 @@ const APP_SHELL = [
   "./js/backup.js?v=dev0306",
   "./js/restore.js?v=dev0306",
   "./js/sync-diagnostics.js?v=dev0306",
-  "./js/app-health.js?v=dev0306",
+  "./js/app-health.js?v=dev0307c",
   "./js/release-readiness.js?v=dev0306",
   "./js/storage.js",
   "./js/exercise-catalog.js?v=dev0306",
-  "./js/exercise-catalog-ui.js?v=dev0306",
+  "./js/exercise-library-preferences.js?v=dev0307c",
+  "./js/exercise-catalog-ui.js?v=dev0307c",
   "./js/numeric-scrubber.js?v=dev0307a",
   "./js/progression-policy.js",
   "./js/workout.js?v=dev0306",
   "./js/progression-engine.js",
   "./js/workout-ui.js?v=dev0307b",
-  "./js/routine-ui.js?v=dev0307b",
+  "./js/routine-ui.js?v=dev0307c",
   "./js/routine-schedule.js",
   "./js/routine-override.js",
   "./js/app.js?v=dev0306",

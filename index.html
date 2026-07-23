@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="./css/release-readiness.css?v=dev0306" />
   <link rel="stylesheet" href="./css/home-insights.css?v=dev0306" />
   <link rel="stylesheet" href="./css/exercise-analysis.css?v=dev0306" />
-  <link rel="stylesheet" href="./css/exercise-catalog.css?v=dev0306" />
+  <link rel="stylesheet" href="./css/exercise-catalog.css?v=dev0307c" />
   <link rel="stylesheet" href="./css/numeric-scrubber.css?v=dev0307a" />
 </head>
 
@@ -2283,6 +2283,48 @@
         </div>
 
         <div
+          class="exercise-catalog-views"
+          role="group"
+          aria-label="운동 빠른 보기"
+        >
+          <button
+            class="exercise-catalog-view is-active"
+            id="showAllExerciseCatalogBtn"
+            type="button"
+            data-catalog-view="all"
+            aria-pressed="true"
+          >
+            전체
+          </button>
+
+          <button
+            class="exercise-catalog-view"
+            id="showFavoriteExerciseCatalogBtn"
+            type="button"
+            data-catalog-view="favorites"
+            aria-pressed="false"
+          >
+            즐겨찾기
+            <span id="favoriteExerciseCount">
+              0
+            </span>
+          </button>
+
+          <button
+            class="exercise-catalog-view"
+            id="showRecentExerciseCatalogBtn"
+            type="button"
+            data-catalog-view="recent"
+            aria-pressed="false"
+          >
+            최근
+            <span id="recentExerciseCount">
+              0
+            </span>
+          </button>
+        </div>
+
+        <div
           class="exercise-catalog-results"
           id="exerciseCatalogResults"
           role="listbox"
@@ -2832,13 +2874,14 @@
 ></script>
 <script src="./js/storage.js"></script>
 <script src="./js/exercise-catalog.js?v=dev0306"></script>
-<script src="./js/exercise-catalog-ui.js?v=dev0306"></script>
+<script src="./js/exercise-library-preferences.js?v=dev0307c"></script>
+<script src="./js/exercise-catalog-ui.js?v=dev0307c"></script>
 <script src="./js/numeric-scrubber.js?v=dev0307a"></script>
 <script src="./js/progression-policy.js"></script>
 <script src="./js/workout.js?v=dev0306"></script>
 <script src="./js/progression-engine.js"></script>
 <script src="./js/workout-ui.js?v=dev0307b"></script>
-<script src="./js/routine-ui.js?v=dev0307b"></script>
+<script src="./js/routine-ui.js?v=dev0307c"></script>
 <script src="./js/progression-history.js"></script>
 <script src="./js/history-ui.js"></script>
 <script src="./js/analysis-ui.js?v=dev0306"></script>
@@ -2883,7 +2926,7 @@
 
 <script
   type="module"
-  src="./js/app-health.js?v=dev0306"
+  src="./js/app-health.js?v=dev0307c"
 ></script>
 
 <script

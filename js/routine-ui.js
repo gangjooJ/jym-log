@@ -2179,6 +2179,16 @@ async function saveExerciseEditor(
       );
     }
 
+   if (
+      catalogDraft.templateId
+    ) {
+      window.JYMLog
+        .exerciseLibraryPreferences
+        ?.markRecent?.(
+          catalogDraft.templateId
+        );
+    }
+
   closeExerciseEditor();
     } catch (error) {
     console.error(

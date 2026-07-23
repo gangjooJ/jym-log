@@ -8,6 +8,10 @@
     window.JYMLog
       .exerciseCatalog;
 
+  const preferences =
+    window.JYMLog
+      .exerciseLibraryPreferences;
+
   const templateIdInput =
     document.getElementById(
       "exerciseTemplateIdInput"
@@ -31,6 +35,22 @@
   const equipmentFilter =
     document.getElementById(
       "exerciseCatalogEquipmentFilter"
+    );
+
+  const catalogViewButtons = [
+    ...document.querySelectorAll(
+      "[data-catalog-view]"
+    )
+  ];
+
+  const favoriteCountElement =
+    document.getElementById(
+      "favoriteExerciseCount"
+    );
+
+  const recentCountElement =
+    document.getElementById(
+      "recentExerciseCount"
     );
 
   const resultsElement =
@@ -96,6 +116,8 @@
   let initialized = false;
 
   let suggestedTemplateId = "";
+
+  let catalogView = "all";
 
   function escapeHtml(value) {
     return String(value)
@@ -278,6 +300,129 @@
     );
   }
 
+  function updateCatalogViewControls() {
+    const favoriteCount =
+      preferences
+        ?.getFavorites?.()
+        .length ||
+      0;
+
+    const recentCount =
+      preferences
+        ?.getRecent?.()
+        .length ||
+      0;
+
+    if (favoriteCountElement) {
+      favoriteCountElement
+        .textContent =
+          String(
+            favoriteCount
+          );
+    }
+
+    if (recentCountElement) {
+      recentCountElement
+        .textContent =
+          String(
+            recentCount
+          );
+    }
+
+    catalogViewButtons
+      .forEach(
+        (button) => {
+          const active =
+            button.dataset
+              .catalogView ===
+            catalogView;
+
+          button.classList.toggle(
+            "is-active",
+            active
+          );
+
+          button.setAttribute(
+            "aria-pressed",
+            String(active)
+          );
+        }
+      );
+  }
+
+  function getVisibleTemplates() {
+    const matchingTemplates =
+      catalog.searchTemplates({
+        query:
+          searchInput?.value ||
+          "",
+
+        bodyPart:
+          bodyPartFilter?.value ||
+          "all",
+
+        equipment:
+          equipmentFilter?.value ||
+          "all"
+      });
+
+    if (
+      catalogView ===
+      "all"
+    ) {
+      return matchingTemplates;
+    }
+
+    const orderedIds =
+      catalogView ===
+        "favorites"
+        ? preferences
+            ?.getFavorites?.() ||
+          []
+        : preferences
+            ?.getRecent?.() ||
+          [];
+
+    const matchingById =
+      new Map(
+        matchingTemplates.map(
+          (template) => [
+            template.id,
+            template
+          ]
+        )
+      );
+
+    return orderedIds
+      .map(
+        (templateId) =>
+          matchingById.get(
+            templateId
+          )
+      )
+      .filter(Boolean);
+  }
+
+  function setCatalogView(
+    nextView
+  ) {
+    catalogView = [
+      "all",
+      "favorites",
+      "recent"
+    ].includes(nextView)
+      ? nextView
+      : "all";
+
+    updateCatalogViewControls();
+    renderResults();
+  }
+
+  function refreshPreferences() {
+    updateCatalogViewControls();
+    renderResults();
+  }
+
   function getSelectedTemplateId() {
     return catalog
       ?.normalizeTemplateId(
@@ -297,26 +442,32 @@
       getSelectedTemplateId();
 
     const results =
-      catalog.searchTemplates({
-        query:
-          searchInput?.value ||
-          "",
+      getVisibleTemplates();
 
-        bodyPart:
-          bodyPartFilter?.value ||
-          "all",
-
-        equipment:
-          equipmentFilter?.value ||
-          "all"
-      });
+    const favoriteIds =
+      new Set(
+        preferences
+          ?.getFavorites?.() ||
+        []
+      );
 
     if (results.length === 0) {
+      const emptyMessage =
+        catalogView ===
+          "favorites"
+          ? "즐겨찾기한 운동이 없습니다."
+          : catalogView ===
+              "recent"
+            ? "최근 사용한 운동이 없습니다."
+            : "조건에 맞는 운동이 없습니다.";
+
       resultsElement.innerHTML = `
         <div
           class="exercise-catalog-empty"
         >
-          조건에 맞는 운동이 없습니다.
+          ${escapeHtml(
+            emptyMessage
+          )}
         </div>
       `;
     } else {
@@ -347,52 +498,95 @@
               template.id ===
               selectedTemplateId;
 
+            const favorite =
+              favoriteIds.has(
+                template.id
+              );
+
             return `
-              <button
-                class="exercise-catalog-result ${
-                  selected
-                    ? "selected"
-                    : ""
-                }"
-                type="button"
-                data-template-id="${escapeHtml(
-                  template.id
-                )}"
-                role="option"
-                aria-selected="${String(
-                  selected
-                )}"
+              <div
+                class="exercise-catalog-result-row"
               >
-                <span>
-                  <strong>
-                    ${escapeHtml(
-                      template.name
-                    )}
-                  </strong>
+                <button
+                  class="exercise-catalog-result ${
+                    selected
+                      ? "selected"
+                      : ""
+                  }"
+                  type="button"
+                  data-template-id="${escapeHtml(
+                    template.id
+                  )}"
+                  role="option"
+                  aria-selected="${String(
+                    selected
+                  )}"
+                >
+                  <span>
+                    <strong>
+                      ${escapeHtml(
+                        template.name
+                      )}
+                    </strong>
 
-                  <small>
-                    ${escapeHtml(
-                      bodyPartLabel
-                    )}
-                  </small>
-                </span>
+                    <small>
+                      ${escapeHtml(
+                        bodyPartLabel
+                      )}
+                    </small>
+                  </span>
 
-                <em>
-                  ${escapeHtml(
-                    equipmentLabels ||
-                    "장비 자유 선택"
-                  )}
-                </em>
-              </button>
+                  <em>
+                    ${escapeHtml(
+                      equipmentLabels ||
+                      "장비 자유 선택"
+                    )}
+                  </em>
+                </button>
+
+                <button
+                  class="exercise-catalog-favorite ${
+                    favorite
+                      ? "is-favorite"
+                      : ""
+                  }"
+                  type="button"
+                  data-favorite-template-id="${escapeHtml(
+                    template.id
+                  )}"
+                  aria-pressed="${String(
+                    favorite
+                  )}"
+                  aria-label="${escapeHtml(
+                    `${template.name} ${
+                      favorite
+                        ? "즐겨찾기 해제"
+                        : "즐겨찾기 추가"
+                    }`
+                  )}"
+                >
+                  <span aria-hidden="true">
+                    ★
+                  </span>
+                </button>
+              </div>
             `;
           }
         ).join("");
     }
 
     if (resultMessage) {
+      const viewLabel = {
+        all: "전체",
+        favorites: "즐겨찾기",
+        recent: "최근 사용"
+      }[catalogView];
+
       resultMessage.textContent =
-        `${results.length}개 운동을 찾았습니다. 실제 장비는 선택 후 자유롭게 변경할 수 있습니다.`;
+        `${viewLabel} ${results.length}개 · 실제 장비는 선택 후 자유롭게 변경할 수 있습니다.`;
     }
+
+    updateCatalogViewControls();
   }
 
   function setCustomExercise(
@@ -534,6 +728,11 @@
       return;
     }
 
+    catalogView =
+      "all";
+
+    updateCatalogViewControls();
+
     if (searchInput) {
       searchInput.value = "";
     }
@@ -609,6 +808,15 @@
 
   function openForCreate() {
     hideMappingSuggestion();
+
+    catalogView =
+      preferences
+        ?.getRecent?.()
+        .length > 0
+        ? "recent"
+        : "all";
+
+    updateCatalogViewControls();
 
     if (searchInput) {
       searchInput.value = "";
@@ -689,6 +897,8 @@
 
     populateControls();
 
+    updateCatalogViewControls();
+
     searchInput
       ?.addEventListener(
         "input",
@@ -707,6 +917,26 @@
         renderResults
       );
 
+    catalogViewButtons
+      .forEach(
+        (button) => {
+          button.addEventListener(
+            "click",
+            () => {
+              setCatalogView(
+                button.dataset
+                  .catalogView
+              );
+            }
+          );
+        }
+      );
+
+    window.addEventListener(
+      "jym-log:exercise-library-preferences-changed",
+      refreshPreferences
+    );
+
     resultsElement
       ?.addEventListener(
         "click",
@@ -717,6 +947,21 @@
                 instanceof Element
             )
           ) {
+            return;
+          }
+
+          const favoriteButton =
+            event.target.closest(
+              "[data-favorite-template-id]"
+            );
+
+          if (favoriteButton) {
+            preferences
+              ?.toggleFavorite?.(
+                favoriteButton.dataset
+                  .favoriteTemplateId
+              );
+
             return;
           }
 
@@ -826,6 +1071,8 @@
         setCustomExercise,
         renderResults,
         getDraft,
-        getSuggestedTemplate
+        getSuggestedTemplate,
+        setCatalogView,
+        refreshPreferences
       });
 })();

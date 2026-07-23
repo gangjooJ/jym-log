@@ -53,6 +53,11 @@
     "exerciseCatalogEquipmentFilter",
     "exerciseCatalogResults",
     "exerciseCatalogResultMessage",
+    "showAllExerciseCatalogBtn",
+    "showFavoriteExerciseCatalogBtn",
+    "showRecentExerciseCatalogBtn",
+    "favoriteExerciseCount",
+    "recentExerciseCount",
     "exerciseTemplateSummary",
     "useCustomExerciseBtn",
     "exerciseEquipmentInput",
@@ -79,6 +84,7 @@
     ["로컬 저장소", "storage"],
     ["운동 상태", "workout"],
     ["운동 종목", "exerciseCatalog"],
+    ["운동 선택 선호", "exerciseLibraryPreferences"],
     ["운동 종목 선택 화면", "exerciseCatalogUI"],
     ["숫자 조절", "numericScrubber"],
     ["운동 기록", "history"],
@@ -610,6 +616,21 @@
         "exerciseCatalog.normalizeEquipment",
         app.exerciseCatalog
           ?.normalizeEquipment
+      ],
+      [
+        "exerciseLibraryPreferences.getSnapshot",
+        app.exerciseLibraryPreferences
+          ?.getSnapshot
+      ],
+      [
+        "exerciseLibraryPreferences.toggleFavorite",
+        app.exerciseLibraryPreferences
+          ?.toggleFavorite
+      ],
+      [
+        "exerciseLibraryPreferences.markRecent",
+        app.exerciseLibraryPreferences
+          ?.markRecent
       ],
       [
         "exerciseCatalogUI.initialize",
