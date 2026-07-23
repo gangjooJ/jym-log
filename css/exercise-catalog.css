@@ -134,6 +134,49 @@
   background: var(--surface-soft);
 }
 
+.exercise-template-suggestion {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.exercise-template-suggestion.hidden {
+  display: none;
+}
+
+.exercise-template-suggestion-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.exercise-template-suggestion-copy strong {
+  font-size: 13px;
+}
+
+.exercise-template-suggestion-copy span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.exercise-template-suggestion-actions {
+  display: grid;
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+  gap: 8px;
+}
+
+.exercise-template-suggestion-actions button {
+  width: 100%;
+  min-height: 40px;
+}
+
 @media (max-width: 390px) {
   .exercise-catalog-filters {
     grid-template-columns: 1fr;

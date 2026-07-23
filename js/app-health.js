@@ -57,6 +57,11 @@
     "useCustomExerciseBtn",
     "exerciseEquipmentInput",
     "exercisePrimaryBodyPartInput",
+    "exerciseTemplateSuggestion",
+    "exerciseTemplateSuggestionTitle",
+    "exerciseTemplateSuggestionDescription",
+    "dismissExerciseTemplateSuggestionBtn",
+    "acceptExerciseTemplateSuggestionBtn",
     "screen-settings",
     "exportBackupBtn",
     "selectBackupFileBtn",
@@ -614,6 +619,11 @@
         "exerciseCatalogUI.getDraft",
         app.exerciseCatalogUI
           ?.getDraft
+      ],
+      [
+        "exerciseCatalogUI.getSuggestedTemplate",
+        app.exerciseCatalogUI
+          ?.getSuggestedTemplate
       ],
       [
         "history.filterValidWorkoutSessions",
