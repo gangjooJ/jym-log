@@ -202,6 +202,52 @@ function rememberSyncError(
   };
 }
 
+function isNetworkUnavailableError(
+  error
+) {
+  const code =
+    String(
+      error?.code ||
+      ""
+    ).toLowerCase();
+
+  const message =
+    String(
+      error?.message ||
+      error ||
+      ""
+    ).toLowerCase();
+
+  const unavailableCodes = [
+    "unavailable",
+    "network-request-failed"
+  ];
+
+  const unavailableMessages = [
+    "connection failed",
+    "failed to fetch",
+    "network error",
+    "internet disconnected",
+    "err_internet_disconnected",
+    "client is offline"
+  ];
+
+  return (
+    unavailableCodes.some(
+      (keyword) =>
+        code.includes(
+          keyword
+        )
+    ) ||
+    unavailableMessages.some(
+      (keyword) =>
+        message.includes(
+          keyword
+        )
+    )
+  );
+}
+
 function emitSyncStatus(
   status,
   message
@@ -1153,6 +1199,9 @@ async function flushPendingState() {
         result.revision
       );
 
+    lastSyncError =
+      null;
+
     clearSyncRetry();
 
     storage.clearPendingSync(
@@ -1225,17 +1274,32 @@ async function flushPendingState() {
       const isOnline =
         navigator.onLine;
 
-      emitSyncStatus(
-        isOnline
-          ? "saving"
-          : "offline",
+      const browserOnline =
+        navigator.onLine;
 
-        isOnline
-          ? "재시도 대기"
-          : "오프라인 저장"
+      const networkUnavailable =
+        !browserOnline ||
+        isNetworkUnavailableError(
+          error
+        );
+
+      emitSyncStatus(
+        networkUnavailable
+          ? "offline"
+          : "saving",
+
+        networkUnavailable
+          ? "오프라인 저장"
+          : "재시도 대기"
       );
 
-      if (isOnline) {
+      /*
+      * 개발자 도구의 모의 오프라인은
+      * navigator.onLine이 true일 수 있습니다.
+      * 이 경우 연결 복구를 감지할 수 있도록
+      * 백그라운드 재시도는 유지합니다.
+      */
+      if (browserOnline) {
         scheduleSyncRetry();
       }
     }
