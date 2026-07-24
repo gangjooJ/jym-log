@@ -6,7 +6,7 @@
 
   const ANALYSIS_MODULE_URL =
     new URL(
-      "./analysis.js?v=dev0306",
+      "./analysis.js?v=rc0301",
       document.currentScript?.src ||
         window.location.href
     ).href;
