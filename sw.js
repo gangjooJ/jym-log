@@ -1,4 +1,4 @@
-const CACHE_NAME = "jym-log-v0.3.0-rc-1-preflight-f";
+const CACHE_NAME = "jym-log-v0.3.0-rc-1-preflight-g";
 
 const APP_SHELL = [
   "./",
@@ -9,7 +9,7 @@ const APP_SHELL = [
   "./css/progression.css",
   "./css/progression-history.css",
   "./css/progression-editor.css",
-  "./css/routine-schedule.css",
+  "./css/routine-schedule.css?v=rc0301g",
   "./css/sync-diagnostics.css?v=dev0307",
   "./css/error-recovery.css?v=dev0307",
   "./css/app-health.css?v=dev0307",
