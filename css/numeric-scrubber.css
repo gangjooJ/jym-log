@@ -1,5 +1,5 @@
 .numeric-scrubber {
-  --numeric-scrubber-slot: 54px;
+  --numeric-scrubber-slot: 68px;
   position: relative;
   display: grid;
   grid-template-columns:
@@ -147,13 +147,18 @@
   text-align: center;
   font-size: 16px;
   font-weight: 800;
-  opacity: 0;
+
+  /*
+   * progression-editor.css의
+   * input:disabled 투명도보다 우선합니다.
+   */
+  opacity: 0 !important;
   pointer-events: none;
 }
 
 .numeric-scrubber.is-editing
 .numeric-scrubber-native {
-  opacity: 1;
+  opacity: 1 !important;
   pointer-events: auto;
 }
 
@@ -169,7 +174,18 @@
 }
 
 .numeric-scrubber.is-disabled {
-  opacity: 0.5;
+  opacity: 0.72;
+}
+
+.numeric-scrubber.is-disabled
+.numeric-scrubber-step {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+
+.numeric-scrubber.is-disabled
+.numeric-scrubber-center-mark {
+  opacity: 0.35;
 }
 
 .numeric-scrubber.is-disabled
@@ -183,7 +199,7 @@
 
 @media (max-width: 390px) {
   .numeric-scrubber {
-    --numeric-scrubber-slot: 50px;
+    --numeric-scrubber-slot: 60px;
     grid-template-columns:
       34px minmax(0, 1fr) 34px;
   }

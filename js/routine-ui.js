@@ -1694,6 +1694,40 @@ function syncExerciseTypeFields() {
   exerciseMaxRepsInput.disabled =
     isStage || isLoad;
 
+  const derivedInputs = [
+    exerciseSetsInput,
+    exerciseMinRepsInput,
+    exerciseMaxRepsInput
+  ];
+
+  derivedInputs.forEach(
+    (input) => {
+      input?.removeAttribute(
+        "title"
+      );
+    }
+  );
+
+  if (isStage) {
+    const stageDerivedMessage =
+      "반복 단계형에서는 아래 반복 단계의 세트별 목표로 자동 계산됩니다.";
+
+    derivedInputs.forEach(
+      (input) => {
+        input?.setAttribute(
+          "title",
+          stageDerivedMessage
+        );
+      }
+    );
+  } else if (isLoad) {
+    exerciseMaxRepsInput
+      ?.setAttribute(
+        "title",
+        "중량 증가형에서는 최대 반복이 최소 반복과 동일하게 자동 설정됩니다."
+      );
+  }
+
   if (isLoad) {
     exerciseMaxRepsInput.value =
       exerciseMinRepsInput.value;
@@ -1716,11 +1750,14 @@ function syncExerciseTypeFields() {
   if (exerciseProgressionHelp) {
     const help = {
       load:
-        "정해진 세트와 반복을 달성하면 설정한 중량만큼 증가합니다.",
+        "최대 반복은 최소 반복과 동일하게 자동 설정됩니다. 정해진 세트와 반복을 달성하면 중량을 증가합니다.",
+
       "rep-range":
-        "모든 세트가 최대 반복에 도달하면 중량을 증가합니다.",
+        "세트 수와 최소·최대 반복을 직접 설정합니다. 모든 세트가 최대 반복에 도달하면 중량을 증가합니다.",
+
       stage:
-        "현재 반복 단계를 달성하면 다음 단계로 이동하고, 최종 단계에서 중량을 증가합니다.",
+        "세트 수와 최소·최대 반복은 아래 반복 단계에서 자동 계산됩니다. 반복 단계의 세트별 목표를 수정해 주세요.",
+
       manual:
         "자동 증량 추천은 사용하지 않습니다. 중량 조절 간격은 운동 화면의 중량 변경 단위로 사용됩니다."
     };

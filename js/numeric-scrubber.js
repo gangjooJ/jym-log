@@ -134,8 +134,14 @@
       preview = normalize(value);
       const currentStep = step();
 
-      track.innerHTML = [-2, -1, 0, 1, 2]
-        .map((distance) => {
+      const distances =
+        input.disabled
+          ? [0]
+          : [-1, 0, 1];
+
+      track.innerHTML =
+        distances
+          .map((distance) => {
           const itemValue = round(preview + distance * currentStep);
           const unavailable = itemValue < min() || itemValue > max();
           const classes = [
@@ -145,9 +151,27 @@
             unavailable ? "is-unavailable" : ""
           ].filter(Boolean).join(" ");
 
-          return `<span class="${classes}" aria-hidden="true">${
-            unavailable ? "" : label(itemValue)
-          }</span>`;
+          const itemLabel =
+            distance === 0
+              ? label(
+                  itemValue
+                )
+              : formatter.format(
+                  itemValue
+                );
+
+          return `
+            <span
+              class="${classes}"
+              aria-hidden="true"
+            >
+              ${
+                unavailable
+                  ? ""
+                  : itemLabel
+              }
+            </span>
+          `;
         })
         .join("");
 
