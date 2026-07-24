@@ -5,7 +5,7 @@
     window.JYMLog || {};
 
   const TARGET_VERSION =
-    "v0.3.0-rc.1";
+    "v0.3.0";
 
   const VALID_STATES =
     new Set([
